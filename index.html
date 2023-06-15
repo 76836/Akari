@@ -1,0 +1,180 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width" />
+
+    <title>Akari voice assistant</title>
+
+  </head>
+<style>
+  body {
+    color: white;
+    background-color: #111111;
+    overflow: hidden;
+  }
+  .GoAkari {
+    width: 20vw;
+    height: 20vw;
+    margin: 5vh;
+    margin-left: 40vw;
+    margin-right: 40vw;
+    border-radius: 10vw;
+    border: 1vw inset gold;
+  }
+</style>
+  <body>
+    <h1 style="width:100%; text-align: center;">Akari voice assistant, v1.0.</h1>
+    <button class="GoAkari" onclick="recognition.start();">Go Akari!</button>
+    <button style="margin-left: 42.5vw; width:15vw;" onclick="speak('testing voice output on ' + browser + ' web browser')">test speech speech synthesis</button>
+    <div>
+      <br>
+      <p style="font-size:x-large; width:100%; text-align: center;" class="output"><em>dictated text will appear here</em></p>
+<br>
+<p style="font-size:xx-large; width:100%; text-align: center;" class="responsetxt">Akari's response will appear here</p>
+
+    </div>
+
+
+</body>
+<script>
+  const getBrowserName = () => {
+    let browserInfo = navigator.userAgent;
+    let browser;
+    if (browserInfo.includes('Opera') || browserInfo.includes('Opr')) {
+      browser = 'Opera';
+    } else if (browserInfo.includes('Edg')) {
+      browser = 'Edge';
+    } else if (browserInfo.includes('Chrome')) {
+      browser = 'Chrome';
+    } else if (browserInfo.includes('Safari')) {
+      browser = 'Safari';
+    } else if (browserInfo.includes('Firefox')) {
+      browser = 'Firefox'
+    } else {
+      browser = 'unknown'
+    }
+      return browser;
+  }
+var browser = getBrowserName();
+</script>
+
+<script>
+   const synth = window.speechSynthesis;
+
+const inputForm = document.querySelector("form");
+const inputTxt = document.querySelector(".txt");
+const voiceSelect = document.querySelector("select");
+
+const pitch = document.querySelector("#pitch");
+const pitchValue = document.querySelector(".pitch-value");
+const rate = document.querySelector("#rate");
+const rateValue = document.querySelector(".rate-value");
+
+var responsetxt = document.querySelector('.responsetxt');
+
+let voices = [];
+
+   function speak(WORDS) {
+     if (synth.speaking) {
+       console.error("speechSynthesis.speaking");
+       return;
+     }
+   
+     if (WORDS !== "") {
+       const utterThis = new SpeechSynthesisUtterance(WORDS);
+   
+       utterThis.onend = function (event) {
+         console.log("SpeechSynthesisUtterance.onend");
+       };
+   
+       utterThis.onerror = function (event) {
+         console.error("SpeechSynthesisUtterance.onerror");
+       };
+   
+       const selectedOption = "Google US English (en-US)"
+   
+       for (let i = 0; i < voices.length; i++) {
+         if (voices[i].name === selectedOption) {
+           utterThis.voice = voices[i];
+           break;
+         }
+       }
+       utterThis.pitch = 1;
+       utterThis.rate = 1;
+       responsetxt.textContent = WORDS;
+       synth.speak(utterThis);
+       
+     }
+   }
+
+   </script>
+ 
+
+
+<script>
+function sleep(ms) {
+  return new Promise(
+    resolve => setTimeout(resolve, ms)
+  );
+}
+
+var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+var recognition = new SpeechRecognition();
+var textout = document.querySelector('.output');
+
+recognition.onspeechend = async function() {
+  await sleep(200);
+  recognition.stop();
+}
+
+recognition.onresult = async function(event) {
+  var outcome = event.results[0][0].transcript;
+  textout.textContent = outcome;
+
+
+  if (outcome.includes("exit") == true) {
+    console.log('keyword "exit" found');
+            speak('goodbye');
+            await sleep(1000);
+            window.close()
+            
+            return;
+        };
+
+  if (outcome.includes("time") && outcome.includes("what") == true) {
+    console.log('keywords "time" & "what" found');
+            var d = new Date(); 
+            speak('The time is... '+d.toLocaleTimeString())
+            
+            return;
+        };
+
+  if (outcome.includes("directions") && outcome.includes("to") || outcome.includes("get") == true) {
+    console.log('keywords "directions" & "to"/"get" found'); 
+            var location = outcome.replace('directions',"");
+            location = location.replace('to',"");
+            location = location.replace('get',"");
+            speak('getting directions to '+ location);
+            window.open('https://www.google.com/maps/search/'+outcome, "_blank");
+            return;
+        };
+
+  if (outcome == "help") {
+    console.log('command "help" entered');
+            speak('here is a list of commands to try: exit.  whats the time. get directions to location.  help.  or, ask a question for bing to answer.');
+            return;
+        };
+
+  console.log('no keywords found, starting internet search.');
+  speak("searching for "+outcome);
+  window.open('https://bing.com/search?q='+outcome, "_blank")
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var recognition = new SpeechRecognition();
+}
+</script>
+  
+
+</html>
