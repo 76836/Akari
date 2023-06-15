@@ -24,10 +24,20 @@
     border-radius: 10vw;
     border: 1vw inset gold;
   }
+  .listening {
+    width: 20vw;
+    height: 20vw;
+    margin: 5vh;
+    margin-left: 40vw;
+    margin-right: 40vw;
+    border-radius: 10vw;
+    background-color: green;
+    border: 1vw inset gold;
+  }
 </style>
   <body>
-    <h1 style="width:100%; text-align: center;">Akari voice assistant, v1.0.</h1>
-    <button class="GoAkari" onclick="recognition.start();">Go Akari!</button>
+    <h1 style="width:100%; text-align: center;">Akari voice assistant, v1.1.</h1>
+    <button id="GO" class="GoAkari" onclick="recognition.start(); document.getElementById('GO').className='listening';">Go Akari!</button>
     <button style="margin-left: 42.5vw; width:15vw;" onclick="speak('testing voice output on ' + browser + ' web browser')">test speech speech synthesis</button>
     <div>
       <br>
@@ -127,13 +137,14 @@ var textout = document.querySelector('.output');
 
 recognition.onspeechend = async function() {
   await sleep(200);
+  document.getElementById('GO').className='GoAkari';
   recognition.stop();
 }
 
 recognition.onresult = async function(event) {
   var outcome = event.results[0][0].transcript;
   textout.textContent = outcome;
-
+  document.getElementById('GO').className='GoAkari';
 
   if (outcome.includes("exit") == true) {
     console.log('keyword "exit" found');
@@ -158,7 +169,7 @@ recognition.onresult = async function(event) {
             location = location.replace('to',"");
             location = location.replace('get',"");
             speak('getting directions to '+ location);
-            window.open('https://www.google.com/maps/search/'+outcome, "_blank");
+            window.location.href='https://www.google.com/maps/search/'+outcome ;
             return;
         };
 
@@ -170,7 +181,7 @@ recognition.onresult = async function(event) {
 
   console.log('no keywords found, starting internet search.');
   speak("searching for "+outcome);
-  window.open('https://bing.com/search?q='+outcome, "_blank")
+  window.location.href='https://bing.com/search?q='+outcome ;
   var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   var recognition = new SpeechRecognition();
 }
