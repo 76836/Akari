@@ -1,0 +1,51 @@
+body {
+    color: white;
+    background-color: #111111;
+    overflow-x: hidden;
+  }
+  .GoAkari {
+    width: 20vw;
+    height: 20vw;
+    margin: 5vh;
+    margin-left: 40vw;
+    margin-right: 40vw;
+    border-radius: 10vw;
+    border: 1vw inset gold;
+  }
+  .listening {
+    width: 20vw;
+    height: 20vw;
+    margin: 5vh;
+    margin-left: 40vw;
+    margin-right: 40vw;
+    border-radius: 10vw;
+    background-color: green;
+    border: 1vw inset gold;
+  }
+  .responsetxt {
+    font-size:xx-large; 
+    width:100%; 
+    text-align: center; 
+    color: cyan; 
+    border-bottom: 1px solid white; 
+    border-radius: 10px;
+  }
+  .output {
+    font-size:x-large; 
+    width:100%; 
+    text-align: center; 
+    color: green; 
+    border-top: 1px solid white; 
+    border-radius: 10px;
+    margin-top: 0px;
+  }
+  .testbutton { 
+    width:100%; 
+    border:0; 
+    background-color: transparent; 
+    color: gray; 
+    font-size:x-large; 
+    border-bottom: 1px solid white; 
+    border-radius: 10px;
+  }
+  
