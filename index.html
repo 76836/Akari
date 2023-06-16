@@ -2,129 +2,31 @@
 <!DOCTYPE html>
 <html id="html" lang="en">
   <head>
+    <link rel="manifest" href="./app.webmanifest">
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width" />
-
-    <title>Akari voice assistant</title>
-
+    <title>Akari Voice Assistant</title>
+    <link rel="stylesheet" href="./index.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+    <link rel="shortcut icon" href="./favicon.ico">
+    <meta name="msapplication-TileColor" content="#603cba">
+    <meta name="theme-color" content="#00ffff">
   </head>
-<style>
-  body {
-    color: white;
-    background-color: #111111;
-    overflow: hidden;
-  }
-  .GoAkari {
-    width: 20vw;
-    height: 20vw;
-    margin: 5vh;
-    margin-left: 40vw;
-    margin-right: 40vw;
-    border-radius: 10vw;
-    border: 1vw inset gold;
-  }
-  .listening {
-    width: 20vw;
-    height: 20vw;
-    margin: 5vh;
-    margin-left: 40vw;
-    margin-right: 40vw;
-    border-radius: 10vw;
-    background-color: green;
-    border: 1vw inset gold;
-  }
-</style>
-  <body>
-    <h1 style="width:100%; text-align: center;">Akari voice assistant, v1.2.</h1>
+
+<body>
+    <h1 style="margin: 0; width:100%; text-align: center;">Akari Voice Assistant v1.3</h1>
+    <button class="testbutton" onclick="speak('testing voice output on ' + browser + ' web browser')">test speech synthesis <em>here </em></button>
     <button id="GO" class="GoAkari" onclick="recognition.start(); document.getElementById('GO').className='listening';">Go Akari!</button>
-    <button style="margin-left: 42.5vw; width:15vw;" onclick="speak('testing voice output on ' + browser + ' web browser')">test speech speech synthesis</button>
-    <div>
-      <br>
-      <p style="font-size:x-large; width:100%; text-align: center;" class="output"><em>dictated text will appear here</em></p>
-<br>
-<p style="font-size:xx-large; width:100%; text-align: center;" class="responsetxt">Akari's response will appear here</p>
-<br>
-      <p style="font-size:large; width:100%; text-align: center;"><em>Say "help" or "what's up?" for more info and basic syntax instructions.</em></p>
-
-    </div>
-
-
+    <p class="output"><em>dictated text will appear here</em></p>
+    <p class="responsetxt">Akari's response will appear here</p>
+    <p style="font-size:large; width:100%; text-align: center;"><em>Say "help" or "what's up?" for more info and basic syntax instructions.</em></p>
 </body>
-<script>
-  const getBrowserName = () => {
-    let browserInfo = navigator.userAgent;
-    let browser;
-    if (browserInfo.includes('Opera') || browserInfo.includes('Opr')) {
-      browser = 'Opera';
-    } else if (browserInfo.includes('Edg')) {
-      browser = 'Edge';
-    } else if (browserInfo.includes('Chrome')) {
-      browser = 'Chrome';
-    } else if (browserInfo.includes('Safari')) {
-      browser = 'Safari';
-    } else if (browserInfo.includes('Firefox')) {
-      browser = 'Firefox'
-    } else {
-      browser = 'unknown'
-    }
-      return browser;
-  }
-var browser = getBrowserName();
+
+<script type="text/javascript" src="./speech.js">
 </script>
-
-<script>
-   const synth = window.speechSynthesis;
-
-const inputForm = document.querySelector("form");
-const inputTxt = document.querySelector(".txt");
-const voiceSelect = document.querySelector("select");
-
-const pitch = document.querySelector("#pitch");
-const pitchValue = document.querySelector(".pitch-value");
-const rate = document.querySelector("#rate");
-const rateValue = document.querySelector(".rate-value");
-
-var responsetxt = document.querySelector('.responsetxt');
-
-let voices = [];
-
-   function speak(WORDS) {
-     if (synth.speaking) {
-       console.error("speechSynthesis.speaking");
-       return;
-     }
-   
-     if (WORDS !== "") {
-       const utterThis = new SpeechSynthesisUtterance(WORDS);
-   
-       utterThis.onend = function (event) {
-         console.log("SpeechSynthesisUtterance.onend");
-       };
-   
-       utterThis.onerror = function (event) {
-         console.error("SpeechSynthesisUtterance.onerror");
-       };
-   
-       const selectedOption = "Google US English (en-US)"
-   
-       for (let i = 0; i < voices.length; i++) {
-         if (voices[i].name === selectedOption) {
-           utterThis.voice = voices[i];
-           break;
-         }
-       }
-       utterThis.pitch = 1;
-       utterThis.rate = 1;
-       responsetxt.textContent = WORDS;
-       synth.speak(utterThis);
-       
-     }
-   }
-
-   </script>
- 
-
+<script type="text/javascript" src="./response.js">
+</script>
 
 <script>
 function sleep(ms) {
@@ -148,110 +50,36 @@ recognition.onresult = async function(event) {
   var outcome = event.results[0][0].transcript;
   textout.textContent = outcome;
   document.getElementById('GO').className='GoAkari';
-
-  if (outcome.includes("exit") == true) {
-    console.log('keyword "exit" found');
-            speak('goodbye');
-            await sleep(1000);
-            window.close()
-            
-            return;
-        };
-
-  if (outcome.includes("time") && outcome.includes("what") == true) {
-    console.log('keywords "time" & "what" found');
-            var d = new Date(); 
-            speak('The time is... '+d.toLocaleTimeString())
-            
-            return;
-        };
-
-  if (outcome.includes("directions") && outcome.includes("to") || outcome.includes("get") == true) {
-    console.log('keywords "directions" & "to"/"get" found'); 
-            var location = outcome.replace('directions',"");
-            location = location.replace('to',"");
-            location = location.replace('get',"");
-            speak('getting directions to '+ location);
-            window.location.href='https://www.google.com/maps/search/'+outcome ;
-            return;
-        };
-
-
-  if (outcome == "help") {
-    console.log('command "help" entered');
-            speak('here is a list of commands to try: "open [app]" redirects you to appname.com. play youtube video.  whats the time. get directions to location. exit. help.  or, ask a question for bing to answer.');
-            return;
-        };
-
-
-
-  if (outcome.includes("YouTube") || outcome.includes("play") == true) {
-    console.log('keywords "Youtube" & "search"/"play" found'); 
-            var video = outcome.replace('YouTube',"");
-            video = video.replace('search',"");
-            video = video.replace('play',"");
-            video = video.replace('on',"");
-            video = video.replace('for',"");
-            speak('looking for '+ video + " on YouTube");
-            window.location.href='https://youtube.com/search?q='+video ;
-            return;
-        };
-
-        if (outcome.includes("open") && outcome.length < 20  == true) {
-    console.log('lets hope this app has a .com domain'); 
-            var appname = outcome.replace('open',"");
-            appname = appname.replace(' ',"");
-            if (appname.includes("settings")) {speak('the "open" function only supports apps that have a .com domain. Sorry.'); return;};
-            speak('redirecting you to '+ appname + ".com");
-            window.location.href='https://' + appname +'.com' ;
-            return;
-        };
-
-        if (outcome.includes("destruct") && outcome.includes("self") && outcome.length < 25 == true) {
-        console.log('the self destruct program has been launched'); 
-            if (outcome.includes("1234")) {speak('self destruct activated, goodbye.');} else {speak('passcode incorrect'); return;};
-            document.getElementById('html').innerHTML='';
-            console.clear()
-            return;
-        };
-
-        if (outcome.includes("what") && outcome.includes("up") && outcome.length < 15 == true) {
-        console.log('kewords "what" & "up" found'); 
-            speak('version 1.2... With this update I can now open more apps, and search YouTube!');
-            return;
-        };
-
-  if (outcome == "hello there") {
-    console.log(' I will deal with this Jedi slime myself. \n   Your move.');
-            speak('General Kenobi. You are a bold one.');
-            document.getElementById('GO').className='GoAkari';
-            await sleep(200);
-            document.getElementById('GO').className='listening';
-            await sleep(200);
-            document.getElementById('GO').className='GoAkari';
-            await sleep(200);
-            document.getElementById('GO').className='listening';
-            await sleep(200);
-            document.getElementById('GO').className='GoAkari';
-            await sleep(200);
-            document.getElementById('GO').className='listening';
-            await sleep(200);
-            document.getElementById('GO').className='GoAkari';
-            await sleep(200);
-            document.getElementById('GO').className='listening';
-            await sleep(200);
-            document.getElementById('GO').className='GoAkari';
-            return;
-        };
-
-
-  console.log('no keywords found, starting internet search.');
-  speak("searching for "+outcome);
-  window.location.href='https://bing.com/search?q='+outcome ;
   var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   var recognition = new SpeechRecognition();
+
+  respond(outcome);
+  return;
 }
 </script>
   
 
+
+
+<script>
+  const getBrowserName = () => {
+    let browserInfo = navigator.userAgent;
+    let browser;
+    if (browserInfo.includes('Opera') || browserInfo.includes('Opr')) {
+      browser = 'Opera';
+    } else if (browserInfo.includes('Edg')) {
+      browser = 'Edge';
+    } else if (browserInfo.includes('Chrome')) {
+      browser = 'Chrome';
+    } else if (browserInfo.includes('Safari')) {
+      browser = 'Safari';
+    } else if (browserInfo.includes('Firefox')) {
+      browser = 'Firefox'
+    } else {
+      browser = 'unknown'
+    }
+      return browser;
+  }
+var browser = getBrowserName();
+</script>
 </html>
