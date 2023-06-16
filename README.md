@@ -1,9 +1,16 @@
 # Akari
-Siri knock-off.
+Akari Voice Assistant v1.3.
 Usable on chrome-based browsers at: https://76836.github.io/Akari
 
-Next Update:
-Debugging code, adding nicer css, and making a Progressive Web App to install. (I hope)
+Next update: <br>
+Who knows?
+If there are any humans reading this, suggest something.
+
+Version 1.3 Update: 
+"Debugged" some code (probably just added more bugs). 
+Made some marginally nicer css. 
+Made a Progressive Web App to install. 
+Split the scripts and css into their own files.
 
 Version 1.2 update:
 Akari can now open any pronouncable app that has a .com domain name, say something like "open Discord" to try it.
