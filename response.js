@@ -1,7 +1,7 @@
 async function respond(outcome)
  {
 
-if (outcome.includes("exit") == true) {
+if (outcome.includes("exit ") && outcome.length < 12 == true) {
     console.log('keyword "exit" found');
             speak('goodbye');
             await sleep(1000);
@@ -26,7 +26,7 @@ if (outcome.includes("exit") == true) {
             location = location.replace(' to '," ");
             location = location.replace(' get '," ");
             speak('getting directions to '+ location);
-            //window.location.href='https://www.google.com/maps/search/'+outcome ;
+            window.location.href='https://www.google.com/maps/search/'+outcome ;
             return;
         };
 
@@ -34,20 +34,6 @@ if (outcome.includes("exit") == true) {
   if (outcome == "help") {
     console.log('command "help" entered');
             speak('here is a list of commands to try: "open [app]" redirects you to appname.com. play youtube video.  whats the time. get directions to location. exit. help.  or, ask a question for bing to answer.');
-            return;
-        };
-
-
-
-  if (outcome.includes("YouTube") || outcome.includes("play ") == true) {
-    console.log('keywords "Youtube" & "search"/"play" found'); 
-            var video = outcome.replace('YouTube',"");
-            video = video.replace('search',"");
-            video = video.replace('play',"");
-            video = video.replace(' on '," ");
-            video = video.replace(' for '," ");
-            speak('looking for '+ video + " on YouTube");
-            window.location.href='https://youtube.com/search?q='+video ;
             return;
         };
 
@@ -61,8 +47,21 @@ if (outcome.includes("exit") == true) {
             window.location.href='https://' + appname +'.com' ;
             return;
         };
+  
+  
+  if (outcome.includes("YouTube") || outcome.includes("play ") == true) {
+    console.log('keywords "Youtube" & "search"/"play" found'); 
+            var video = outcome.replace('YouTube',"");
+            video = video.replace('search',"");
+            video = video.replace('play',"");
+            video = video.replace(' on '," ");
+            video = video.replace(' for '," ");
+            speak('looking for '+ video + " on YouTube");
+            window.location.href='https://youtube.com/search?q='+video ;
+            return;
+        };
 
-
+  
         if (outcome.includes("destruct") && outcome.includes("self") && outcome.length < 25 == true) {
         console.log('the self destruct program has been launched'); 
             if (outcome.includes("1")) {speak('self destruct launched, goodbye.');} else {speak('passcode incorrect'); return;};
@@ -75,7 +74,7 @@ if (outcome.includes("exit") == true) {
 
         if (outcome.includes("what") && outcome.includes(" up") && outcome.length < 15 == true) {
         console.log('kewords "what" & "up" found'); 
-            speak('version 1.2... With this update I can now open more apps, and search YouTube!');
+            speak('version 1.3... I now have a logo, better performance, and my own PWA!');
             return;
         };
 
@@ -107,6 +106,6 @@ if (outcome.includes("exit") == true) {
 
   console.log('no keywords found, starting internet search.');
   speak("searching for "+outcome);
-  //window.location.href='https://bing.com/search?q='+outcome ;
+  window.location.href='https://bing.com/search?q='+outcome ;
 
 };
