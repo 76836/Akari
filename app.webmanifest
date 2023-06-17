@@ -3,18 +3,21 @@
     "prefer_related_applications": false,
     "short_name": "Akari",
     "icons": [{
-        "src": "./logo192.png",
+        "src": "./logo512.png",
         "sizes": "512x512",
         "type": "image/png",
-        "purpose": "maskable"
       },{
         "src": "./logo192.png",
         "sizes": "192x192",
         "type": "image/png",
         "purpose": "maskable"
+      },{
+        "src": "./logo144.png",
+        "sizes": "144x144",
+        "type": "image/png",
       }],
-    "start_url": "/Akari/",
-    "scope": "/Akari/",
+    "start_url": "./",
+    "scope": "./",
     "display": "standalone",
     "background_color": "black",
     "theme_color": "darkcyan"
