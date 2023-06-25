@@ -15,12 +15,22 @@
   </head>
 
 <body>
-    <h1 style="margin: 0; width:100%; text-align: center;">Akari Voice Assistant v1.3</h1>
-    <button class="testbutton" onclick="speak('testing voice output on ' + browser + ' web browser')">test speech synthesis <em>here </em></button>
+    <h1 style="margin: 0; width:100%; text-align: center;">Akari Voice Assistant v1.4</h1>
+    <button id="test" class="testbutton" ></button>
     <button id="GO" class="GoAkari" onclick="recognition.start(); document.getElementById('GO').className='listening';">Go Akari!</button>
     <p class="output"><em>dictated text will appear here</em></p>
     <p class="responsetxt">Akari's response will appear here</p>
     <p style="font-size:large; width:100%; text-align: center;"><em>Say "help" or "what's up?" for more info and basic syntax instructions.</em></p>
+  
+        <div class="option" style="font-size:large; width:100%; text-align: center;">
+      <label for="voice">Voice</label>
+      <select name="voice" id="voice"></select>
+    </div>
+    <div class="option" style="font-size:large; width:100%; text-align: center;">
+      <label for="volume">Volume</label>
+      <input type="range" min="0" max="1" step="0.1" name="volume" id="volume" value="1">
+    </div>
+  
 </body>
 
 <script type="text/javascript" src="./speech.js">
