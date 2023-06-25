@@ -1,6 +1,8 @@
 async function respond(outcome)
  {
 
+outcome = outcome.toLowerCase();
+  
 if (outcome.includes("exit ") && outcome.length < 12 == true) {
     console.log('keyword "exit" found');
             speak('goodbye');
@@ -24,7 +26,7 @@ if (outcome.includes("exit ") && outcome.length < 12 == true) {
     console.log('keywords "directions" & "to"/"get" found'); 
             var location = outcome.replace('directions',"");
             location = location.replace(' to '," ");
-            location = location.replace(' get '," ");
+            location = location.replace('get '," ");
             speak('getting directions to '+ location);
             window.location.href='https://www.google.com/maps/search/'+outcome ;
             return;
@@ -33,7 +35,7 @@ if (outcome.includes("exit ") && outcome.length < 12 == true) {
 
   if (outcome == "help") {
     console.log('command "help" entered');
-            speak('here is a list of commands to try: "open [app]" redirects you to appname.com. play youtube video.  whats the time. get directions to location. exit. help.  or, ask a question for bing to answer.');
+            speak('here is a list of commands to try: open app redirects you to appname.com. play youtube video.  whats the time. get directions to location. exit. help.  or, ask a question for bing to answer.');
             return;
         };
 
@@ -49,9 +51,9 @@ if (outcome.includes("exit ") && outcome.length < 12 == true) {
         };
   
   
-  if (outcome.includes("YouTube") || outcome.includes("play ") == true) {
-    console.log('keywords "Youtube" & "search"/"play" found'); 
-            var video = outcome.replace('YouTube',"");
+  if (outcome.includes("youtube") || outcome.includes("play ") == true) {
+    console.log('keywords "youtube" & "search"/"play" found'); 
+            var video = outcome.replace('youtube',"");
             video = video.replace('search',"");
             video = video.replace('play',"");
             video = video.replace(' on '," ");
@@ -62,7 +64,7 @@ if (outcome.includes("exit ") && outcome.length < 12 == true) {
         };
 
   
-        if (outcome.includes("destruct") && outcome.includes("self") && outcome.length < 25 == true) {
+        if (outcome.includes("destruct") && outcome.includes("self") && outcome.length < 30 == true) {
         console.log('the self destruct program has been launched'); 
             if (outcome.includes("1")) {speak('self destruct launched, goodbye.');} else {speak('passcode incorrect'); return;};
             //The pasword is actually 1234, but i'm not gonna add the code to check for the full thing.
@@ -74,7 +76,7 @@ if (outcome.includes("exit ") && outcome.length < 12 == true) {
 
         if (outcome.includes("what") && outcome.includes(" up") && outcome.length < 15 == true) {
         console.log('kewords "what" & "up" found'); 
-            speak('version 1.3... I now have a logo, better performance, and my own PWA!');
+            speak('version 1.4... now you can change my voice.');
             return;
         };
 
