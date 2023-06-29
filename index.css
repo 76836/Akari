@@ -1,6 +1,6 @@
 body {
     color: white;
-    background-color: #111111;
+    background-color: black;
     overflow-x: hidden;
   }
   .GoAkari {
@@ -51,7 +51,7 @@ body {
   }
   .box {
     font-size:large; 
-    width:87%; 
+    width:85%; 
     text-align: center;
     margin:0;
   }
