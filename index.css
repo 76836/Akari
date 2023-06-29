@@ -10,6 +10,7 @@ body {
     margin-left: 40vw;
     margin-right: 40vw;
     border-radius: 10vw;
+    background-color: darkcyan;
     border: 1vw inset gold;
   }
   .listening {
