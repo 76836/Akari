@@ -1,5 +1,5 @@
 # Akari
-Akari Voice Assistant v1.4.
+Akari Voice Assistant v1.5.
 Usable on chrome-based browsers at: https://76836.github.io/Akari
 Safari probably won't work. And Firefox doesn't work yet either. YET.
 
