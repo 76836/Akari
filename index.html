@@ -15,13 +15,15 @@
   </head>
 
 <body>
-    <h1 style="margin: 0; width:100%; text-align: center;">Akari Voice Assistant v1.4</h1>
+    <h1 style="margin: 0; width:100%; text-align: center;">Akari Voice Assistant v1.5</h1>
     <button id="test" class="testbutton" ></button>
     <button id="GO" class="GoAkari" onclick="recognition.start(); document.getElementById('GO').className='listening';">Go Akari!</button>
     <p class="output"><em>dictated text will appear here</em></p>
     <p class="responsetxt">Akari's response will appear here</p>
     <p style="font-size:large; width:100%; text-align: center;"><em>Say "help" or "what's up?" for more info and basic syntax instructions.</em></p>
   
+    <button class="testbutton" ></button>
+
         <div class="option" style="font-size:large; width:100%; text-align: center;">
       <label for="voice">Voice</label>
       <select name="voice" id="voice"></select>
@@ -31,12 +33,88 @@
       <input type="range" min="0" max="1" step="0.1" name="volume" id="volume" value="1">
     </div>
   
+    <button class="testbutton" ></button>
+
+<div>
+  <p style="font-size:large; width:100%; text-align: center;">Change Speech Synthesis Script:</p>
+    <input class="box" id="voiceurl" placeholder="Https://example.com/speech.js" type=text>
+    <button class="setbutton" onclick="setvoice()">set</button>
+</div>
+<div>
+  <p style="font-size:large; width:100%; text-align: center;">Change response Script:</p>
+    <input class="box" id="AIurl" placeholder="./response.js" type=text>
+    <button class="setbutton" onclick="setAI()">set</button>
+    <p style="font-size:large; width:100%; text-align: center;"><em>Set any script to nothing to return to default.<br>Reload to apply changes.</em></p>
+</div>
+
+<button class="testbutton" ></button> 
+
 </body>
 
-<script type="text/javascript" src="./speech.js">
+
+<script>
+  var VoiceScript = localStorage.getItem('selectedVoiceScript');
+  document.getElementById('voiceurl').value = VoiceScript;
+
+  var AIScript = localStorage.getItem('selectedAIScript');
+  document.getElementById('AIurl').value = AIScript;
+
+
+function setvoice()
+      {
+        var Url=document.getElementById('voiceurl').value;
+         localStorage.setItem('selectedVoiceScript', Url);
+      };
+
+
+function setAI()
+      {
+        var Url=document.getElementById('AIurl').value;
+         localStorage.setItem('selectedAIScript', Url);
+      };
+
+
+
+ 
+      if (AIScript == "null" || AIScript == "") {
+AIScript = "./response.js";
+};
+
+if (VoiceScript == "null" || VoiceScript == "") {
+VoiceScript = "./speech.js";
+};
+
+  var ExJS1 = document.createElement("script");
+  ExJS1.src = VoiceScript;
+
+  var head = document.getElementsByName("head")[0];
+  document.head.appendChild(ExJS1);
+
+  console.log('VoiceScript ='+VoiceScript);
+
+
+
+  var ExJS2 = document.createElement("script");
+  ExJS2.src = AIScript;
+
+  head = document.getElementsByName("head")[0];
+  document.head.appendChild(ExJS2);
+
+  console.log('AIScript ='+AIScript);
 </script>
-<script type="text/javascript" src="./response.js">
-</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 <script>
 function sleep(ms) {
