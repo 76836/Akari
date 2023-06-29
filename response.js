@@ -76,7 +76,7 @@ if (outcome.includes("exit ") && outcome.length < 12 == true) {
 
         if (outcome.includes("what") && outcome.includes(" up") && outcome.length < 15 == true) {
         console.log('kewords "what" & "up" found'); 
-            speak('version 1.4... now you can change my voice.');
+            speak('version 1.5... now you can change the way I reply by adding your own scripts.');
             return;
         };
 
