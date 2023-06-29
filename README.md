@@ -3,8 +3,10 @@ Akari Voice Assistant v1.4.
 Usable on chrome-based browsers at: https://76836.github.io/Akari
 Safari probably won't work. And Firefox doesn't work yet either. YET.
 
-next update: <br>
-Hopefully adding the ability to customize the response script, and the ability to swap out almost everything else. I also want to add some experiments to upgrade the Go Akari! button, or just plain replace it.
+Next update: coming soon...
+
+Version 1.5: <br>
+Added the ability to customize the response script, and the ability to change the speech script.
 
 Version 1.4 update: <br>
 Redid the TTS script, added volume control, and added a voice select menu. And, of course, ✨Bug Fixes✨
