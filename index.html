@@ -14,7 +14,7 @@
   </head>
 
 <body>
-    <h1 style="margin: 0; width:100%; text-align: center;">Akari Voice Assistant v1.5</h1>
+    <h1 style="margin: 0; width:100%; text-align: center;">Akari Voice Assistant v1.5B</h1>
     <button id="test" class="testbutton" ></button>
     <button id="GO" class="GoAkari" onclick="recognition.start(); document.getElementById('GO').className='listening';">Go Akari!</button>
     <p class="output"><em>dictated text will appear here</em></p>
@@ -32,18 +32,7 @@
       <input type="range" min="0" max="1" step="0.1" name="volume" id="volume" value="1">
     </div>
   
-    <button class="testbutton" ></button>
-
-<div>
-  <p style="font-size:large; width:100%; text-align: center;">Change Speech Synthesis Script:</p>
-    <input class="box" id="voiceurl" placeholder="Https://example.com/speech.js" type=text>
-    <button class="setbutton" onclick="setvoice()">set</button>
-</div>
-<div>
-  <p style="font-size:large; width:100%; text-align: center;">Change response Script:</p>
-    <input class="box" id="AIurl" placeholder="./response.js" type=text>
-    <button class="setbutton" onclick="setAI()">set</button>
-    <p style="font-size:large; width:100%; text-align: center;"><em>Set any script to nothing to return to default.<br>Reload to apply changes.</em></p>
+    <button class="setbutton" style="width:100%;" onclick="window.location.href='./settings';">Akari Settings</button>
 </div>
 
 <button class="testbutton" ></button> 
@@ -58,19 +47,31 @@
   var AIScript = localStorage.getItem('selectedAIScript');
   document.getElementById('AIurl').value = AIScript;
 
-
-function setvoice()
-      {
-        var Url=document.getElementById('voiceurl').value;
-         localStorage.setItem('selectedVoiceScript', Url);
-      };
+ var BKGURL = localStorage.getItem('selectedBKGURL');
+    document.getElementById('bkgurl').value = BKGURL;
 
 
-function setAI()
-      {
-        var Url=document.getElementById('AIurl').value;
-         localStorage.setItem('selectedAIScript', Url);
-      };
+  
+
+        if (BKGURL == "null" || BKGURL == "") {
+BKGURL = "./Foreshadowing.jpg";
+};
+
+var ExCSS1 = document.createElement("style");
+  ExCSS1.innerHTML =`		body  {
+			background-image: url("`+BKGURL+`");
+  			background-color: black;
+			background-repeat: no-repeat;
+			background-size: cover;
+			overflow: clip;
+                        color:white;
+			}`;
+
+  var head = document.getElementsByName("head")[0];
+  document.head.appendChild(ExCSS1);
+
+  console.log('Background image loaded from persistent settings: '+BKGURL);
+  
 
 
 
