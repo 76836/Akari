@@ -17,7 +17,8 @@
 <body>
 
 <p class="title" style="color:darkcyan;"><em>SETTINGS</em> </p>    
-
+<button class="setbutton" onclick="window.location.href='./';">EXIT</button>
+	
 <button Class="spacer"></button>
 
 <p class="title">Akari's behaviour:</p>
@@ -62,6 +63,7 @@
         text-align: center;
         margin:4px;
         font-family: 'Orbitron', sans-serif;
+        word-wrap: break-word;
     }
   .spacer { 
     width:100%; 
@@ -133,6 +135,7 @@ var ExCSS1 = document.createElement("style");
 			background-size: cover;
 			overflow-x: hidden;
                         color:white;
+			min-height:100vh;
 			}`;
 
   var head = document.getElementsByName("head")[0];
