@@ -31,7 +31,9 @@
       <label for="volume">Volume</label>
       <input type="range" min="0" max="1" step="0.1" name="volume" id="volume" value="1">
     </div>
-  
+
+<button class="testbutton" ></button> 
+	
     <button class="setbutton" style="width:100%;" onclick="window.location.href='./settings';">Akari Settings</button>
 </div>
 
@@ -42,18 +44,18 @@
 
 <script>
   var VoiceScript = localStorage.getItem('selectedVoiceScript');
-  document.getElementById('voiceurl').value = VoiceScript;
+ 
 
   var AIScript = localStorage.getItem('selectedAIScript');
-  document.getElementById('AIurl').value = AIScript;
+
 
  var BKGURL = localStorage.getItem('selectedBKGURL');
-    document.getElementById('bkgurl').value = BKGURL;
+
 
 
   
 
-        if (BKGURL == "null" || BKGURL == "") {
+        if (BKGURL == null || BKGURL == "") {
 BKGURL = "./Foreshadowing.jpg";
 };
 
@@ -76,11 +78,11 @@ var ExCSS1 = document.createElement("style");
 
 
  
-      if (AIScript == "null" || AIScript == "") {
+      if (AIScript == null || AIScript == "") {
 AIScript = "./response.js";
 };
 
-if (VoiceScript == "null" || VoiceScript == "") {
+if (VoiceScript == null || VoiceScript == "") {
 VoiceScript = "./speech.js";
 };
 
