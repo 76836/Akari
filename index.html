@@ -14,12 +14,13 @@
   </head>
 
 <body>
-    <h1 style="margin: 0; width:100%; text-align: center;">Akari Voice Assistant v1.5B</h1>
+    <h1 style="margin: 0; width:100%; text-align: center;">Akari Voice Assistant v1.6</h1>
     <button id="test" class="testbutton" ></button>
-    <button id="GO" class="GoAkari" onclick="recognition.start(); document.getElementById('GO').className='listening';">Go Akari!</button>
-    <p class="output"><em>dictated text will appear here</em></p>
+    
+    <p id="text" class="output"><em>⚠️ No speech detected, this message should go away when you talk.</em></p>
     <p class="responsetxt">Akari's response will appear here</p>
-    <p style="font-size:large; width:100%; text-align: center;"><em>Say "help" or "what's up?" for more info and basic syntax instructions.</em></p>
+    <p style="font-size:large; width:100%; text-align: center;">Say a command followed or preceeded by "Akari" or "enter command".</p>
+    <p style="font-size:large; width:100%; text-align: center;"><em>Ask "help" or "what's up?" for more info and basic syntax instructions.</em></p>
   
     <button class="testbutton" ></button>
 
@@ -44,12 +45,12 @@
 
 <script>
   var VoiceScript = localStorage.getItem('selectedVoiceScript');
- 
+
+  var InputScript = localStorage.getItem('selectedInputScript');
 
   var AIScript = localStorage.getItem('selectedAIScript');
 
-
- var BKGURL = localStorage.getItem('selectedBKGURL');
+  var BKGURL = localStorage.getItem('selectedBKGURL');
 
 
 
@@ -76,7 +77,9 @@ var ExCSS1 = document.createElement("style");
   
 
 
-
+      if (InputScript == null || InputScript == "") {
+InputScript = "./wake.js";
+};
  
       if (AIScript == null || AIScript == "") {
 AIScript = "./response.js";
@@ -103,50 +106,18 @@ VoiceScript = "./speech.js";
   document.head.appendChild(ExJS2);
 
   console.log('AIScript ='+AIScript);
+
+
+  var ExJS3 = document.createElement("script");
+  ExJS3.src = InputScript;
+
+  head = document.getElementsByName("head")[0];
+  document.head.appendChild(ExJS3);
+
+  console.log('InputScript ='+InputScript);
 </script>
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-<script>
-function sleep(ms) {
-  return new Promise(
-    resolve => setTimeout(resolve, ms)
-  );
-}
-
-var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-var recognition = new SpeechRecognition();
-var textout = document.querySelector('.output');
-
-recognition.onspeechend = async function() {
-  await sleep(200);
-  document.getElementById('GO').className='GoAkari';
-  recognition.stop();
-  return;
-}
-
-recognition.onresult = async function(event) {
-  var outcome = event.results[0][0].transcript;
-  textout.textContent = outcome;
-  document.getElementById('GO').className='GoAkari';
-  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  var recognition = new SpeechRecognition();
-
-  respond(outcome);
-  return;
-}
-</script>
   
 
 
