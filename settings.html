@@ -33,6 +33,11 @@
     <input class="box" id="AIurl" placeholder="./response.js" type=text>
     <button class="setbutton" onclick="setAI()">Replace behaviour script.</button>
 </div>
+<div>
+  <p style="font-size:large; width:100%; text-align: center;">Change Input Script:</p>
+    <input class="box" id="inputurl" placeholder="./wake.js" type=text>
+    <button class="setbutton" onclick="setinput()">Replace Voice Input script.</button>
+</div>
 
 <button Class="spacer"></button>
 
@@ -99,6 +104,9 @@
   
     var AIScript = localStorage.getItem('selectedAIScript');
     document.getElementById('AIurl').value = AIScript;
+
+    var InputScript = localStorage.getItem('selectedInputScript');
+    document.getElementById('inputurl').value = InputScript;
   
     var BKGURL = localStorage.getItem('selectedBKGURL');
     document.getElementById('bkgurl').value = BKGURL;
@@ -120,6 +128,12 @@
         {
           var Url=document.getElementById('AIurl').value;
            localStorage.setItem('selectedAIScript', Url);
+        };
+
+  function setinput()
+        {
+          var Url=document.getElementById('inputurl').value;
+           localStorage.setItem('selectedInputScript', Url);
         };
 
 
