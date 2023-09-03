@@ -1,7 +1,9 @@
 async function respond(outcome)
  {
 
-outcome = outcome.toLowerCase();
+outcome = " "+outcome.toLowerCase();
+outcome = outcome.replace('akari'," ");
+outcome = outcome.replace('enter command'," ");
   
 if (outcome.includes("exit ") && outcome.length < 12 == true) {
     console.log('keyword "exit" found');
@@ -22,7 +24,7 @@ if (outcome.includes("exit ") && outcome.length < 12 == true) {
         };
 
 
-  if (outcome.includes("directions") && (outcome.includes(" to ") || outcome.includes("get ") == true)) {
+  if (outcome.includes(" directions ") && (outcome.includes(" to ") || outcome.includes(" get ") == true)) {
     console.log('keywords "directions" & "to"/"get" found'); 
             var location = outcome.replace('directions',"");
             location = location.replace(' to '," ");
@@ -44,14 +46,14 @@ if (outcome.includes("exit ") && outcome.length < 12 == true) {
     console.log('lets hope this app has a .com domain'); 
             var appname = outcome.replace('open',"");
             appname = appname.replace(' ',"");
-            if (appname.includes("settings")) {speak('the "open" function only supports apps that have a .com domain. Sorry.'); return;};
+            if (appname.includes("settings")) {speak('opening Akari settings'); window.location.href='./settings' ; return;};
             speak('redirecting you to '+ appname + ".com");
             window.location.href='https://' + appname +'.com' ;
             return;
         };
   
   
-  if (outcome.includes("youtube") || outcome.includes("play ") == true) {
+  if (outcome.includes("youtube") || outcome.includes(" play ") == true) {
     console.log('keywords "youtube" & "search"/"play" found'); 
             var video = outcome.replace('youtube',"");
             video = video.replace('search',"");
@@ -76,7 +78,7 @@ if (outcome.includes("exit ") && outcome.length < 12 == true) {
 
         if (outcome.includes("what") && outcome.includes(" up") && outcome.length < 15 == true) {
         console.log('kewords "what" & "up" found'); 
-            speak('version 1.5... now you can change the way I reply by adding your own scripts.');
+            speak('version 1.6... now you can say my name at any time to talk to me');
             return;
         };
 
@@ -84,23 +86,7 @@ if (outcome.includes("exit ") && outcome.length < 12 == true) {
   if (outcome == "hello there") {
     console.log(' I will deal with this Jedi slime myself. \n   Your move.');
             speak('General Kenobi. You are a bold one.');
-            document.getElementById('GO').className='GoAkari';
-            await sleep(200);
-            document.getElementById('GO').className='listening';
-            await sleep(200);
-            document.getElementById('GO').className='GoAkari';
-            await sleep(200);
-            document.getElementById('GO').className='listening';
-            await sleep(200);
-            document.getElementById('GO').className='GoAkari';
-            await sleep(200);
-            document.getElementById('GO').className='listening';
-            await sleep(200);
-            document.getElementById('GO').className='GoAkari';
-            await sleep(200);
-            document.getElementById('GO').className='listening';
-            await sleep(200);
-            document.getElementById('GO').className='GoAkari';
+            
             return;
         };
 
