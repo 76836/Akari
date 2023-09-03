@@ -27,18 +27,21 @@ body {
     font-size:xx-large; 
     width:100%; 
     text-align: center; 
-    color: cyan; 
-    border-bottom: 1px solid white; 
+    color: black; 
+    background-color: darkcyan;
     border-radius: 10px;
+    margin-top: 3px;
+    padding: 3px;
   }
   .output {
-    font-size:x-large; 
+    font-size:xx-large; 
     width:100%; 
     text-align: center; 
-    color: green; 
-    border-top: 1px solid white; 
+    color: black; 
+    background-color: darkgreen;
     border-radius: 10px;
-    margin-top: 0px;
+    margin-top: 3px;
+    padding: 3px;
   }
   .testbutton { 
     width:100%; 
