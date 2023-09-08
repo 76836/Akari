@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html id="html" lang="en">
+
+<head>
+  <link rel="manifest" href="../app.webmanifest">
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width" />
+  <title>Akari Experimental</title>
+  <link rel="stylesheet" href="./widgets.css">
+  <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+  <link rel="shortcut icon" href="../favicon.ico">
+  <meta name="msapplication-TileColor" content="#603cba">
+  <meta name="theme-color" content="#00ffff">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <div class="m2x1">
+    <p class="title">Akari Voice Assistant (Experimental)</p>
+    <button class="ghost-button" id="test"></button>
+  </div>
+
+
+  <div class="squareLeft">
+    <p class="text" id="text"><em>⚠️ No speech detected, this message should go away when you talk.</em></p>
+  </div>
+
+  <div class="squareRight">
+    <p class="text">Akari's response will appear here</p>
+  </div>
+
+ 
+
+  <div class="squareSettings">
+    <img class="image" src="./settings.png" onclick="alert('Akari experimental doesnt support persistent storage due to frequent modifications, meaning that the configuration is read-only. \n Or in other words, no.')"></img>
+  </div>
+
+  <div class="squareLeft">
+    <br>
+    <label class="cfgelement" for="voice">Voice</label>
+    <select class="cfgelement" name="voice" id="voice"></select>
+    <br><br>
+    <label class="cfgelement" for="volume">Volume</label>
+    <input class="cfgelement" type="range" min="0" max="1" step="0.1" name="volume" id="volume" value="1">
+  </div>
+
+  <div class="help">
+    <p class="text" >Say a command followed or preceeded by "Akari" or "enter command".<br><br><em>Ask "help" or "what's up?" for more info and basic syntax instructions.</em></p>
+  </div>
+
+</body>
+
+
+<script>
+  
+  var VoiceScript = '../speech.js'
+
+  var InputScript = '../wake.js'
+
+  var AIScript = './response.js'
+
+  var BKGURL = localStorage.getItem('selectedBKGURL');
+  //you can change the background still.
+
+
+
+
+
+  if (BKGURL == null || BKGURL == "") {
+    BKGURL = "../Foreshadowing.jpg";
+  };
+
+  var ExCSS1 = document.createElement("style");
+  ExCSS1.innerHTML = `		body  {
+			background-image: url("`+ BKGURL + `");
+  		background-color: black;
+			background-repeat: no-repeat;
+			background-size: cover;
+      color:white;
+      word-wrap: break-word;
+      padding:0;
+      margin:0;
+      -webkit-text-stroke: 0.5px gray; /* width and color */
+			}`;
+
+  var head = document.getElementsByName("head")[0];
+  document.head.appendChild(ExCSS1);
+
+  console.log('Background image loaded from persistent settings: ' + BKGURL);
+
+
+
+  if (InputScript == null || InputScript == "") {
+    InputScript = "./wake.js";
+  };
+
+  if (AIScript == null || AIScript == "") {
+    AIScript = "./response.js";
+  };
+
+  if (VoiceScript == null || VoiceScript == "") {
+    VoiceScript = "./speech.js";
+  };
+
+  var ExJS1 = document.createElement("script");
+  ExJS1.src = VoiceScript;
+
+  var head = document.getElementsByName("head")[0];
+  document.head.appendChild(ExJS1);
+
+  console.log('VoiceScript =' + VoiceScript);
+
+
+
+  var ExJS2 = document.createElement("script");
+  ExJS2.src = AIScript;
+
+  head = document.getElementsByName("head")[0];
+  document.head.appendChild(ExJS2);
+
+  console.log('AIScript =' + AIScript);
+
+
+  var ExJS3 = document.createElement("script");
+  ExJS3.src = InputScript;
+
+  head = document.getElementsByName("head")[0];
+  document.head.appendChild(ExJS3);
+
+  console.log('InputScript =' + InputScript);
+</script>
+
+</html>
