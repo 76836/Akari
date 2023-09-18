@@ -25,7 +25,7 @@ recognition.onresult = function(event) {
 
 
   if (finalTranscript !== last) {
- document.getElementById("text").textContent = finalTranscript;
+ document.getElementById("text").textContent = 'Voice command recognized!';
   last = finalTranscript;
   };
 
@@ -36,12 +36,14 @@ recognition.onspeechend = async function() {
   var wakefails = 0;
 
   if (finalTranscript.includes('akari')) {
+    textOnly = 'voice';
     respond(finalTranscript);
     finalTranscript = '';
   }else{
   wakefails = wakefails + 1;
   };
   if (finalTranscript.includes('enter command')) {
+    textOnly = 'voice';
     respond(finalTranscript);
     finalTranscript = '';
   }else{
@@ -50,7 +52,7 @@ recognition.onspeechend = async function() {
 
 finalTranscript = ' ';
 if (wakefails == 2) {
-  document.getElementById("text").textContent = 'Waiting...';
+  document.getElementById("text").textContent = 'Voice control listening...';
   wakefails = 0;
   };
 
@@ -65,7 +67,3 @@ recognition.start();
 recognition.onend = function() {
     recognition.start();
 };
-
-
-
-

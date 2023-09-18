@@ -3,7 +3,8 @@ Akari Voice Assistant v1.6.
 Usable on chrome-based browsers at: https://76836.github.io/Akari
 Safari probably won't work. And Firefox doesn't work yet either. YET.
 
-Next update: make everything nicer, and hopefully add more commands.
+Version 1.7: <br>
+Now you can type commands, and Akari can do some basic math. I also redid the CSS.
 
 Version 1.6: <br>
 Akari is now fully voice activated, and you can change the speach dictation script in settings, just say "akari, open settings".

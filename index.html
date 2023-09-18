@@ -13,37 +13,46 @@
     <meta name="theme-color" content="#00ffff">
   </head>
 
-<body>
-    <h1 style="margin: 0; width:100%; text-align: center;">Akari Voice Assistant v1.6</h1>
-    <button id="test" class="testbutton" ></button>
-    
-    <p id="text" class="output"><em>⚠️ No speech detected, this message should go away when you talk.</em></p>
-    <p class="responsetxt">Akari's response will appear here</p>
-    <p style="font-size:large; width:100%; text-align: center;">Say a command followed or preceeded by "Akari" or "enter command".</p>
-    <p style="font-size:large; width:100%; text-align: center;"><em>Ask "help" or "what's up?" for more info and basic syntax instructions.</em></p>
-  
-    <button class="testbutton" ></button>
 
-        <div class="option" style="font-size:large; width:100%; text-align: center;">
-      <label for="voice">Voice</label>
-      <select name="voice" id="voice"></select>
-    </div>
-    <div class="option" style="font-size:large; width:100%; text-align: center;">
-      <label for="volume">Volume</label>
-      <input type="range" min="0" max="1" step="0.1" name="volume" id="volume" value="1">
-    </div>
+  <div class="option" style="visibility:hidden;">
+    <label for="voice">Voice</label>
+    <select name="voice" id="voice"></select>
+  </div>
 
-<button class="testbutton" ></button> 
-	
-    <button class="setbutton" style="width:100%;" onclick="window.location.href='./settings';">Akari Settings</button>
+        <p class="responsetxt" id="test" >Akari v1.7: Javascript error!</p>
+        <br>
+        <p class="responsetxt" id="text">⚠️ No speech detected, this message should go away when you talk.</p>
+        <br>
+
+
+    <div id="messages">
+
 </div>
+<br>
+<br>
+<br>
+        <button class="button-round" onclick="window.location.href='./settings';">⁝</button>
+        <form>
+        <input type="text" id="box" class="box" placeholder="What's up?"></input>
+      </form>
 
-<button class="testbutton" ></button> 
+        <button class="button-long" onclick="textOnly = 'text'; respond(document.getElementById('box').value); ">Enter Command</button>
+      
 
-</body>
 
 
 <script>
+
+document.getElementById('box').onkeydown = function(event){
+    var e = event || window.event;
+    if(e.keyCode == 13){
+      textOnly = 'text';
+      respond(document.getElementById('box').value); 
+      return false;
+    }
+};
+
+
   var VoiceScript = localStorage.getItem('selectedVoiceScript');
 
   var InputScript = localStorage.getItem('selectedInputScript');
@@ -61,14 +70,18 @@ BKGURL = "./Foreshadowing.jpg";
 };
 
 var ExCSS1 = document.createElement("style");
-  ExCSS1.innerHTML =`		body  {
+  ExCSS1.innerHTML =`
+body  {
 			background-image: url("`+BKGURL+`");
-  			background-color: black;
+  		background-color: black;
 			background-repeat: no-repeat;
 			background-size: cover;
-			overflow: clip;
-                        color:white;
-			}`;
+      color:white;
+      margin:7px;
+			overflow-x: hidden;
+			min-height:100vh;
+      background-attachment: fixed;
+}`;
 
   var head = document.getElementsByName("head")[0];
   document.head.appendChild(ExCSS1);
@@ -118,29 +131,4 @@ VoiceScript = "./speech.js";
 </script>
 
 
-  
-
-
-
-<script>
-  const getBrowserName = () => {
-    let browserInfo = navigator.userAgent;
-    let browser;
-    if (browserInfo.includes('Opera') || browserInfo.includes('Opr')) {
-      browser = 'Opera';
-    } else if (browserInfo.includes('Edg')) {
-      browser = 'Edge';
-    } else if (browserInfo.includes('Chrome')) {
-      browser = 'Chrome';
-    } else if (browserInfo.includes('Safari')) {
-      browser = 'Safari';
-    } else if (browserInfo.includes('Firefox')) {
-      browser = 'Firefox'
-    } else {
-      browser = 'unknown'
-    }
-      return browser;
-  }
-var browser = getBrowserName();
-</script>
 </html>
