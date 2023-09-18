@@ -1,25 +1,38 @@
-/*
- * Check for browser support
- */
+
+const getBrowserName = () => {
+  let browserInfo = navigator.userAgent;
+  let browser;
+  if (browserInfo.includes('Opera') || browserInfo.includes('Opr')) {
+    browser = 'Opera';
+  } else if (browserInfo.includes('Edg')) {
+    browser = 'Edge';
+  } else if (browserInfo.includes('Chrome')) {
+    browser = 'Chrome';
+  } else if (browserInfo.includes('Safari')) {
+    browser = 'Safari';
+  } else if (browserInfo.includes('Firefox')) {
+    browser = 'Firefox'
+  } else {
+    browser = 'unknown'
+  }
+    return browser;
+}
+var browser = getBrowserName();
+
+
+
+
 var supportMsg = document.getElementById('test');
-var responsetxt = document.querySelector('.responsetxt');
 
 if ('speechSynthesis' in window) {
-	supportMsg.innerHTML = 'Your browser <strong>supports</strong> speech synthesis.';
+	supportMsg.innerHTML = 'Akari V1.7 ready.';
 } else {
-	supportMsg.innerHTML = 'Sorry your browser <strong>does not support</strong> speech synthesis.<br>Try this in <a href="https://www.google.co.uk/intl/en/chrome/browser/canary.html">Chrome Canary</a>.';
+	supportMsg.innerHTML = 'Akari V1.7: Speech synthesis has encountered an error!';
 	supportMsg.classList.add('not-supported');
 }
 
-
 // Get the voice select element.
 var voiceSelect = document.getElementById('voice');
-
-// Get the attribute controls.
-var volumeInput = document.getElementById('volume');
-var rateInput = document.getElementById('rate');
-var pitchInput = document.getElementById('pitch');
-
 
 // Fetch the list of voices and populate the voice options.
 function loadVoices() {
@@ -48,37 +61,51 @@ window.speechSynthesis.onvoiceschanged = function(e) {
   loadVoices();
 };
 
+function bubble(text) {
+	var Outgoing = '<p class="responsetxt">'+text+'</p><br>' ;
+		var messages = document.getElementById('messages');
+		messages.insertAdjacentHTML('beforebegin', Outgoing);
+    window.scrollTo(0, document.body.scrollHeight);
+};
+
+function say(text) {
+  if (textOnly == 'text') {
+    bubble(text);
+  } else {
+    speak(text);
+  }
+};
 
 // Create a new utterance for the specified text and add it to
 // the queue.
 function speak(text) {
   // Create a new instance of SpeechSynthesisUtterance.
 	var overflow = new SpeechSynthesisUtterance();
-  
-  // Set the text.
-	overflow.text = text;
-  
   // Set the attributes.
-  overflow.volume = parseFloat(volumeInput.value);
+  overflow.volume = 1;
+	overflow.text = text;
   overflow.pitch = 1;
   overflow.rate = 1;
   overflow.lang = 'en-US';
-
-  // If a voice has been selected, find the voice and set the
-  // utterance instance's voice attribute.
+  
+  if (browser == "Chrome") {
+  voiceSelect.value="Google US English";
+  };
+  // If a voice has been selected, find the voice and set the utterance instance's voice attribute.
 	if (voiceSelect.value) {
 		overflow.voice = speechSynthesis.getVoices().filter(function(voice) { return voice.name == voiceSelect.value; })[0];
 	}
   
   // Queue this utterance.
 	window.speechSynthesis.speak(overflow);
-  responsetxt.textContent = text;
+  bubble(text);
+
   overflow.onend = function (event) {
-    console.log("SpeechSynthesisUtterance.onend");
+    console.log("Speech synthesis has ended");
   };
 
   overflow.onerror = function (event) {
-    console.error("SpeechSynthesisUtterance.onerror");
+    console.error("Speech synthesis has encountered an error!");
   };
 
      
@@ -86,5 +113,5 @@ function speak(text) {
 
 
 /*
- * Mostly copied and pasted from https://codepen.io/matt-west/pen/DpmMgE 
+ * see https://codepen.io/matt-west/pen/DpmMgE for help making your own speech synthesis script for Akari
  */
