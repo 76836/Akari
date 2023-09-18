@@ -42,7 +42,7 @@ async function respond(outcome) {
 
     if (outcome.includes("help") && outcome.length < 15 == true) {
         console.log('command "help" entered');
-        say('here is a list of commands to try: open app redirects you to appname.com. play youtube video.  whats the time. get directions to location. exit. help.  or, search.');
+        say('here is a list of commands to try: open app redirects you to appname.com. play youtube video.  whats the time. get directions to location. what is 1+1/2. exit. help.  or, search.');
         return;
     };
 
@@ -85,7 +85,7 @@ async function respond(outcome) {
 
     if (outcome.includes("what") && outcome.includes("up") && outcome.length < 18 == true) {
         console.log('kewords "what" & "up" found');
-        say('version 1.6... now you can say my name at any time to talk to me');
+        say('version 1.7... Now you can type commands, and I can do some basic math.');
         return;
     };
 
