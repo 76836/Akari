@@ -1,66 +1,81 @@
-body {
-    color: white;
-    background-color: black;
-    overflow-x: hidden;
-  }
-  .GoAkari {
-    width: 20vw;
-    height: 20vw;
-    margin: 5vh;
-    margin-left: 40vw;
-    margin-right: 40vw;
-    border-radius: 10vw;
-    background-color: darkcyan;
-    border: 1vw inset gold;
-  }
-  .listening {
-    width: 20vw;
-    height: 20vw;
-    margin: 5vh;
-    margin-left: 40vw;
-    margin-right: 40vw;
-    border-radius: 10vw;
-    background-color: green;
-    border: 1vw inset gold;
-  }
-  .responsetxt {
-    font-size:xx-large; 
-    width:100%; 
-    text-align: center; 
-    color: black; 
-    background-color: darkcyan;
-    border-radius: 10px;
-    margin-top: 3px;
-    padding: 3px;
-  }
-  .output {
-    font-size:xx-large; 
-    width:100%; 
-    text-align: center; 
-    color: black; 
-    background-color: darkgreen;
-    border-radius: 10px;
-    margin-top: 3px;
-    padding: 3px;
-  }
-  .testbutton { 
-    width:100%; 
-    border:0;
-    background-color: transparent; 
-    color: gray; 
-    font-size:x-large; 
-    border-bottom: 1px solid white; 
-    border-radius: 10px;
-  }
-  .box {
-    font-size:large; 
-    width:85%; 
-    text-align: center;
-    margin:0;
-  }
-  .setbutton {
-    font-size:large; 
-    width:10%; 
-    text-align: center;
-    margin:0;
-  }
+.responsetxt {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background-color: darkcyan;
+  background-image: linear-gradient(to right, darkcyan, #003333);
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+  text-align: center;
+  line-height: 30px;
+  font-size: x-large;
+}
+
+
+.command {
+  padding: 5px 10px;
+  border-radius: 20px;
+  background-color: darkcyan;
+  background-image: linear-gradient(to left, #002200, darkgreen);
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+  text-align: center;
+  line-height: 30px;
+  font-size: x-large;
+  float:right;
+}
+
+.box {
+  padding: 5px 10px;
+  border-radius: 20px;
+  background-color: transparent;
+  background-image: linear-gradient(to right, #111111, #003333);
+  color:white;
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+  text-align: left;
+  line-height: 30px;
+  font-size: x-large;
+  position:fixed;
+  bottom:7px;
+  left:54px;
+  width: calc(100% - 282px);
+  border:0;
+}
+
+.button-round {
+  padding: 5px 10px;
+  border-radius: 20px;
+  background-color: #111111;
+  color:white;
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+  text-align: center;
+  line-height: 30px;
+  font-size: x-large;
+  position:fixed;
+  bottom:7px;
+  left:7px;
+  width: 40px;
+  border:0;
+  overflow:hidden;
+}
+
+
+.button-long {
+  padding: 5px 10px;
+  border-radius: 20px;
+  background-color: #111111;
+  color:white;
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+  text-align: center;
+  line-height: 30px;
+  font-size: x-large;
+  position:fixed;
+  bottom:7px;
+  right:7px;
+  width: 195px;
+  border:0;
+  overflow:hidden;
+}
