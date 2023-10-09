@@ -17,9 +17,40 @@
   <div class="option" style="visibility:hidden;">
     <label for="voice">Voice</label>
     <select name="voice" id="voice"></select>
-  </div>
+   </div>
 
-        <p class="responsetxt" id="test" >Akari v1.7: Javascript error!</p>
+
+    <style>
+      .windowstyle{
+  border:4px inset whitesmoke;
+	background-color: transparent;
+	margin:0%;
+	width:100vw;
+	height:80vh;
+	position:fixed;
+	top:0;
+	left:0;
+  z-index:10;
+  border-radius: 2.5vh;
+      }
+      .buttonstyle{
+  border:4px inset whitesmoke;
+	margin:0%;
+	width:100vw;
+	height:5vh;
+  background-color: black;
+  color:white;
+  border-radius: 2.5vh;
+  z-index:11;
+  position:fixed;
+  top:calc(80vh + 11px);
+  left:0;
+      }
+    </style>
+    <div id="windowspot"></div>
+ 
+
+        <p class="responsetxt" id="test" >Akari v1.8: Javascript error!</p>
         <br>
         <p class="responsetxt" id="text">⚠️ No speech detected, this message should go away when you talk.</p>
         <br>
@@ -36,7 +67,7 @@
         <input type="text" id="box" class="box" placeholder="What's up?"></input>
       </form>
 
-        <button class="button-long" onclick="textOnly = 'text'; respond(document.getElementById('box').value); ">Enter Command</button>
+        <button class="button-long" onclick="textOnly = 'text'; enter(document.getElementById('box').value); ">Enter Command</button>
       
 
 
@@ -47,7 +78,7 @@ document.getElementById('box').onkeydown = function(event){
     var e = event || window.event;
     if(e.keyCode == 13){
       textOnly = 'text';
-      respond(document.getElementById('box').value); 
+      enter(document.getElementById('box').value); 
       return false;
     }
 };
@@ -128,6 +159,44 @@ VoiceScript = "./speech.js";
   document.head.appendChild(ExJS3);
 
   console.log('InputScript ='+InputScript);
+
+
+//integrated functions
+function bubble(text) {
+	var Outgoing = '<p class="responsetxt">'+text+'</p><br>' ;
+		var messages = document.getElementById('messages');
+		messages.insertAdjacentHTML('beforebegin', Outgoing);
+    window.scrollTo(0, document.body.scrollHeight);
+};
+
+function say(text) {
+  if (textOnly == 'text') {
+    bubble(text);
+  } else {
+    speak(text);
+  }
+};
+
+function bubble_incoming(outcome) {
+  var incoming = '<p class="command">'+outcome+'</p><br><br><br>' ;
+            var messages = document.getElementById('messages');
+            messages.insertAdjacentHTML('beforebegin', incoming);
+};
+
+function enter(input) {
+  bubble_incoming(input);
+  respond(input);
+};
+
+function newwindow(weblocation) {
+  var windowcode = '<iframe src="'+weblocation+'" class="windowstyle"></iframe><button class="buttonstyle" onclick="closewindow();">Close window.</button>' ;
+            var spot = document.getElementById('windowspot');
+            spot.innerHTML = windowcode;
+};
+function closewindow() {
+            var spot = document.getElementById('windowspot');
+            spot.innerHTML = '';
+};
 </script>
 
 
