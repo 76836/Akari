@@ -1,21 +1,30 @@
 async function respond(outcome) {
 
-        var incoming = '<p class="command">'+outcome+'</p><br><br><br>' ;
-            var messages = document.getElementById('messages');
-            messages.insertAdjacentHTML('beforebegin', incoming);
-    
-
     outcome = outcome.toLowerCase();
+
+    if (outcome.includes("akari") && outcome.length < 7 == true) {
+        console.log('keyword "akari" found');
+        var responses = [];
+        responses[1] = "That's me.";
+        responses[2] = "Hi! What can I do for you?"
+        responses[3] = "What's up?"
+        responses[4] = "What do you need?"
+        say(responses[1 + Math.floor(Math.random() * 4)]);
+        return;
+    };
+
+    outcome = outcome.replace('hey akari', "");
     outcome = outcome.replace('akari', "");
     outcome = outcome.replace(' enter command.', "");
     outcome = outcome.replace('enter command', "");
 
-    if (outcome.includes("exit ") && outcome.length < 12 == true) {
+    if (outcome.includes("exit") && outcome.length < 12 == true) {
         console.log('keyword "exit" found');
-        say('goodbye');
+        say("I'll try to close this window...");
         await sleep(1000);
         window.close()
-
+        await sleep(1000);
+        say("Sorry, I don't think I'm able to close this window.");
         return;
     };
 
@@ -35,14 +44,14 @@ async function respond(outcome) {
         location = location.replace(' to ', " ");
         location = location.replace('get ', " ");
         say('getting directions to ' + location);
-        window.location.href='https://www.google.com/maps/search/'+outcome ;
+        window.open('https://www.google.com/maps/search/' + location);
         return;
     };
 
 
     if (outcome.includes("help") && outcome.length < 15 == true) {
         console.log('command "help" entered');
-        say('here is a list of commands to try: open app redirects you to appname.com. play youtube video.  whats the time. get directions to location. what is 1+1/2. exit. help.  or, search.');
+        say('here is a list of commands to try: open app redirects you to appname.com. play youtube video.  whats the time. get directions to location. what is 1+1/2. exit. help. reload. close pop-up window.  or, search.');
         return;
     };
 
@@ -52,10 +61,10 @@ async function respond(outcome) {
         var appname = outcome.replace('open', "");
         appname = appname.replace(/\s+/g, '')
         appname = appname.replace('.', "");
-        if (appname.includes("settings")) { say('opening Akari settings'); window.location.href = './settings'; return; };
+        if (appname.includes("settings")) { say('opening Akari settings'); newwindow('./settings'); return; };
         say('redirecting you to ' + appname + ".com");
         await sleep(300);
-        window.location.href = 'https://' + appname + '.com';
+        window.open('https://' + appname + '.com');
         return;
     };
 
@@ -68,7 +77,7 @@ async function respond(outcome) {
         video = video.replace(' on ', " ");
         video = video.replace(' for ', " ");
         say('looking for ' + video + " on YouTube");
-        window.location.href = 'https://youtube.com/search?q=' + video;
+        window.open('https://youtube.com/search?q=' + video);
         return;
     };
 
@@ -76,7 +85,6 @@ async function respond(outcome) {
     if (outcome.includes("destruct") && outcome.includes("self") && outcome.length < 30 == true) {
         console.log('the self destruct program has been launched');
         if (outcome.includes("1")) { say('self destruct launched, goodbye.'); } else { say('passcode incorrect'); return; };
-        //The pasword is actually 1234, but i'm not gonna add the code to check for the full thing.
         document.getElementById('html').innerHTML = '';
         console.clear()
         return;
@@ -85,7 +93,7 @@ async function respond(outcome) {
 
     if (outcome.includes("what") && outcome.includes("up") && outcome.length < 18 == true) {
         console.log('kewords "what" & "up" found');
-        say('version 1.7... Now you can type commands, and I can do some basic math.');
+        say('version 1.8... New JavaScript lets people embed my code into their projects. The window function allows people to use features like search and settings without leaving me. And now you can also ask me to restart at any time to fix issues, get new features, and clear the chat history.');
         return;
     };
 
@@ -101,10 +109,10 @@ async function respond(outcome) {
         console.log('keword "hello" or "hi" found.');
         if (outcome.includes("hi")) {
             say('Hello there.');
-        }else{
+        } else {
             say('Hi!');
         }
-        
+
 
         return;
     };
@@ -115,7 +123,7 @@ async function respond(outcome) {
         query = query.replace(' for ', " ");
         say("searching for " + query);
         await sleep(300);
-        window.location.href='https://bing.com/search?q='+query;
+        newwindow('https://bing.com/search?q=' + query);
         return;
     };
 
@@ -130,7 +138,30 @@ async function respond(outcome) {
         return;
     };
 
+    if (outcome.includes("re") && (outcome.includes("start") || outcome.includes("load") || outcome.includes("set") == true)) {
+        console.log('Restart command recognized, restarting in 5 seconds...');
+        say("Ok, I'll be back in just a few seconds.");
+        await sleep(5000);
+        window.location.reload();
+        return;
+    };
+    if (outcome.includes("close") == true) {
+        closewindow()
+        console.log('keyword "close" recognized.');
+        say("Ok, I'll close the pop-up window.");
+        return;
+    }
+
     console.log('no keywords found, too bad.');
-    say("Sorry, I don't understand that command.");
+    var excuses = [];
+    excuses[1] = "Sorry, I don't understand that command.";
+    excuses[2] = "I don't know what to do, sorry about that.";
+    excuses[3] = "I don't understand that command, maybe try rephrasing it?";
+    excuses[4] = "Sorry, I don't understand that command.";
+    excuses[5] = "Sorry, I don't understand what you said.";
+    excuses[6] = "I don't know what to do, sorry.";
+    excuses[7] = "I don't know what to do, sorry about that.";
+    excuses[8] = "I don't understand the command, maybe try rephrasing it?";
+    say(excuses[1 + Math.floor(Math.random() * 8)]);
 
 };
