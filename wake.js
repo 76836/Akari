@@ -5,7 +5,7 @@ function sleep(ms) {
   );
 }
 
-    const recognition = new webkitSpeechRecognition();
+const recognition = new webkitSpeechRecognition();
 recognition.continuous = true;
 recognition.interimResults = true;
 recognition.lang = 'en-US';
@@ -15,7 +15,7 @@ let interimTranscript = '';
 var last = "";
 
 
-recognition.onresult = function(event) {
+recognition.onresult = function (event) {
   for (let i = event.resultIndex; i < event.results.length; ++i) {
     if (event.results[i].isFinal) {
       finalTranscript += event.results[i][0].transcript + '. ';
@@ -24,39 +24,41 @@ recognition.onresult = function(event) {
     }
 
 
-  if (finalTranscript !== last) {
- document.getElementById("text").textContent = 'Voice command recognized!';
-  last = finalTranscript;
-  };
+    if (finalTranscript !== last) {
+      document.getElementById("text").textContent = 'Voice command recognized!';
+      last = finalTranscript;
+    };
 
-recognition.onspeechend = async function() {
+    recognition.onspeechend = async function () {
 
-  
-};
-  var wakefails = 0;
 
-  if (finalTranscript.includes('akari')) {
-    textOnly = 'voice';
-    respond(finalTranscript);
-    finalTranscript = '';
-  }else{
-  wakefails = wakefails + 1;
-  };
-  if (finalTranscript.includes('enter command')) {
-    textOnly = 'voice';
-    respond(finalTranscript);
-    finalTranscript = '';
-  }else{
-  wakefails = wakefails + 1;
-  };
+    };
+    var wakefails = 0;
 
-finalTranscript = ' ';
-if (wakefails == 2) {
-  document.getElementById("text").textContent = 'Voice control listening...';
-  wakefails = 0;
-  };
+    if (finalTranscript.includes('akari')) {
+      textOnly = 'voice';
+      bubble_incoming(finalTranscript);
+      respond(finalTranscript);
+      finalTranscript = '';
+    } else {
+      wakefails = wakefails + 1;
+    };
+    if (finalTranscript.includes('enter command')) {
+      textOnly = 'voice';
+      bubble_incoming(finalTranscript);
+      respond(finalTranscript);
+      finalTranscript = '';
+    } else {
+      wakefails = wakefails + 1;
+    };
 
-}
+    finalTranscript = ' ';
+    if (wakefails == 2) {
+      document.getElementById("text").textContent = 'Voice control listening...';
+      wakefails = 0;
+    };
+
+  }
 
 
 };
@@ -64,6 +66,6 @@ if (wakefails == 2) {
 recognition.start();
 
 
-recognition.onend = function() {
-    recognition.start();
+recognition.onend = function () {
+  recognition.start();
 };
