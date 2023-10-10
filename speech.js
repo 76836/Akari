@@ -25,9 +25,9 @@ var browser = getBrowserName();
 var supportMsg = document.getElementById('test');
 
 if ('speechSynthesis' in window) {
-  supportMsg.innerHTML = 'Akari V1.7 ready.';
+  supportMsg.innerHTML = 'Akari V1.8 loaded.';
 } else {
-  supportMsg.innerHTML = 'Akari V1.7: Speech synthesis has encountered an error!';
+  supportMsg.innerHTML = 'Akari V1.8: Speech synthesis has encountered an error!';
   supportMsg.classList.add('not-supported');
 }
 
