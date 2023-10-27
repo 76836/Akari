@@ -52,7 +52,7 @@
 
         <p class="responsetxt" id="test" >Akari v1.8: Javascript error!</p>
         <br>
-        <p class="responsetxt" id="text">⚠️ No speech detected, this message should go away when you talk.</p>
+        <p class="responsetxt" id="text">No speech detected.</p>
         <br>
 
 
@@ -196,6 +196,13 @@ function newwindow(weblocation) {
 function closewindow() {
             var spot = document.getElementById('windowspot');
             spot.innerHTML = '';
+};
+
+
+function sleep(ms) {
+  return new Promise(
+    resolve => setTimeout(resolve, ms)
+  );
 };
 </script>
 
