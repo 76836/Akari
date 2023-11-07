@@ -4,7 +4,7 @@ import websockets
 
 print('[ok] Preparing AI...')
 
-model = GPT4All("falcon.bin", allow_download=False)
+model = GPT4All("gpt4all-falcon-q4_0.bin", allow_download=False)
 system_template = '''Write detailed quick answers for any question. (Akari AI Server v1.0)'''
 prompt_template = 'USER: {0}\nASSISTANT: '
 def stop_on_token_callback(token_id, token_string):
