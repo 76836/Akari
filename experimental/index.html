@@ -1,119 +1,137 @@
 <!DOCTYPE html>
 <html id="html" lang="en">
+  <head>
+    <link rel="manifest" href="./app.webmanifest">
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Akari Personal Assistant</title>
+    <link rel="stylesheet" href="./index.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+    <link rel="shortcut icon" href="./favicon.ico">
+    <meta name="msapplication-TileColor" content="#603cba">
+    <meta name="theme-color" content="#00ffff">
+  </head>
 
-<head>
-  <link rel="manifest" href="../app.webmanifest">
-  <meta charset="utf-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="viewport" content="width=device-width" />
-  <title>Akari Experimental</title>
-  <link rel="stylesheet" href="./widgets.css">
-  <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
-  <link rel="shortcut icon" href="../favicon.ico">
-  <meta name="msapplication-TileColor" content="#603cba">
-  <meta name="theme-color" content="#00ffff">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
-</head>
 
-<body>
-<div id="widget_1">
-  <div class="m2x1">
-    <p class="title">Akari Voice Assistant (Experimental)</p>
-    <button class="ghost-button" id="test"></button>
-  </div>
-  </div>
+  <div class="option" style="visibility:hidden;">
+    <label for="voice">Voice</label>
+    <select name="voice" id="voice"></select>
+   </div>
 
-<div id="widget_2">
-  <div class="squareLeft">
-    <p class="text" id="text"><em>⚠️ No speech detected, this message should go away when you talk.</em></p>
-  </div>
-  </div>
 
-<div id="widget_3">
-  <div class="squareRight">
-    <p class="text" class="responsetxt">Akari's response will show up here.</p>
-  </div>
-  </div>
-
+    <style>
+      .windowstyle{
+  border:4px inset whitesmoke;
+	background-color: transparent;
+	margin:0%;
+	width:100vw;
+	height:80vh;
+	position:fixed;
+	top:0;
+	left:0;
+  z-index:10;
+  border-radius: 2.5vh;
+      }
+      .buttonstyle{
+  border:4px inset whitesmoke;
+	margin:0%;
+	width:100vw;
+	height:5vh;
+  background-color: black;
+  color:white;
+  border-radius: 2.5vh;
+  z-index:11;
+  position:fixed;
+  top:calc(80vh + 11px);
+  left:0;
+      }
+    </style>
+    <div id="windowspot"></div>
  
-<div id="widget_4">
-  <div class="squareSettings">
-    <img class="image" src="./settings.png" onclick="alert('Akari experimental doesnt support persistent storage due to frequent modifications, meaning that the configuration is read-only. \nOr in other words, no.')"></img>
-  </div>
-  </div>
 
-<div id="widget_5">
-  <div class="squareLeft">
-    <br>
-    <label class="cfgelement" for="voice">Voice</label>
-    <select class="cfgelement" name="voice" id="voice"></select>
-    <br><br>
-    <label class="cfgelement" for="volume">Volume</label>
-    <input class="cfgelement" type="range" min="0" max="1" step="0.1" name="volume" id="volume" value="1">
-  </div>
-  </div>
+        <p class="responsetxt" id="test" >Akari v1.9: Javascript error!</p>
+        <br>
+        <p class="responsetxt" id="text">No speech detected.</p>
+        <br>
 
-<div id="widget_6">
-  <div class="help">
-    <p class="text" >Say a command followed or preceeded by "Akari" or "enter command".<br><br><em>Ask "help" or "what's up?" for more info and basic syntax instructions.</em></p>
-  </div>
-  </div>
 
-</body>
+    <div id="messages">
+
+</div>
+<br>
+<br>
+<br>
+        <button class="button-round" onclick="window.location.href='./settings';">⁝</button>
+        <form>
+        <input type="text" id="box" class="box" placeholder="What's up?"></input>
+      </form>
+
+        <button class="button-long" onclick="textOnly = 'text'; enter(document.getElementById('box').value); ">Enter Command</button>
+      
+
 
 
 <script>
-  
-  var VoiceScript = '../speech.js'
 
-  var InputScript = '../wake.js'
+document.getElementById('box').onkeydown = function(event){
+    var e = event || window.event;
+    if(e.keyCode == 13){
+      textOnly = 'text';
+      enter(document.getElementById('box').value); 
+      return false;
+    }
+};
 
-  var AIScript = '../response.js'
+
+  var VoiceScript = localStorage.getItem('selectedVoiceScript');
+
+  var InputScript = localStorage.getItem('selectedInputScript');
+
+  var AIScript = localStorage.getItem('selectedAIScript');
 
   var BKGURL = localStorage.getItem('selectedBKGURL');
-  //you can change the background still.
 
 
 
+  
 
+        if (BKGURL == null || BKGURL == "") {
+BKGURL = "../Foreshadowing.jpg";
+};
 
-  if (BKGURL == null || BKGURL == "") {
-    BKGURL = "../Foreshadowing.jpg";
-  };
-
-  var ExCSS1 = document.createElement("style");
-  ExCSS1.innerHTML = `		body  {
-			background-image: url("`+ BKGURL + `");
+var ExCSS1 = document.createElement("style");
+  ExCSS1.innerHTML =`
+body  {
+			background-image: url("`+BKGURL+`");
   		background-color: black;
 			background-repeat: no-repeat;
 			background-size: cover;
       color:white;
-      word-wrap: break-word;
-      padding:0;
-      margin:0;
-      -webkit-text-stroke: 0.5px gray; /* width and color */
-			}`;
+      margin:7px;
+			overflow-x: hidden;
+			min-height:100vh;
+      background-attachment: fixed;
+}`;
 
   var head = document.getElementsByName("head")[0];
   document.head.appendChild(ExCSS1);
 
-  console.log('Background image loaded from persistent settings: ' + BKGURL);
+  console.log('Background image loaded from persistent settings: '+BKGURL);
+  
 
 
+      if (InputScript == null || InputScript == "") {
+InputScript = "../wake.js";
+};
+ 
+      if (AIScript == null || AIScript == "") {
+AIScript = "./response.js";
+};
 
-  if (InputScript == null || InputScript == "") {
-    InputScript = "./wake.js";
-  };
-
-  if (AIScript == null || AIScript == "") {
-    AIScript = "./response.js";
-  };
-
-  if (VoiceScript == null || VoiceScript == "") {
-    VoiceScript = "./speech.js";
-  };
+if (VoiceScript == null || VoiceScript == "") {
+VoiceScript = "../speech.js";
+};
 
   var ExJS1 = document.createElement("script");
   ExJS1.src = VoiceScript;
@@ -121,7 +139,7 @@
   var head = document.getElementsByName("head")[0];
   document.head.appendChild(ExJS1);
 
-  console.log('VoiceScript =' + VoiceScript);
+  console.log('VoiceScript ='+VoiceScript);
 
 
 
@@ -131,7 +149,7 @@
   head = document.getElementsByName("head")[0];
   document.head.appendChild(ExJS2);
 
-  console.log('AIScript =' + AIScript);
+  console.log('AIScript ='+AIScript);
 
 
   var ExJS3 = document.createElement("script");
@@ -140,7 +158,327 @@
   head = document.getElementsByName("head")[0];
   document.head.appendChild(ExJS3);
 
-  console.log('InputScript =' + InputScript);
+  console.log('InputScript ='+InputScript);
+
+
+//integrated functions
+function bubble(text) {
+	var Outgoing = '<p class="responsetxt">'+text+'</p><br>' ;
+		var messages = document.getElementById('messages');
+		messages.insertAdjacentHTML('beforebegin', Outgoing);
+    window.scrollTo(0, document.body.scrollHeight);
+};
+
+function say(text) {
+  if (textOnly == 'text') {
+    bubble(text);
+  } else {
+    speak(text);
+  }
+};
+
+function bubble_incoming(outcome) {
+  var incoming = '<p class="command">'+outcome+'</p><br><br><br>' ;
+            var messages = document.getElementById('messages');
+            messages.insertAdjacentHTML('beforebegin', incoming);
+};
+
+function enter(input) {
+  bubble_incoming(input);
+  respond(input);
+};
+
+function newwindow(weblocation) {
+  var windowcode = '<iframe src="'+weblocation+'" class="windowstyle"></iframe><button class="buttonstyle" onclick="closewindow();">Close window.</button>' ;
+            var spot = document.getElementById('windowspot');
+            spot.innerHTML = windowcode;
+};
+function closewindow() {
+            var spot = document.getElementById('windowspot');
+            spot.innerHTML = '';
+};
+
+
+function sleep(ms) {
+  return new Promise(
+    resolve => setTimeout(resolve, ms)
+  );
+};
 </script>
+
+
+<div id="AI_Components">
+
+  <style type="text/css">
+    .buttonplus {
+      border-radius: 0px;
+      color: black;
+      height: 100%;
+      background-color: green;
+      position: sticky;
+      right: 0;
+      margin-right: 2%;
+      border: 0;
+      width: 4vh;
+      border-radius: 2vh;
+      font-size: large;
+      transition-duration: 0.2s;
+    }
+
+    .buttonplus:Hover {
+      border-radius: 0px;
+      color: black;
+      height: 100%;
+      background-color: cyan;
+      position: sticky;
+      right: 0;
+      margin-right: 2%;
+      border: 0;
+      width: 4vh;
+      border-radius: 2vh;
+      font-size: large;
+      transition-duration: 0.4s;
+    }
+
+    .buttonminus {
+      border-radius: 0px;
+      color: black;
+      height: 100%;
+      background-color: darkred;
+      position: sticky;
+      right: 0;
+      margin-right: 0%;
+      border: 0;
+      width: 4vh;
+      border-radius: 2vh;
+      font-size: large;
+      transition-duration: 0.2s;
+    }
+
+    .buttonminus:Hover {
+      border-radius: 0px;
+      color: black;
+      height: 100%;
+      background-color: cyan;
+      position: sticky;
+      right: 0;
+      margin-left: 0;
+      border: 0;
+      width: 4vh;
+      border-radius: 2vh;
+      font-size: large;
+      transition-duration: 0.4s;
+    }
+
+    .div {
+      position: fixed;
+      z-index: 7;
+      background-color: transparent;
+      text-align: left;
+      border: 1px solid transparent;
+      overflow: hidden;
+      border-radius: 2vh;
+      width: 25vh;
+    }
+
+    .divheader {
+      cursor: move;
+      z-index: 10;
+      background-color: #005050;
+      color: white;
+      overflow: auto;
+      height: 4vh;
+      overflow: hidden;
+      border-radius: 2vh;
+      transition-duration: 0.2s;
+    }
+  </style>
+
+
+  <div style="top: 50px; right: 50px;" class="div" id="imgWindow">
+    <img style="height:25vh;width:25vh;border-radius:3vh;" id="avatar"
+      src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="></img>
+    <div class="divheader" id="imgWindowheader"><button class="buttonplus"
+        onclick="document.getElementById('avatar').style.visibility = 'visible';">on</button><button
+        class="buttonminus" onclick="document.getElementById('avatar').style.visibility = 'hidden';">off</button>
+
+    </div>
+
+
+    <script>
+      async function SCheck() {
+        await sleep(3000);
+        if (serverStatus == "connected") {
+          console.log('Akari AI Components are active.');
+        } else {
+          console.log('Akari AI Components are being destroyed (to save resources) because the server did not connect.');
+          var strikezone = document.getElementById('AI_Components');
+          strikezone.innerHTML = '';
+        };
+      };
+
+      SCheck();
+
+      function dragElement(elmnt) {
+        console.log('drag element' + elmnt);
+        var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        if (document.getElementById(elmnt.id + "header")) {
+          /* if present, the header is where you move the DIV from:*/
+          document.getElementById(elmnt.id + "header").onmousedown = dragMouseDown;
+        } else {
+          /* otherwise, move the DIV from anywhere inside the DIV:*/
+          elmnt.onmousedown = dragMouseDown;
+        }
+
+        function dragMouseDown(e) {
+          e = e || window.event;
+          e.preventDefault();
+          // get the mouse cursor position at startup:
+          pos3 = e.clientX;
+          pos4 = e.clientY;
+          document.onmouseup = closeDragElement;
+          // call a function whenever the cursor moves:
+          document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e) {
+          e = e || window.event;
+          e.preventDefault();
+          // calculate the new cursor position:
+          pos1 = pos3 - e.clientX;
+          pos2 = pos4 - e.clientY;
+          pos3 = e.clientX;
+          pos4 = e.clientY;
+          // set the element's new position:
+          elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+          elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+          /* stop moving when mouse button is released:*/
+          document.onmouseup = null;
+          document.onmousemove = null;
+        }
+      };
+
+      var imgWindow = document.getElementById("imgWindow");
+      dragElement(imgWindow);
+
+
+      function changeImage(emotion) {
+        var img = document.getElementById("avatar");
+
+
+        var waving = "../Avatar1/waving_1.jpeg";
+        var teasing = "../Avatar1/teasing_1.jpeg";
+        var annoyed = "../Avatar1/annoyed_1.jpeg";
+        var angry = "../Avatar1/angry_1.jpeg";
+        var bye = "../Avatar1/goodbye_1.jpeg";
+
+        var laughing = [];
+        laughing[1] = "../Avatar1/laughing_1.jpeg";
+        laughing[2] = "../Avatar1/laughing_2.jpeg";
+        laughing = laughing[1 + Math.floor(Math.random() * 2)];
+        var blush = [];
+        blush[1] = "../Avatar1/blushing_1.jpeg";
+        blush[2] = "../Avatar1/blushing_2.jpeg";
+        blush[3] = "../Avatar1/blushing_3.jpeg";
+        blush = blush[1 + Math.floor(Math.random() * 3)];
+        var smiling = [];
+        smiling[1] = "../Avatar1/smiling_1.jpeg";
+        smiling[2] = "../Avatar1/smiling_2.jpeg";
+        smiling[3] = "../Avatar1/smiling_3.jpeg";
+        smiling = smiling[1 + Math.floor(Math.random() * 3)];
+        var listening = [];
+        listening[1] = "../Avatar1/listening_1.jpeg";
+        listening[2] = "../Avatar1/listening_2.jpeg";
+        listening[3] = "../Avatar1/listening_3.jpeg";
+        listening = listening[1 + Math.floor(Math.random() * 3)];
+        var idleface = [];
+        idleface[1] = "../Avatar1/idle_1.jpeg";
+        idleface[2] = "../Avatar1/idle_2.jpeg";
+        idleface[3] = "../Avatar1/idle_3.jpeg";
+        idleface[4] = "../Avatar1/idle_4.jpeg";
+        idleface = idleface[1 + Math.floor(Math.random() * 4)];
+
+        var src = idleface
+        var input = emotion.toLowerCase();
+        if (input.includes("chuckle")) {
+          src = laughing;
+        } else if (input.includes("laugh")) {
+          src = laughing;
+        } else if (input.includes("lol ")) {
+          src = laughing;
+        } else if (input.includes("ha ")) {
+          src = laughing;
+        } else if (input.includes("funny")) {
+          src = laughing;
+        } else if (input.includes("giggl")) {
+          src = laughing;
+
+        } else if (input.includes("blush")) {
+          src = blush;
+
+        } else if (input.includes("what ")) {
+          src = listening;
+        } else if (input.includes("?")) {
+          src = listening;
+
+        } else if (input.includes("smil")) {
+          src = smiling;
+        } else if (input.includes("happy")) {
+          src = smiling;
+        } else if (input.includes("nice")) {
+          src = smiling;
+        } else if (input.includes("glad")) {
+          src = smiling;
+        } else if (input.includes("good")) {
+          src = smiling;
+        } else if (input.includes("fine")) {
+          src = smiling;
+        } else if (input.includes("great")) {
+          src = smiling;
+
+        } else if (input.includes("wave")) {
+          src = waving;
+        } else if (input.includes("hello")) {
+          src = waving;
+        } else if (input.includes("hi ")) {
+          src = waving;
+        } else if (input.includes("greet")) {
+          src = waving;
+        } else if (input.includes("hey ")) {
+          src = waving;
+
+        } else if (input.includes("tease")) {
+          src = teasing;
+        } else if (input.includes("mische")) {
+          src = teasing;
+        } else if (input.includes("grin")) {
+          src = teasing;
+        } else if (input.includes("sarcastic")) {
+          src = teasing;
+
+        } else if (input.includes("annoy")) {
+          src = annoyed;
+        } else if (input.includes("sigh")) {
+          src = annoyed;
+        } else if (input.includes("angry")) {
+          src = angry;
+
+
+        } else if (input.includes("see you")) {
+          src = bye;
+        } else if (input.includes("bye ")) {
+          src = bye;
+        } else if (input.includes("see ya")) {
+          src = bye;
+        }
+        img.src = src;
+      };
+
+    </script>
+  </div>
+
 
 </html>
