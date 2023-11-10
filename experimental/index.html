@@ -62,7 +62,7 @@
 <br>
 <br>
 <br>
-        <button class="button-round" onclick="window.location.href='./settings';">⁝</button>
+        <button class="button-round" onclick="newwindow(../settings);">⁝</button>
         <form>
         <input type="text" id="box" class="box" placeholder="What's up?"></input>
       </form>
@@ -279,13 +279,13 @@ function sleep(ms) {
       border: 1px solid transparent;
       overflow: hidden;
       border-radius: 2vh;
-      width: 25vh;
+      width: 32vh;
     }
 
     .divheader {
       cursor: move;
       z-index: 10;
-      background-color: #005050;
+      background-color: #111111;
       color: white;
       overflow: auto;
       height: 4vh;
@@ -297,11 +297,11 @@ function sleep(ms) {
 
 
   <div style="top: 50px; right: 50px;" class="div" id="imgWindow">
-    <img style="height:25vh;width:25vh;border-radius:3vh;" id="avatar"
+    <img style="height:30vh;width:30vh;border-radius:3vh;border:1vh solid #111111" id="avatar"
       src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="></img>
     <div class="divheader" id="imgWindowheader"><button class="buttonplus"
-        onclick="document.getElementById('avatar').style.visibility = 'visible';">on</button><button
-        class="buttonminus" onclick="document.getElementById('avatar').style.visibility = 'hidden';">off</button>
+        onclick="document.getElementById('avatar').style.visibility = 'visible';">⮝</button><button
+        class="buttonminus" onclick="document.getElementById('avatar').style.visibility = 'hidden';">⮟</button>
 
     </div>
 
