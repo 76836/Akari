@@ -170,6 +170,7 @@ function bubble(text) {
 };
 
 function say(text) {
+  if (serverStatus == "connected") {changeImage(text);};
   if (textOnly == 'text') {
     bubble(text);
   } else {
