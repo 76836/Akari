@@ -450,11 +450,12 @@ function sleep(ms) {
         } else if (input.includes("blush")) {
           src = blush;
 
-        } else if (input.includes("what ")) {
-          src = listening;
-        } else if (input.includes("?")) {
-          src = listening;
+        } else if (input.includes("sighs heavily")) {
+          src = angry;
 
+        } else if (input.endsWith('?')) {
+          src = listening;
+		
         } else if (input.includes("smil")) {
           src = smiling;
         } else if (input.includes("happy")) {
@@ -465,11 +466,9 @@ function sleep(ms) {
           src = smiling;
         } else if (input.includes("good")) {
           src = smiling;
-        } else if (input.includes("fine")) {
-          src = smiling;
         } else if (input.includes("great")) {
           src = smiling;
-
+		
         } else if (input.includes("wave")) {
           src = waving;
         } else if (input.includes("hello")) {
@@ -478,7 +477,7 @@ function sleep(ms) {
           src = waving;
         } else if (input.includes("greet")) {
           src = waving;
-        } else if (input.includes("hey ")) {
+        } else if (input.includes("hey")) {
           src = waving;
 
         } else if (input.includes("tease")) {
@@ -502,7 +501,13 @@ function sleep(ms) {
           src = angry;
         } else if (input.includes("angrily")) {
           src = angry;
+	} else if (input.includes("grumble")) {
+          src = angry;
+
+	} else if (input.includes("Akari AI Loading...")) {
+          src = idleface;
         }
+	      
         img.src = src;
       };
 
