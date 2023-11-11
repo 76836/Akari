@@ -20,37 +20,57 @@
    </div>
 
 
-    <style>
-      .windowstyle{
-  border:4px solid #111111;
-	background-color: transparent;
-	margin:0%;
-	width:86vw;
-	height:80vh;
-	position:fixed;
-	top:0;
-	left:0;
-	margin-left:7vw;
-	margin-right:7vw;
-  z-index:10;
-  border-radius: 2.5vh;
+<style>
+.windowstyle{
+border:4px solid #111111;
+background-color: transparent;
+margin:0%;
+margin-top:7vh;
+width:86vw;
+height:80vh;
+position:fixed;
+top:0;
+left:0;
+margin-left:7vw;
+margin-right:7vw;
+z-index:10;
+border-radius: 2vh;
       }
-      .buttonstyle{
-  border:4px inset crimson;
-	margin:0%;
-	width:86vw;
-	height:5vh;
-  background-color: black;
-  color:white;
-  border-radius: 2.5vh;
-  z-index:11;
-  margin-left:7vw;
-  margin-right:7vw;
-  position:fixed;
-  top:calc(80vh + 11px);
-  left:0;
+.buttonstyle{
+border:4px solid crimson;
+margin:0%;
+width:4vh;
+height:4vh;
+background-color: darkred;
+font-size:0;
+color:white;
+border-radius: 2vh;
+z-index:11;
+margin-left:7vw;
+margin-right:7vw;
+position:fixed;
+top:calc(83vh + 7px);
+left:0;
+transition-duration:0.3s;
       }
-    </style>
+.buttonstyle:hover{
+border:4px inset crimson;
+margin:0%;
+width:40vw;
+height:5vh;
+background-color: #111111;
+color:white;
+border-radius: 2.5vh;
+z-index:11;
+font-size:large;
+margin-left:7vw;
+margin-right:7vw;
+position:fixed;
+top:calc(82vh + 7px);
+left:0;
+      }
+</style>
+	
     <div id="windowspot"></div>
  
 
@@ -376,14 +396,17 @@ function sleep(ms) {
 
         var waving = "../Avatar1/waving_1.jpeg";
         var teasing = "../Avatar1/teasing_1.jpeg";
-        var annoyed = "../Avatar1/annoyed_1.jpeg";
-        var angry = "../Avatar1/angry_1.jpeg";
-        var bye = "../Avatar1/goodbye_1.jpeg";
 
         var laughing = [];
         laughing[1] = "../Avatar1/laughing_1.jpeg";
         laughing[2] = "../Avatar1/laughing_2.jpeg";
-        laughing = laughing[1 + Math.floor(Math.random() * 2)];
+	laughing[3] = "../Avatar1/laughing_2.jpeg";
+        laughing = laughing[1 + Math.floor(Math.random() * 3)];
+	var angry = [];
+        angry[1] = "../Avatar1/annoyed_1.jpeg";
+        angry[2] = "../Avatar1/angry_1.jpeg";
+	angry[3] = "../Avatar1/angry_2.jpeg";
+        angry = angry[1 + Math.floor(Math.random() * 3)];
         var blush = [];
         blush[1] = "../Avatar1/blushing_1.jpeg";
         blush[2] = "../Avatar1/blushing_2.jpeg";
@@ -402,10 +425,12 @@ function sleep(ms) {
         var idleface = [];
         idleface[1] = "../Avatar1/idle_1.jpeg";
         idleface[2] = "../Avatar1/idle_1.jpeg";
-        idleface[3] = "../Avatar1/idle_3.jpeg";
-	idleface[3] = "../Avatar1/idle_3.jpeg";
-        idleface[4] = "../Avatar1/idle_4.jpeg";
-        idleface = idleface[1 + Math.floor(Math.random() * 4)];
+	idleface[3] = "../Avatar1/idle_1.jpeg";
+        idleface[4] = "../Avatar1/idle_3.jpeg";
+        idleface[5] = "../Avatar1/idle_3.jpeg";
+	idleface[6] = "../Avatar1/idle_3.jpeg";
+        idleface[7] = "../Avatar1/idle_4.jpeg";
+        idleface = idleface[1 + Math.floor(Math.random() * 7)];
 
         var src = idleface
         var input = emotion.toLowerCase();
@@ -465,20 +490,18 @@ function sleep(ms) {
         } else if (input.includes("sarcastic")) {
           src = teasing;
 
-        } else if (input.includes("annoy")) {
-          src = annoyed;
-        } else if (input.includes("sigh")) {
-          src = annoyed;
+	} else if (input.includes("i am angry")) {
+          src = angry;
+        } else if (input.includes("i'm mad")) {
+          src = angry;
         } else if (input.includes("angry")) {
           src = angry;
-
-
-        } else if (input.includes("see you")) {
-          src = bye;
-        } else if (input.includes("bye ")) {
-          src = bye;
-        } else if (input.includes("see ya")) {
-          src = bye;
+        } else if (input.includes("annoy")) {
+          src = angry;
+        } else if (input.includes("sigh")) {
+          src = angry;
+        } else if (input.includes("angrily")) {
+          src = angry;
         }
         img.src = src;
       };
