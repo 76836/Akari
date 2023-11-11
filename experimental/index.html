@@ -22,26 +22,30 @@
 
     <style>
       .windowstyle{
-  border:4px inset whitesmoke;
+  border:4px solid #111111;
 	background-color: transparent;
 	margin:0%;
-	width:100vw;
+	width:86vw;
 	height:80vh;
 	position:fixed;
 	top:0;
 	left:0;
+	margin-left:7vw;
+	margin-right:7vw;
   z-index:10;
   border-radius: 2.5vh;
       }
       .buttonstyle{
-  border:4px inset whitesmoke;
+  border:4px inset crimson;
 	margin:0%;
-	width:100vw;
+	width:86vw;
 	height:5vh;
   background-color: black;
   color:white;
   border-radius: 2.5vh;
   z-index:11;
+  margin-left:7vw;
+  margin-right:7vw;
   position:fixed;
   top:calc(80vh + 11px);
   left:0;
@@ -62,7 +66,7 @@
 <br>
 <br>
 <br>
-        <button class="button-round" onclick="newwindow(../settings);">⁝</button>
+        <button class="button-round" onclick="newwindow('../settings');">⁝</button>
         <form>
         <input type="text" id="box" class="box" placeholder="What's up?"></input>
       </form>
@@ -397,8 +401,9 @@ function sleep(ms) {
         listening = listening[1 + Math.floor(Math.random() * 3)];
         var idleface = [];
         idleface[1] = "../Avatar1/idle_1.jpeg";
-        idleface[2] = "../Avatar1/idle_2.jpeg";
+        idleface[2] = "../Avatar1/idle_1.jpeg";
         idleface[3] = "../Avatar1/idle_3.jpeg";
+	idleface[3] = "../Avatar1/idle_3.jpeg";
         idleface[4] = "../Avatar1/idle_4.jpeg";
         idleface = idleface[1 + Math.floor(Math.random() * 4)];
 
