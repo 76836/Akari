@@ -7,7 +7,7 @@ print('Akari AI Server v1.2\nhttps://github.com/76836/Akari')
 
 print('[ok]Preparing AI...')
 
-model = GPT4All("gpt4all-falcon-q4_0.bin", allow_download=True)
+model = GPT4All("gpt4all-falcon-q4_0.gguf", allow_download=True)
 prompt_template = 'USER: {0}\nAKARI: '
 tokens_added = ""
 
