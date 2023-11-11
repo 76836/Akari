@@ -154,6 +154,7 @@ async function respond(outcome) {
 
   if (outcome.includes("what is ")) {
       const mathExpression = outcome.replace("what is ", "");
+      mathExpression = outcome.replace(" ", "");
       try {
           const result = eval(mathExpression);
           say(result);
@@ -163,14 +164,14 @@ async function respond(outcome) {
       return;
   };
 
-  if (outcome.includes("re") && (outcome.includes("start") || outcome.includes("load") || outcome.includes("set") == true)) {
+  if (outcome.includes("re") && (outcome.includes("start") || outcome.includes("load") || outcome.includes("set") == true) && outcome.length < 8 == true) {
       console.log('Restart command recognized, restarting in 5 seconds...');
       say("Ok, I'll be back in just a few seconds.");
       await sleep(5000);
       window.location.reload();
       return;
   };
-  if (outcome.includes("close") == true) {
+  if ((outcome.includes("close") == true) && outcome.length < 20 == true) {
       closewindow()
       console.log('keyword "close" recognized.');
       say("Ok, I'll close the pop-up window.");
@@ -178,7 +179,7 @@ async function respond(outcome) {
   }
 
   if (serverStatus == "connected") {
-    say('<b>Akari AI Loading...</b>')
+    typing("Akari AI");
     socket.send(ogtxt);
   }else{
   console.log('no keywords found, too bad.');
