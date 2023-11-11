@@ -69,7 +69,27 @@ position:fixed;
 top:calc(82vh + 7px);
 left:0;
       }
-</style>
+.typingnotifier {
+  padding: 5px 10px;
+  border-radius: 20px;
+  background-color: transparent;
+  background-image: linear-gradient(to right,#005050, transparent);
+  color:crimson;
+  font-weight: bold;
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+  text-align: left;
+  line-height: 30px;
+  font-size: x-large;
+  position:fixed;
+  bottom:54px;
+  left:7px;
+  width: 45vw;
+  border:0;
+  overflow:hidden;
+}
+
+    </style>  
 	
     <div id="windowspot"></div>
  
@@ -86,6 +106,8 @@ left:0;
 <br>
 <br>
 <br>
+	<div id="status-area">
+	</div>
         <button class="button-round" onclick="newwindow('../settings');">⁝</button>
         <form>
         <input type="text" id="box" class="box" placeholder="What's up?"></input>
@@ -194,6 +216,7 @@ function bubble(text) {
 };
 
 function say(text) {
+  clearstatus();
   if (serverStatus == "connected") {changeImage(text);};
   if (textOnly == 'text') {
     bubble(text);
@@ -223,7 +246,17 @@ function closewindow() {
             spot.innerHTML = '';
 };
 
+function typing(subject) {
+var notifiercode = '<button class="typingnotifier" onclick="console.log(`\nThis is in fact a button.\n`);">'+subject+' is typing . . .</button>' ;
+var spot = document.getElementById('status-area');
+spot.innerHTML = notifiercode;
+};
 
+function clearstatus() {
+var spot = document.getElementById('status-area');
+spot.innerHTML = '';
+};
+	
 function sleep(ms) {
   return new Promise(
     resolve => setTimeout(resolve, ms)
