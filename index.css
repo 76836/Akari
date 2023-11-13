@@ -3,33 +3,36 @@
   padding: 5px 10px;
   border-radius: 20px;
   background-color: darkcyan;
-  background-image: linear-gradient(to right, darkcyan, #003333);
+  background-image: linear-gradient(to right, #066, #011);
   background-repeat: repeat-x;
   background-size: auto 100%;
   text-align: center;
   line-height: 30px;
   font-size: x-large;
+  border:2px solid black;
+  min-width:50vw;
 }
 
 
 .command {
   padding: 5px 10px;
   border-radius: 20px;
-  background-color: darkcyan;
-  background-image: linear-gradient(to left, #002200, darkgreen);
+  background-color: #111;
   background-repeat: repeat-x;
   background-size: auto 100%;
   text-align: center;
   line-height: 30px;
   font-size: x-large;
   float:right;
+  border:2px solid black;
+  min-width:50vw;
 }
 
 .box {
   padding: 5px 10px;
   border-radius: 20px;
   background-color: transparent;
-  background-image: linear-gradient(to right, #111111, #003333);
+  background-image: linear-gradient(to right, #111111, #003333, transparent);
   color:white;
   background-repeat: repeat-x;
   background-size: auto 100%;
@@ -39,15 +42,16 @@
   position:fixed;
   bottom:7px;
   left:54px;
-  width: calc(100% - 282px);
+  width: calc(100% - 187px);
   border:0;
+  border:2px solid black;
 }
 
 .button-round {
   padding: 5px 10px;
   border-radius: 20px;
   background-color: #111111;
-  color:white;
+  color:red;
   background-repeat: repeat-x;
   background-size: auto 100%;
   text-align: center;
@@ -59,6 +63,7 @@
   width: 40px;
   border:0;
   overflow:hidden;
+  border:2px solid black;
 }
 
 
@@ -66,7 +71,7 @@
   padding: 5px 10px;
   border-radius: 20px;
   background-color: #111111;
-  color:white;
+  color:cyan;
   background-repeat: repeat-x;
   background-size: auto 100%;
   text-align: center;
@@ -75,7 +80,8 @@
   position:fixed;
   bottom:7px;
   right:7px;
-  width: 195px;
+  width: 100px;
   border:0;
   overflow:hidden;
+  border:2px solid black;
 }
