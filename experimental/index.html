@@ -229,7 +229,7 @@
         AI_is_enabled = "No";
     };
     if (AI_is_enabled == "Yes") {
-        const socket = new WebSocket("ws://localhost:8765");
+        var socket = new WebSocket("ws://localhost:8765");
 
         socket.onmessage = function (event) {
             console.log("[OK]Received from server:", event.data);
@@ -451,13 +451,15 @@ body  {
         .divheader {
             cursor: move;
             z-index: 10;
-            background-color: #111111;
+            background-color: transparent;
+            background-image: linear-gradient(to right, #111111, transparent);
             color: white;
             overflow: auto;
             height: 4vh;
             overflow: hidden;
             border-radius: 2vh;
             transition-duration: 0.2s;
+	    border:2px solid black;
         }
     </style>
 
