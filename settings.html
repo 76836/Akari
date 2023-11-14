@@ -37,7 +37,9 @@
         <input class="box" id="inputurl" placeholder="./wake.js" type=text>
         <button class="setbutton" onclick="setinput()">Replace Voice Input script.</button>
     </div>
-
+        <p class="smallertext">Enable/disable AI:</p>
+        <button class="setbutton" onclick="localStorage.setItem('selectedAISetting', 'No');">Disable AI components.</button>
+        <button class="setbutton" onclick="localStorage.setItem('selectedAISetting', 'Yes');">Enable AI components.</button>
 
     <p class="title">Website looks:</p>
 
