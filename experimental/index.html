@@ -73,6 +73,9 @@
     #overlay.fade-out {
         opacity: 0;
     }
+    #overlay.noindex {
+        z-index: 0;
+    }
 
     .console {
         color: white;
@@ -187,10 +190,11 @@
             console.log('UI loaded.');
         }, 3000);
         setTimeout(function () {
+	    document.getElementById('overlay').classList.add('noindex');
             // Now get rid of the last remnants of the overlay.
             var spot = document.getElementById('overlay');
             spot.innerHTML = '';
-        }, 5000);
+        }, 4500);
     });
 
     document.getElementById('box').onkeydown = function (event) {
