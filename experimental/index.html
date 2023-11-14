@@ -20,19 +20,11 @@
     <div class="console" id="output"></div>
 
     <script>
-        function updateTextFromConsole() {
-            // Store the original console.log function
-            const originalConsoleLog = console.log;
-
-            // Override console.log to capture the output
-            console.log = function (message) {
+        function loadscreen(message) {
                 document.getElementById('output').innerText += message + '\n';
-
-                // Call the original console.log function
-                originalConsoleLog.apply(console, arguments);
             };
         }
-        updateTextFromConsole();
+        loadscreen("Akari v1.9 pre-release");
     </script>
 
 </div>
@@ -188,18 +180,10 @@
         setTimeout(function () {
             document.getElementById('overlay').classList.add('fade-out');
             console.log('UI loaded.');
+	    loadscreen("[ok] User Interface loaded.");
         }, 3000);
         setTimeout(function () {
 	    document.getElementById('overlay').classList.add('noindex');
-            // Now get rid of the last remnants of the overlay.
-            var spot = document.getElementById('overlay');
-            spot.innerHTML = '';
-	    // restore console.log
-            const originalConsoleLog = console.log;
-            console.log = function (message) {
-            originalConsoleLog.apply(console, arguments);
-            };
-     
         }, 4500);
     });
 
@@ -244,12 +228,14 @@
 
         socket.onopen = function (event) {
             console.log("[OK]Connected to WebSocket server.");
+	    loadscreen("[ok] A.I. services are connected.");
             serverStatus = "connected";
             // Send a message to the server
             socket.send("test");
         };
     } else {
         console.log('[ok] AI services are disabled');
+	loadscreen("[ok] A.I. services are disabled.");
     };
 
 
@@ -321,6 +307,7 @@ body  {
 
     console.log('InputScript =' + InputScript);
 
+	loadscreen("[ok] User preferances loaded from storage.");
 
     //integrated functions
     function bubble(text) {
@@ -485,9 +472,13 @@ body  {
                 await sleep(2000);
                 if (serverStatus == "connected") {
                     console.log('Akari AI Components are active.');
+		    loadscreen("[ok] A.I. services are active.");
                 } else {
                     console.log('Akari AI Components are being destroyed (to save resources) because the server did not connect.');
-                    var strikezone = document.getElementById('AI_Components');
+		    loadscreen("<b>[error] Failed to connect to the server.</b>");
+		    loadscreen("<em>[alert] Akari will start with A.I. features temporarily disabled, to use A.I. make sure Akari AI Server is running and reload the page.</em>");
+                    loadscreen("<b>[ok] A.I. services are shutting down.</b>");
+		    var strikezone = document.getElementById('AI_Components');
                     strikezone.innerHTML = '';
                 };
             };
