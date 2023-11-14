@@ -1,28 +1,3 @@
-
-var textOnly = 'text';
-var serverStatus = "disconnected";
-const socket = new WebSocket("ws://localhost:8765");
-
-socket.onmessage = function (event) {
-  console.log("[OK]Received from server:", event.data);
-  say(event.data);
-};
-
-socket.onopen = function (event) {
-  console.log("[OK]Connected to WebSocket server.");
-  serverStatus = "connected";
-  // Send a message to the server
-  socket.send("test");
-};
-
-// Close the connection after 10 seconds
-/*setTimeout(function () {
-  socket.close();
-}, 10000);
-*/
-
-
-
 async function respond(outcome) {
   var ogtxt = outcome;
   outcome = outcome.toLowerCase();
