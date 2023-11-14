@@ -194,6 +194,12 @@
             // Now get rid of the last remnants of the overlay.
             var spot = document.getElementById('overlay');
             spot.innerHTML = '';
+	    // restore console.log
+            const originalConsoleLog = console.log;
+            console.log = function (message) {
+            originalConsoleLog.apply(console, arguments);
+            };
+     
         }, 4500);
     });
 
