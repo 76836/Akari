@@ -9,15 +9,9 @@ To install and run the server:
 5. when the terminal says "[ok]Server running." you can connect.
    
 To use Akari AI: <br>
-In the PWA:
-1. Open akari settings
-2. Set the response script to "experimental/response.js"
-3. Close settings and reload Akari
-4. Now there sohould be a message saying something like "Akari AI v1.2 connected".
-   
-Or if you want to use the pre-release UI:
-1. Set the response script to "" (nothing)
+1. In Akari settings click "Enable AI".
 2. Go to https://76836.github.io/Akari/experimental
+3. Now you should be able to connect to and use Akari AI server.
 
 Server version 1.2: <br>
 Polished the program a little bit.
