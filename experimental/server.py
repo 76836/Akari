@@ -3,7 +3,20 @@ import asyncio
 import websockets
 import datetime
 
-print('Akari AI Server v1.2\nhttps://github.com/76836/Akari')
+print(r'''
+ $$$$$$\  $$\                          $$\        $$$$$$\  $$$$$$\ 
+$$  __$$\ $$ |                         \__|      $$  __$$\ \_$$  _|
+$$ /  $$ |$$ |  $$\ $$$$$$\   $$$$$$\  $$\       $$ /  $$ |  $$ |  
+$$$$$$$$ |$$ | $$  |\____$$\ $$  __$$\ $$ |      $$$$$$$$ |  $$ |  
+$$  __$$ |$$$$$$  / $$$$$$$ |$$ |  \__|$$ |      $$  __$$ |  $$ |  
+$$ |  $$ |$$  _$$< $$  __$$ |$$ |      $$ |      $$ |  $$ |  $$ |  
+$$ |  $$ |$$ | \$$\\$$$$$$$ |$$ |      $$ |      $$ |  $$ |$$$$$$\ 
+\__|  \__|\__|  \__|\_______|\__|      \__|      \__|  \__|\______|
+                                                                   
+                                                                   
+''')
+
+print('Akari AI Server v1.2b\nhttps://github.com/76836/Akari')
 
 print('[ok]Preparing AI...')
 
@@ -21,29 +34,31 @@ async def handle_websocket(websocket, path):
             print(f"[in]Received message: {uprompt}")
             if (message == "test"):
                 print('\n[ok]Testing connection.\n')
-                response = f"Akari AI v1.2 connected"
+                response = f"Akari AI v1.2b connected"
             else:
-                print('[ok]Generating response...')
                 prompts = [uprompt]
-                current_time = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                current_time = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")
+                print('[ok]Generating response... ('+current_time+')')
                 system_template = '''You are Akari Crimson AI, you have a kind, joking personality. Write detailed quick answers for any question. Give one answer at a time.
-(Akari AI Server v1.2, system time:'''+current_time+''')'''
+(Akari AI Server v1.2b, system time:'''+current_time+''')'''
                 first_input = system_template + prompt_template.format(prompts[0])
                 def stop_on_token_callback(token_id, token_string):
                     global tokens_added
                     tokens_added = tokens_added + token_string
                     if "USER:" in tokens_added:
-                        return False
                         print('[ok]Generation stopped.')
+                        tokens_added =''
+                        return False
                     # If the string is not found, continue generating tokens
                     return True
                 response = model.generate(first_input, max_tokens=512, temp=0.7, top_k=40, top_p=0.4, repeat_penalty=1.99, repeat_last_n=512, n_batch=8, n_predict=None, callback=stop_on_token_callback)
+                response = response.replace('USER:', '')
             await websocket.send(response)
             tokens_added = ''
             print(f"[out]Sent message: {response}")
 
     except websockets.exceptions.ConnectionClosed:
-        print("[Error]WebSocket connection closed")
+        print("\n[Error]WebSocket connection closed\n")
 
 start_server = websockets.serve(handle_websocket, "localhost", 8765)
 
