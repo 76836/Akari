@@ -1,7 +1,11 @@
 # Akari
-Akari Voice Assistant v1.7.
+Akari Voice Assistant v1.9.
 Usable on chrome-based browsers at: https://76836.github.io/Akari
 Safari probably won't work. And Firefox doesn't work yet either. YET.
+
+Version 1.9: <br>
+Changed the CSS and added AI features you can enable in settings. Also added the solve function to replace the old math feature.
+
 
 Version 1.8: <br>
 Made some general javascript upgrades, made windows that open within Akari, added ability to reload Akari just by saying "akari reload". And now you can start conversations off with "hey akari", and it won't interfere with the responses.
