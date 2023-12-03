@@ -24,7 +24,7 @@
                 document.getElementById('output').innerText += message + '\n';
             };
         
-        loadscreen("Akari v1.9.");
+        loadscreen("Akari v1.9b");
     </script>
 
 </div>
@@ -66,7 +66,7 @@
         opacity: 0;
     }
     #overlay.noindex {
-        z-index: 0;
+        z-index: -1;
     }
 
     .console {
@@ -175,16 +175,31 @@
 
 
 <script>
+async function processquery() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const query = urlParams.get('q');
+        if (query !== null) {
+	    console.log('Query string found.');
+            loadscreen("[ok] ✅ Processing url query.");
+            bubble_incoming(query);
+	    bubble("⚠️ Responding to URL query. <br><button onclick='newwindow(`data:text/html,<style>body{background-color:black; color:white;}</style><h1>URL queries</h1> <br> <h2>You can send a message to Akari instantly upon loading by adding ?q=your message here to Akaris url.<br> When this feature is used Akari system will detect it and warn you.<h2>`);'>?</button>");
+            respond(query);
+        } else {
+            console.log('No query string found.');
+        };
+};
+	
     // Add the fade-out class after 3 seconds
     document.addEventListener("DOMContentLoaded", function () {
         setTimeout(function () {
             document.getElementById('overlay').classList.add('fade-out');
             console.log('UI loaded.');
 	    loadscreen("[ok] User Interface loaded.");
-        }, 3000);
+	    processquery();
+        }, 2000);
         setTimeout(function () {
 	    document.getElementById('overlay').classList.add('noindex');
-        }, 4500);
+        }, 3500);
     });
 
     document.getElementById('box').onkeydown = function (event) {
