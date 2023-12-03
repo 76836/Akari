@@ -14,23 +14,6 @@
     <meta name="theme-color" content="#00ffff">
 </head>
 
-<div id="overlay">
-
-
-    <div class="console" id="output"></div>
-
-    <script>
-        function loadscreen(message) {
-                document.getElementById('output').innerText += message + '\n';
-            };
-        
-        loadscreen("Akari v1.9 pre-release");
-    </script>
-
-</div>
-
-
-
 <div class="option" style="visibility:hidden;">
     <label for="voice">Voice</label>
     <select name="voice" id="voice"></select>
@@ -648,5 +631,29 @@ body  {
             };
 
         </script>
+
+<div id="overlay">
+    <div class="console" id="output"></div>
+    <script>
+        function loadscreen(message) {
+            document.getElementById('output').innerText += message + '\n';
+        };
+
+        loadscreen("Akari v1.9 pre-release");
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const query = urlParams.get('q');
+        if (query !== null) {
+            loadscreen("[alert] ✅ Overriding load screen to process url query.");
+            bubble_incoming(query);
+            respond(query);
+            var strikezone = document.getElementById('AI_Components');
+            strikezone.innerHTML = '';
+        } else {
+            console.log('No query string found.');
+        }
+    </script>
+</div>
+
     </div>
 </html>
