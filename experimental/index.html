@@ -644,11 +644,9 @@ body  {
         const urlParams = new URLSearchParams(window.location.search);
         const query = urlParams.get('q');
         if (query !== null) {
-            loadscreen("[alert] ✅ Overriding load screen to process url query.");
+            loadscreen("[ok] ✅ Processing url query.");
             bubble_incoming(query);
             respond(query);
-            var strikezone = document.getElementById('AI_Components');
-            strikezone.innerHTML = '';
         } else {
             console.log('No query string found.');
         }
