@@ -171,13 +171,13 @@
 
 <script>
 
-async function processquery(); {
+async function processquery() {
         const urlParams = new URLSearchParams(window.location.search);
         const query = urlParams.get('q');
         if (query !== null) {
             loadscreen("[ok] ✅ Processing url query.");
             bubble_incoming(query);
-	    bubble("⚠️ Responding to URL query. <button onclick='window(`data:text/html,help page`);'>?</button>");
+	    bubble("⚠️ Responding to URL query. <button onclick='window(`data:text/html,<h1>URL queries</h1> <br> <h2>You can send a message to Akari instantly upon loading by adding ?q=your message here to Akaris url. When this feature is used Akari system will detect it and warn you.<h2>`);'>?</button>");
             respond(query);
         } else {
             console.log('No query string found.');
