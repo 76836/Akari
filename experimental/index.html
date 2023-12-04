@@ -228,7 +228,7 @@ async function processquery() {
         AI_is_enabled = "No";
     };
     if (AI_is_enabled == "Yes") {
-        var socket = new WebSocket("ws://192.168.1.100:8765");
+        var socket = new WebSocket("ws://"+prompt('Enter websocket location:')+":8765");
 
         socket.onmessage = function (event) {
             console.log("[OK]Received from server:", event.data);
