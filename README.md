@@ -1,11 +1,44 @@
-# Akari
+# Akari 
+**AI Voice Assistant**
+# Akari Server
+
+To install and run the server:
+1. Install the newest version of Python.
+2. `pip install gpt4all`
+3. `pip install websockets`
+4. Download "server.py" and run it.
+5. when the terminal says "[ok]Server running." you can connect.
+   
+To use Akari AI: <br>
+1. In Akari settings click "Enable AI".
+2. Go to https://76836.github.io/Akari/
+3. Now you should be able to connect to and use Akari with AI features.
+
+Server version 1.2b: <br>
+Switched models to ggml format because of the new gpt4all update, made the program look cooler, and killed a bug.
+
+Server version 1.2: <br>
+Polished the program a little bit.
+
+Server version 1.1: <br>
+Reconfigured the AI and gave it access to the current time and date.
+
+Server version 1.0: <br>
+First release. (for testing)
+<br>
+<br>
+# Akari Framework
 Akari Voice Assistant v1.9.
-Usable on chrome-based browsers at: https://76836.github.io/Akari
-Safari probably won't work. And Firefox doesn't work yet either. YET.
+Fully usable on chrome-based browsers at: https://76836.github.io/Akari
+Support for other browsers like safari and firefox may be limited.
+Integrate Akari into your iPhone with the Shortcuts app by entering commands into the url: `https://76836.github.io/Akari?q=Your%20Input%20Here` Make sure to url encode the input.
+
+
+Version 1.9b: <br>
+Added search engine-like ability to respond to a command in the url `https://76836.github.io/Akari?q=command`
 
 Version 1.9: <br>
 Changed the CSS and added AI features you can enable in settings. Also added the solve function to replace the old math feature.
-
 
 Version 1.8: <br>
 Made some general javascript upgrades, made windows that open within Akari, added ability to reload Akari just by saying "akari reload". And now you can start conversations off with "hey akari", and it won't interfere with the responses.
