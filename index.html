@@ -1,667 +1,285 @@
-<!DOCTYPE html>
-<html id="html" lang="en">
+<!DOCTYPE HTML>
 
 <head>
+    <title>Akari FrameWork v2.0</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="initial-scale=1">
     <link rel="manifest" href="./app.webmanifest">
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width" />
-    <title>Akari Personal Assistant</title>
     <link rel="stylesheet" href="./index.css">
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
     <link rel="shortcut icon" href="./favicon.ico">
     <meta name="msapplication-TileColor" content="#603cba">
     <meta name="theme-color" content="#00ffff">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
 </head>
 
-<div id="overlay">
+<body onclick="document.getElementById('micbutton').className='button-round';recognition.stop();">
+    <div id="overlay">
+        <div class="console" id="output"></div>
+        <script>
+            function loadscreen(message) {
+                document.getElementById('output').innerHTML += message + '<br>';
+            };
+            loadscreen("Project Loading...");
+        </script>
+    </div>
+    <div id="windowspot"></div>
+    <div id="messages">
+    </div>
+    <br><br><br>
+    <div id="status-area"></div>
 
-
-    <div class="console" id="output"></div>
+    <button class="button-round" id="micbutton" onclick="voicerecognitionstart();">🎙️</button>
+    <form><input type="text" id="box" class="box" placeholder="What's up?"></input></form>
+    <button class="button-long"
+        onclick="textOnly = 'text'; enter(document.getElementById('box').value); document.getElementById('box').value = '';">Send.</button>
 
     <script>
-        function loadscreen(message) {
-                document.getElementById('output').innerText += message + '\n';
+
+        // Add the fade-out class after 3 seconds
+        document.addEventListener("DOMContentLoaded", function () {
+            setTimeout(function () {
+                document.getElementById('overlay').classList.add('fade-out');
+                console.log('UI loaded.');
+                loadscreen("[ok] Project loaded.");
+                say(getGreetingByTime());
+            }, 1000);
+            setTimeout(function () {
+                document.getElementById('overlay').classList.add('noindex');
+            }, 1500);
+        });
+
+
+        document.getElementById('box').onkeydown = function (event) {
+            var e = event || window.event;
+            if (e.keyCode == 13) {
+                textOnly = 'text';
+                enter(document.getElementById('box').value);
+                document.getElementById('box').value = '';
+                return false;
+            }
+        };
+
+
+        var VoiceScript = localStorage.getItem('selectedVoiceScript');
+        var AvatarScript = localStorage.getItem('selectedAvatarScript');
+        var AIScript = localStorage.getItem('selectedAIScript');
+        var BKGURL = localStorage.getItem('selectedBKGURL');
+        var AI_is_enabled = localStorage.getItem('selectedAISetting');
+
+        var textOnly = 'text';
+        var serverStatus = "disconnected";
+
+        if (AI_is_enabled == null || AI_is_enabled == "") {
+            AI_is_enabled = "No";
+        };
+        if (AI_is_enabled == "Yes") {
+            var socket = new WebSocket("ws://localhost:8765");
+
+            socket.onmessage = function (event) {
+                console.log("[OK]Received from server:", event.data);
+                say(event.data);
             };
-        
-        loadscreen("Akari v1.9b");
-    </script>
 
-</div>
-
-
-
-<div class="option" style="visibility:hidden;">
-    <label for="voice">Voice</label>
-    <select name="voice" id="voice"></select>
-</div>
-
-
-<style>
-    #overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 98%;
-        background-color: black;
-        opacity: 1;
-        transition: opacity 2s ease-out;
-        z-index: 29;
-        border-bottom: 2vh solid red;
-        animation: borderAnimation 3s forwards;
-    }
-
-    @keyframes borderAnimation {
-        0% {
-            border-color: red;
-        }
-
-        100% {
-            border-color: green;
-        }
-    }
-
-    #overlay.fade-out {
-        opacity: 0;
-    }
-    #overlay.noindex {
-        z-index: -1;
-    }
-
-    .console {
-        color: white;
-        font-size: xx-large;
-    }
-
-    .windowstyle {
-        border: 4px solid #111111;
-        background-color: transparent;
-        margin: 0%;
-        margin-top: 7vh;
-        width: 86vw;
-        height: 80vh;
-        position: fixed;
-        top: 0;
-        left: 0;
-        margin-left: 7vw;
-        margin-right: 7vw;
-        z-index: 10;
-        border-radius: 2vh;
-    }
-
-    .buttonstyle {
-        border: 4px solid crimson;
-        margin: 0%;
-        width: 4vh;
-        height: 4vh;
-        background-color: darkred;
-        font-size: 0;
-        color: white;
-        border-radius: 2vh;
-        z-index: 11;
-        margin-left: 7vw;
-        margin-right: 7vw;
-        position: fixed;
-        top: calc(83vh + 7px);
-        left: 0;
-        transition-duration: 0.3s;
-    }
-
-    .buttonstyle:hover {
-        border: 4px inset crimson;
-        margin: 0%;
-        width: 40vw;
-        height: 5vh;
-        background-color: #111111;
-        color: white;
-        border-radius: 2.5vh;
-        z-index: 11;
-        font-size: large;
-        margin-left: 7vw;
-        margin-right: 7vw;
-        position: fixed;
-        top: calc(82vh + 7px);
-        left: 0;
-    }
-
-    .typingnotifier {
-        padding: 5px 10px;
-        border-radius: 20px;
-        background-color: transparent;
-        background-image: linear-gradient(to right, #005050, transparent);
-        color: crimson;
-        font-weight: bold;
-        background-repeat: repeat-x;
-        background-size: auto 100%;
-        text-align: left;
-        line-height: 30px;
-        font-size: x-large;
-        position: fixed;
-        bottom: 54px;
-        left: 7px;
-        width: 45vw;
-        border: 0;
-        overflow: hidden;
-    }
-</style>
-
-<div id="windowspot"></div>
-
-
-<p class="responsetxt" id="test">Akari v1.9: Javascript error!</p>
-<br>
-<p class="responsetxt" id="text">No speech detected.</p>
-<br>
-
-
-<div id="messages">
-
-</div>
-<br>
-<br>
-<br>
-<div id="status-area">
-</div>
-<button class="button-round" onclick="newwindow('./settings');">⁝</button>
-<form>
-    <input type="text" id="box" class="box" placeholder="What's up?"></input>
-</form>
-
-<button class="button-long"
-    onclick="textOnly = 'text'; enter(document.getElementById('box').value); document.getElementById('box').value = '';">Send.</button>
-
-
-
-
-<script>
-async function processquery() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const query = urlParams.get('q');
-        if (query !== null) {
-	    console.log('Query string found.');
-            loadscreen("[ok] ✅ Processing url query.");
-            bubble_incoming(query);
-	    bubble("⚠️ Responding to URL query. <br><button onclick='newwindow(`data:text/html,<style>body{background-color:black; color:white;}</style><h1>URL queries</h1> <br> <h2>You can send a message to Akari instantly upon loading by adding ?q=your message here to Akaris url.<br> When this feature is used Akari system will detect it and warn you.<h2>`);'>?</button>");
-            respond(query);
+            socket.onopen = function (event) {
+                console.log("[OK]Connected to WebSocket server.");
+                loadscreen("[ok] A.I. services are connected.");
+                serverStatus = "connected";
+                // Send a message to the server
+                socket.send("test");
+            };
         } else {
-            console.log('No query string found.');
-        };
-};
-	
-    // Add the fade-out class after 3 seconds
-    document.addEventListener("DOMContentLoaded", function () {
-        setTimeout(function () {
-            document.getElementById('overlay').classList.add('fade-out');
-            console.log('UI loaded.');
-	    loadscreen("[ok] User Interface loaded.");
-	    processquery();
-        }, 2000);
-        setTimeout(function () {
-	    document.getElementById('overlay').classList.add('noindex');
-        }, 3500);
-    });
-
-    document.getElementById('box').onkeydown = function (event) {
-        var e = event || window.event;
-        if (e.keyCode == 13) {
-            textOnly = 'text';
-            enter(document.getElementById('box').value);
-            document.getElementById('box').value = '';
-            return false;
-        }
-    };
-
-
-
-
-    var VoiceScript = localStorage.getItem('selectedVoiceScript');
-
-    var InputScript = localStorage.getItem('selectedInputScript');
-
-    var AIScript = localStorage.getItem('selectedAIScript');
-
-    var BKGURL = localStorage.getItem('selectedBKGURL');
-
-    var AI_is_enabled = localStorage.getItem('selectedAISetting');
-
-
-    var textOnly = 'text';
-
-    var serverStatus = "disconnected";
-
-    if (AI_is_enabled == null || AI_is_enabled == "") {
-        AI_is_enabled = "No";
-    };
-    if (AI_is_enabled == "Yes") {
-        var socket = new WebSocket("ws://localhost:8765");
-
-        socket.onmessage = function (event) {
-            console.log("[OK]Received from server:", event.data);
-            say(event.data);
+            console.log('[ok] AI services are disabled');
+            loadscreen("[ok] A.I. services are disabled.");
         };
 
-        socket.onopen = function (event) {
-            console.log("[OK]Connected to WebSocket server.");
-	    loadscreen("[ok] A.I. services are connected.");
-            serverStatus = "connected";
-            // Send a message to the server
-            socket.send("test");
+        if (BKGURL == null || BKGURL == "") {
+            BKGURL = "./wallpapers/colors.jpg";
         };
-    } else {
-        console.log('[ok] AI services are disabled');
-	loadscreen("[ok] A.I. services are disabled.");
-    };
 
-
-
-
-
-
-    if (BKGURL == null || BKGURL == "") {
-        BKGURL = "./colors.jpg";
-    };
-
-    var ExCSS1 = document.createElement("style");
-    ExCSS1.innerHTML = `
+        var ExCSS1 = document.createElement("style");
+        ExCSS1.innerHTML = `
 body  {
-			background-image: url("`+ BKGURL + `");
-  		background-color: black;
-			background-repeat: no-repeat;
-			background-size: cover;
-      color:white;
-      margin:7px;
-			overflow-x: hidden;
-			min-height:100vh;
-      background-attachment: fixed;
+        background-image: url("`+ BKGURL + `");
+      background-color: black;
+        background-repeat: no-repeat;
+        background-size: cover;
+  color:white;
+  margin:7px;
+        overflow-x: hidden;
+        min-height:100vh;
+  background-attachment: fixed;
 }`;
 
-    var head = document.getElementsByName("head")[0];
-    document.head.appendChild(ExCSS1);
+        var head = document.getElementsByName("head")[0];
+        document.head.appendChild(ExCSS1);
 
-    console.log('Background image loaded from persistent settings: ' + BKGURL);
-
-
-
-    if (InputScript == null || InputScript == "") {
-        InputScript = "./wake.js";
-    };
-
-    if (AIScript == null || AIScript == "") {
-        AIScript = "./response.js";
-    };
-
-    if (VoiceScript == null || VoiceScript == "") {
-        VoiceScript = "./speech.js";
-    };
-
-    var ExJS1 = document.createElement("script");
-    ExJS1.src = VoiceScript;
-
-    var head = document.getElementsByName("head")[0];
-    document.head.appendChild(ExJS1);
-
-    console.log('VoiceScript =' + VoiceScript);
+        console.log('Background image loaded from persistent settings: ' + BKGURL);
 
 
 
-    var ExJS2 = document.createElement("script");
-    ExJS2.src = AIScript;
+        if (AvatarScript == null || AvatarScript == "") {
+            AvatarScript = "./avatar/hiyori.js";
+        };
 
-    head = document.getElementsByName("head")[0];
-    document.head.appendChild(ExJS2);
+        if (AIScript == null || AIScript == "") {
+            AIScript = "./response/akari.js";
+        };
 
-    console.log('AIScript =' + AIScript);
+        if (VoiceScript == null || VoiceScript == "") {
+            VoiceScript = "./speech.js";
+        };
 
+        var ExJS1 = document.createElement("script");
+        ExJS1.src = VoiceScript;
 
-    var ExJS3 = document.createElement("script");
-    ExJS3.src = InputScript;
+        var head = document.getElementsByName("head")[0];
+        document.head.appendChild(ExJS1);
 
-    head = document.getElementsByName("head")[0];
-    document.head.appendChild(ExJS3);
-
-    console.log('InputScript =' + InputScript);
-
-	loadscreen("[ok] User preferances loaded from storage.");
-
-    //integrated functions
-    function bubble(text) {
-        var Outgoing = '<p class="responsetxt">' + text + '</p><br>';
-        var messages = document.getElementById('messages');
-        messages.insertAdjacentHTML('beforebegin', Outgoing);
-        window.scrollTo(0, document.body.scrollHeight);
-    };
-
-    function say(text) {
-        clearstatus();
-        if (serverStatus == "connected") { changeImage(text); };
-        if (textOnly == 'text') {
-            bubble(text);
-        } else {
-            speak(text);
-        }
-    };
-
-    function bubble_incoming(outcome) {
-        var incoming = '<p class="command">' + outcome + '</p><br><br><br>';
-        var messages = document.getElementById('messages');
-        messages.insertAdjacentHTML('beforebegin', incoming);
-    };
-
-    function enter(input) {
-        bubble_incoming(input);
-        respond(input);
-    };
-
-    function newwindow(weblocation) {
-        var windowcode = '<iframe src="' + weblocation + '" class="windowstyle"></iframe><button class="buttonstyle" onclick="closewindow();">Close window.</button>';
-        var spot = document.getElementById('windowspot');
-        spot.innerHTML = windowcode;
-    };
-    function closewindow() {
-        var spot = document.getElementById('windowspot');
-        spot.innerHTML = '';
-    };
-
-    function typing(subject) {
-        var notifiercode = '<button class="typingnotifier" onclick="console.log(`\nThis is in fact a button.\n`);">' + subject + ' is typing . . .</button>';
-        var spot = document.getElementById('status-area');
-        spot.innerHTML = notifiercode;
-    };
-
-    function clearstatus() {
-        var spot = document.getElementById('status-area');
-        spot.innerHTML = '';
-    };
-
-    function sleep(ms) {
-        return new Promise(
-            resolve => setTimeout(resolve, ms)
-        );
-    };
-</script>
+        console.log('VoiceScript =' + VoiceScript);
 
 
-<div id="AI_Components">
 
-    <style type="text/css">
-        .buttonplus {
-            border-radius: 0px;
-            color: black;
-            height: 100%;
-            background-color: green;
-            position: sticky;
-            right: 0;
-            margin-right: 2%;
-            border: 0;
-            width: 4vh;
-            border-radius: 2vh;
-            font-size: large;
-            transition-duration: 0.2s;
-        }
+        var ExJS2 = document.createElement("script");
+        ExJS2.src = AIScript;
 
-        .buttonplus:Hover {
-            border-radius: 0px;
-            color: black;
-            height: 100%;
-            background-color: cyan;
-            position: sticky;
-            right: 0;
-            margin-right: 2%;
-            border: 0;
-            width: 4vh;
-            border-radius: 2vh;
-            font-size: large;
-            transition-duration: 0.4s;
-        }
+        head = document.getElementsByName("head")[0];
+        document.head.appendChild(ExJS2);
 
-        .buttonminus {
-            border-radius: 0px;
-            color: black;
-            height: 100%;
-            background-color: darkred;
-            position: sticky;
-            right: 0;
-            margin-right: 0%;
-            border: 0;
-            width: 4vh;
-            border-radius: 2vh;
-            font-size: large;
-            transition-duration: 0.2s;
-        }
-
-        .buttonminus:Hover {
-            border-radius: 0px;
-            color: black;
-            height: 100%;
-            background-color: cyan;
-            position: sticky;
-            right: 0;
-            margin-left: 0;
-            border: 0;
-            width: 4vh;
-            border-radius: 2vh;
-            font-size: large;
-            transition-duration: 0.4s;
-        }
-
-        .div {
-            position: fixed;
-            z-index: 7;
-            background-color: transparent;
-            text-align: left;
-            border: 1px solid transparent;
-            overflow: hidden;
-            border-radius: 2vh;
-            width: 32vh;
-        }
-
-        .divheader {
-            cursor: move;
-            z-index: 10;
-            background-color: transparent;
-            background-image: linear-gradient(to right, #111111, transparent);
-            color: white;
-            overflow: auto;
-            height: 4vh;
-            overflow: hidden;
-            border-radius: 2vh;
-            transition-duration: 0.2s;
-	    border:2px solid black;
-        }
-    </style>
+        console.log('AIScript =' + AIScript);
 
 
-    <div style="top: 50px; right: 50px;" class="div" id="imgWindow">
-        <img style="height:30vh;width:30vh;border-radius:3vh;border:1vh solid #111111" id="avatar"
-            src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="></img>
-        <div class="divheader" id="imgWindowheader"><button class="buttonplus"
-                onclick="document.getElementById('avatar').style.visibility = 'visible';">⮝</button><button
-                class="buttonminus" onclick="document.getElementById('avatar').style.visibility = 'hidden';">⮟</button>
+        var ExJS3 = document.createElement("script");
+        ExJS3.src = AvatarScript;
 
-        </div>
+        head = document.getElementsByName("head")[0];
+        document.head.appendChild(ExJS3);
+
+        console.log('AvatarScript =' + AvatarScript);
+
+        loadscreen("[ok] User preferances loaded from storage.");
 
 
+
+        //integrated functions
+        function bubble(text) {
+            var Outgoing = '<p class="responsetxt">' + text + '</p><br>';
+            var messages = document.getElementById('messages');
+            messages.insertAdjacentHTML('beforebegin', Outgoing);
+            window.scrollTo(0, document.body.scrollHeight);
+        };
+
+        function say(text) {
+            clearstatus();
+            if (textOnly == 'text') {
+                bubble(text);
+            } else {
+                speak(text);
+            }
+        };
+
+        function bubble_incoming(outcome) {
+            var incoming = '<p class="command">' + outcome + '</p><br><br><br>';
+            var messages = document.getElementById('messages');
+            messages.insertAdjacentHTML('beforebegin', incoming);
+            window.scrollTo(0, document.body.scrollHeight);
+        };
+
+        function enter(input) {
+            bubble_incoming(input);
+            respond(input);
+        };
+
+        function newwindow(weblocation) {
+            var windowcode = '<iframe src="' + weblocation + '" class="windowstyle"></iframe><button class="buttonstyle" onclick="closewindow();">Close window.</button>';
+            var spot = document.getElementById('windowspot');
+            spot.innerHTML = windowcode;
+        };
+        function closewindow() {
+            var spot = document.getElementById('windowspot');
+            spot.innerHTML = '';
+        };
+
+        function typing(subject) {
+            var notifiercode = '<button class="typingnotifier" onclick="console.log(`\nThis is in fact a button.\n`);">' + subject + ' is typing . . .</button>';
+            var spot = document.getElementById('status-area');
+            spot.innerHTML = notifiercode;
+        };
+
+        function clearstatus() {
+            var spot = document.getElementById('status-area');
+            spot.innerHTML = '';
+        };
+
+        function sleep(ms) {
+            return new Promise(
+                resolve => setTimeout(resolve, ms)
+            );
+        };
+
+        var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        var recognition = new SpeechRecognition();
+
+        recognition.onspeechend = async function () {
+            await sleep(200);
+            recognition.stop();
+        };
+
+        recognition.onresult = async function (event) {
+            var speechinput = event.results[0][0].transcript;
+            document.getElementById('micbutton').className = 'button-round';
+            document.getElementById('box').value = speechinput;
+        };
+
+        async function voicerecognitionstart() {
+            await sleep(100);
+            recognition.start();
+            document.getElementById('micbutton').className = 'mic-on';
+        };
+    </script>
+
+
+    <div id="AI_Components">
         <script>
             async function SCheck() {
-                await sleep(2000);
+                await sleep(1000);
                 if (serverStatus == "connected") {
                     console.log('Akari AI Components are active.');
-		    loadscreen("[ok] A.I. services are active.");
+                    loadscreen("[ok] A.I. services are active.");
                 } else {
-                    console.log('Akari AI Components are being destroyed (to save resources) because the server did not connect.');
-		    loadscreen("<b>[error] Failed to connect to the server.</b>");
-		    loadscreen("<em>[alert] Akari will start with A.I. features temporarily disabled, to use A.I. make sure Akari AI Server is running and reload the page.</em>");
-                    loadscreen("<b>[ok] A.I. services are shutting down.</b>");
-		    var strikezone = document.getElementById('AI_Components');
+                    loadscreen("<b>[error] Failed to connect to the server.</b>");
+                    var strikezone = document.getElementById('AI_Components');
                     strikezone.innerHTML = '';
                 };
             };
 
             SCheck();
-
-            function dragElement(elmnt) {
-                console.log('Making element draggable.');
-                var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-                if (document.getElementById(elmnt.id + "header")) {
-                    /* if present, the header is where you move the DIV from:*/
-                    document.getElementById(elmnt.id + "header").onmousedown = dragMouseDown;
-                } else {
-                    /* otherwise, move the DIV from anywhere inside the DIV:*/
-                    elmnt.onmousedown = dragMouseDown;
-                }
-
-                function dragMouseDown(e) {
-                    e = e || window.event;
-                    e.preventDefault();
-                    // get the mouse cursor position at startup:
-                    pos3 = e.clientX;
-                    pos4 = e.clientY;
-                    document.onmouseup = closeDragElement;
-                    // call a function whenever the cursor moves:
-                    document.onmousemove = elementDrag;
-                }
-
-                function elementDrag(e) {
-                    e = e || window.event;
-                    e.preventDefault();
-                    // calculate the new cursor position:
-                    pos1 = pos3 - e.clientX;
-                    pos2 = pos4 - e.clientY;
-                    pos3 = e.clientX;
-                    pos4 = e.clientY;
-                    // set the element's new position:
-                    elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-                    elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-                }
-
-                function closeDragElement() {
-                    /* stop moving when mouse button is released:*/
-                    document.onmouseup = null;
-                    document.onmousemove = null;
-                }
-            };
-
-            var imgWindow = document.getElementById("imgWindow");
-            dragElement(imgWindow);
-
-
-            function changeImage(emotion) {
-                var img = document.getElementById("avatar");
-
-
-                var waving = "./Avatar1/waving_1.jpeg";
-                var teasing = "./Avatar1/teasing_1.jpeg";
-
-                var laughing = [];
-                laughing[1] = "./Avatar1/laughing_1.jpeg";
-                laughing = laughing[1 + Math.floor(Math.random() * 1)];
-                var angry = [];
-                angry[1] = "./Avatar1/annoyed_1.jpeg";
-                angry[2] = "./Avatar1/angry_1.jpeg";
-                angry[3] = "./Avatar1/angry_2.jpeg";
-                angry = angry[1 + Math.floor(Math.random() * 3)];
-                var blush = [];
-                blush[1] = "./Avatar1/blushing_1.jpeg";
-                blush[2] = "./Avatar1/blushing_2.jpeg";
-                blush[3] = "./Avatar1/blushing_3.jpeg";
-                blush = blush[1 + Math.floor(Math.random() * 3)];
-                var smiling = [];
-                smiling[1] = "./Avatar1/smiling_1.jpeg";
-                smiling[2] = "./Avatar1/smiling_2.jpeg";
-                smiling[3] = "./Avatar1/smiling_3.jpeg";
-                smiling = smiling[1 + Math.floor(Math.random() * 3)];
-                var listening = [];
-                listening[1] = "./Avatar1/listening_1.jpeg";
-                listening[2] = "./Avatar1/listening_2.jpeg";
-                listening[3] = "./Avatar1/listening_3.jpeg";
-                listening = listening[1 + Math.floor(Math.random() * 3)];
-                var idleface = [];
-                idleface[1] = "./Avatar1/idle_1.jpeg";
-                idleface[2] = "./Avatar1/idle_1.jpeg";
-                idleface[3] = "./Avatar1/idle_1.jpeg";
-                idleface[4] = "./Avatar1/idle_3.jpeg";
-                idleface[5] = "./Avatar1/idle_3.jpeg";
-                idleface[6] = "./Avatar1/idle_3.jpeg";
-                idleface[7] = "./Avatar1/idle_4.jpeg";
-                idleface = idleface[1 + Math.floor(Math.random() * 7)];
-
-                var src = idleface
-                var input = emotion.toLowerCase();
-                if (input.includes("chuckle")) {
-                    src = laughing;
-                } else if (input.includes("laugh")) {
-                    src = laughing;
-                } else if (input.includes("lol ")) {
-                    src = laughing;
-                } else if (input.includes("ha ")) {
-                    src = laughing;
-                } else if (input.includes("funny")) {
-                    src = laughing;
-                } else if (input.includes("giggl")) {
-                    src = laughing;
-
-                } else if (input.includes("blush")) {
-                    src = blush;
-
-                } else if (input.includes("sighs heavily")) {
-                    src = angry;
-
-                } else if (input.endsWith('?')) {
-                    src = listening;
-
-                } else if (input.includes("smil")) {
-                    src = smiling;
-                } else if (input.includes("happy")) {
-                    src = smiling;
-                } else if (input.includes("nice")) {
-                    src = smiling;
-                } else if (input.includes("glad")) {
-                    src = smiling;
-                } else if (input.includes("good")) {
-                    src = smiling;
-                } else if (input.includes("great")) {
-                    src = smiling;
-
-                } else if (input.includes("wave")) {
-                    src = waving;
-                } else if (input.includes("hello")) {
-                    src = waving;
-                } else if (input.includes("hi ")) {
-                    src = waving;
-                } else if (input.includes("greet")) {
-                    src = waving;
-                } else if (input.includes("hey")) {
-                    src = waving;
-
-                } else if (input.includes("tease")) {
-                    src = teasing;
-                } else if (input.includes("mische")) {
-                    src = teasing;
-                } else if (input.includes("grin")) {
-                    src = teasing;
-                } else if (input.includes("sarcastic")) {
-                    src = teasing;
-
-                } else if (input.includes("i am angry")) {
-                    src = angry;
-                } else if (input.includes("i'm mad")) {
-                    src = angry;
-                } else if (input.includes("angry")) {
-                    src = angry;
-                } else if (input.includes("annoy")) {
-                    src = angry;
-                } else if (input.includes("sigh")) {
-                    src = angry;
-                } else if (input.includes("angrily")) {
-                    src = angry;
-                } else if (input.includes("grumble")) {
-                    src = angry;
-                };
-
-                img.src = src;
-            };
-
         </script>
     </div>
+<div id="avatar">
+    <div id="waifu">
+        <div id="waifu-message"></div>
+        <div class="waifu-tool">
+            <span class="icon-next"></span>
+            <span class="icon-home"></span>
+            <span class="icon-message"></span>
+            <span class="icon-camera"></span>
+            <span class="icon-volumeup"></span>
+            <span class="icon-volumedown"></span>
+            <span class="icon-about"></span>
+            <span class="icon-cross"></span>
+        </div>
+        <canvas id="live2d2"></canvas>
+        <canvas id="live2d4"></canvas>
+    </div>
+    <script src="dist/live2d_bundle.js"></script>
+    <script async type="module" src="waifu-tips.js"></script>
+</div>
+</body>
+
 </html>
