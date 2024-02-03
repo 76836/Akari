@@ -1,87 +1,214 @@
-.responsetxt {
-  display: inline-block;
-  padding: 5px 10px;
-  border-radius: 20px;
-  background-color: darkcyan;
-  background-image: linear-gradient(to right, #066, #011);
-  background-repeat: repeat-x;
-  background-size: auto 100%;
-  text-align: center;
-  line-height: 30px;
-  font-size: x-large;
-  border:2px solid black;
-  min-width:50vw;
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 98%;
+    background-color: black;
+    opacity: 1;
+    transition: opacity 1s ease-out;
+    z-index: 29;
+    border-bottom: 2vh solid red;
+    animation: borderAnimation 2.5s forwards;
 }
 
+@keyframes borderAnimation {
+    0% {
+        border-color: red;
+    }
+
+    100% {
+        border-color: green;
+    }
+}
+
+#overlay.fade-out {
+    opacity: 0;
+}
+
+#overlay.noindex {
+    z-index: -1;
+}
+
+.console {
+    color: white;
+    font-size: xx-large;
+}
+
+.typingnotifier {
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: transparent;
+    background-image: linear-gradient(to right, #005050, transparent);
+    color: crimson;
+    font-weight: bold;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: left;
+    line-height: 30px;
+    font-size: x-large;
+    position: fixed;
+    bottom: 54px;
+    left: 7px;
+    width: 45vw;
+    border: 0;
+    overflow: hidden;
+}
+
+.responsetxt {
+    display: inline-block;
+    padding: 0px 5px;
+    border-radius: 0px 10px 10px 10px;
+    background-color: transparent;
+    background-image: linear-gradient(to right, #900, rgba(9, 9, 9, 0.5));
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: center;
+    line-height: 30px;
+    font-size: large;
+    border: 0px solid black;
+    margin-right: 150px;
+    width: calc(50vw - 150px);
+}
 
 .command {
-  padding: 5px 10px;
-  border-radius: 20px;
-  background-color: #111;
-  background-repeat: repeat-x;
-  background-size: auto 100%;
-  text-align: center;
-  line-height: 30px;
-  font-size: x-large;
-  float:right;
-  border:2px solid black;
-  min-width:50vw;
+    padding: 5px 10px;
+    border-radius: 10px 10px 0px 10px;
+    background-color: #111;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: center;
+    line-height: 30px;
+    font-size: large;
+    float: right;
+    border: 2px solid black;
+    margin-left: 150px;
+    width: calc(50vw - 150px);
 }
 
 .box {
-  padding: 5px 10px;
-  border-radius: 20px;
-  background-color: transparent;
-  background-image: linear-gradient(to right, #111111, #003333, transparent);
-  color:white;
-  background-repeat: repeat-x;
-  background-size: auto 100%;
-  text-align: left;
-  line-height: 30px;
-  font-size: x-large;
-  position:fixed;
-  bottom:7px;
-  left:54px;
-  width: calc(100% - 187px);
-  border:0;
-  border:2px solid black;
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: transparent;
+    background-image: linear-gradient(to right, #111111, #003333, transparent);
+    color: white;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: left;
+    line-height: 30px;
+    font-size: x-large;
+    position: fixed;
+    bottom: 7px;
+    left: 54px;
+    width: calc(100% - 187px);
+    border: 0;
+    border: 2px solid black;
+    z-index: 21;
 }
 
 .button-round {
-  padding: 5px 10px;
-  border-radius: 20px;
-  background-color: #111111;
-  color:red;
-  background-repeat: repeat-x;
-  background-size: auto 100%;
-  text-align: center;
-  line-height: 30px;
-  font-size: x-large;
-  position:fixed;
-  bottom:7px;
-  left:7px;
-  width: 40px;
-  border:0;
-  overflow:hidden;
-  border:2px solid black;
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: #111111;
+    color: red;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: center;
+    line-height: 30px;
+    font-size: large;
+    position: fixed;
+    bottom: 7px;
+    left: 7px;
+    width: 40px;
+    border: 0;
+    overflow: hidden;
+    border: 2px solid black;
+    z-index: 21;
+}
+
+.mic-on {
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: red;
+    color: white;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: center;
+    line-height: 60px;
+    font-size: x-large;
+    position: fixed;
+    bottom: 7px;
+    left: 7px;
+    width: calc(100vw - 14px);
+    border: 0;
+    overflow: hidden;
+    border: 2px solid black;
+    z-index: 22;
+}
+
+.button-long {
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: #111111;
+    color: cyan;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: center;
+    line-height: 30px;
+    font-size: x-large;
+    position: fixed;
+    bottom: 7px;
+    right: 7px;
+    width: 100px;
+    border: 0;
+    overflow: hidden;
+    border: 2px solid black;
+    z-index: 21;
+}
+
+body {
+    background-image: url("https://76836.github.io/webdesk/images/wallpapers/water.png");
+    background-color: darkgray;
+    background-repeat: no-repeat;
+    background-size: cover;
+    overflow-x: hidden;
+    color: white;
+    min-height: 100vh;
+    font-family: 'Orbitron', sans-serif;
+    word-wrap: break-word;
 }
 
 
-.button-long {
-  padding: 5px 10px;
-  border-radius: 20px;
-  background-color: #111111;
-  color:cyan;
-  background-repeat: repeat-x;
-  background-size: auto 100%;
-  text-align: center;
-  line-height: 30px;
-  font-size: x-large;
-  position:fixed;
-  bottom:7px;
-  right:7px;
-  width: 100px;
-  border:0;
-  overflow:hidden;
-  border:2px solid black;
+.windowstyle {
+    border: 4px solid #111111;
+    background-color: transparent;
+    margin: 0%;
+    margin-top: 7vh;
+    width: 86vw;
+    height: 80vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    margin-left: 7vw;
+    margin-right: 7vw;
+    z-index: 30;
+    border-radius: 2vh;
+}
+
+.buttonstyle {
+    border: 4px solid crimson;
+    margin: 0%;
+    width: 16vh;
+    height: 8vh;
+    background-color: darkred;
+    font-size: large;
+    color: white;
+    border-radius: 2vh;
+    z-index: 31;
+    margin-left: 7vw;
+    margin-right: 7vw;
+    position: fixed;
+    top: calc(83vh + 7px);
+    left: 0;
+    transition-duration: 0.3s;
 }
