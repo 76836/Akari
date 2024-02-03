@@ -5,7 +5,6 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width" />
-    <title>Akari Settings</title>
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
     <link rel="shortcut icon" href="./favicon.ico">
     <meta name="msapplication-TileColor" content="#603cba">
@@ -18,46 +17,36 @@
 <body>
 
     <p class="title" style="color:darkcyan;"><em>SETTINGS</em> </p>
-    <button class="setbutton" onclick="window.location.href='./';">EXIT</button>
 
-    <p class="title">Akari's behaviour:</p>
-
-    <div>
-        <p class="smallertext">Change Speech Synthesis Script:</p>
-        <input class="box" id="voiceurl" placeholder="Https://example.com/speech.js" type=text>
-        <button class="setbutton" onclick="setvoice()">Install voice.</button>
-    </div>
-    <div>
-        <p class="smallertext">Change response Script:</p>
-        <input class="box" id="AIurl" placeholder="./response.js" type=text>
-        <button class="setbutton" onclick="setAI()">Replace behaviour script.</button>
-    </div>
-    <div>
-        <p class="smallertext">Change Input Script:</p>
-        <input class="box" id="inputurl" placeholder="./wake.js" type=text>
-        <button class="setbutton" onclick="setinput()">Replace Voice Input script.</button>
-    </div>
-        <p class="smallertext">Enable/disable AI:</p>
-        <button class="setbutton" onclick="localStorage.setItem('selectedAISetting', 'No');">Disable AI components.</button>
-        <button class="setbutton" onclick="localStorage.setItem('selectedAISetting', 'Yes');">Enable AI components.</button>
-
-    <p class="title">Website looks:</p>
-
-    <div>
-        <p class="smallertext">Change background image:</p>
-        <input class="box" id="bkgurl" placeholder="C:\Users\Gigachad\Desktop\future.gif" type=text>
-        <button class="setbutton" onclick="setBKG()">Improve upon my CSS.</button>
-    </div>
+    <p class="smallertext">Change background image:</p>
+    <input class="box" id="bkgurl" placeholder="./wallpapers/horizon.jpg" type=text>
+    <button class="setbutton" onclick="setBKG()">Set wallpaper.</button>
+    
+    <br><br>
+    <p class="smallertext">Change Speech Synthesis script:</p>
+    <input class="box" id="voiceurl" placeholder="./speech/default.js" type=text>
+    <button class="setbutton" onclick="setvoice()">Save Changes.</button>
 
 
-    <p class="title">Reset:</p>
-    <p style="font-size:large; width:100%; text-align: center;"><em>Set any input to nothing to return to
-            default.<br>Reload to apply changes.</em></p>
+    <p class="smallertext">Change response generation script:</p>
+    <input class="box" id="AIurl" placeholder="./response/akari.js" type=text>
+    <button class="setbutton" onclick="setAI()">Save Changes.</button>
 
 
-    <p class="title" style="color: red;">Warning!<br> <br>If a script installed into Akari causes the applictaion to
-        become unusable, go to "https://76836.github.io/Akari/settings" directly to bypass the script.</p>
-    <p style="font-size:large; width:100%; text-align: center;"><em>The above URL is case sensitive!</em></p>
+    <p class="smallertext">Change avatar script:</p>
+    <input class="box" id="avatarurl" placeholder="./avatar/hiyori.js" type=text>
+    <button class="setbutton" onclick="setavatar()">SaveChanges</button>
+
+    <br><br>
+    <p class="smallertext">Enable/disable AI:</p>
+    <button class="setbutton" onclick="localStorage.setItem('selectedAISetting', 'No');">Disable AI server connection.</button>
+    <button class="setbutton" onclick="localStorage.setItem('selectedAISetting', 'Yes');">Enable AI server connection.</button>
+
+
+    <p class="title">Select preconfigured Character:</p>
+    <button class="setbutton" onclick="CharacterAkari();">Akari (76836) (default)</button>
+    <button class="setbutton" onclick="CharacterHiyori();">Hiyori Momose (Live2D)</button>
+
 </body>
 
 
@@ -70,7 +59,7 @@
         font-family: 'Orbitron', sans-serif;
         word-wrap: break-word;
         background-color: #252525;
-        color:darkcyan;
+        color: darkcyan;
         border-radius: 10px;
         padding-bottom: 10px;
         padding-top: 10px;
@@ -123,7 +112,7 @@
         background-color: #222;
         color: white;
         margin: 0;
-        overflow-x:hidden;
+        overflow-x: hidden;
     }
 </style>
 
@@ -135,8 +124,8 @@
     var AIScript = localStorage.getItem('selectedAIScript');
     document.getElementById('AIurl').value = AIScript;
 
-    var InputScript = localStorage.getItem('selectedInputScript');
-    document.getElementById('inputurl').value = InputScript;
+    var AvatarScript = localStorage.getItem('selectedavatarScript');
+    document.getElementById('avatarurl').value = AvatarScript;
 
     var BKGURL = localStorage.getItem('selectedBKGURL');
     document.getElementById('bkgurl').value = BKGURL;
@@ -157,12 +146,32 @@
         localStorage.setItem('selectedAIScript', Url);
     };
 
-    function setinput() {
-        var Url = document.getElementById('inputurl').value;
-        localStorage.setItem('selectedInputScript', Url);
+    function setavatar() {
+        var Url = document.getElementById('avatarurl').value;
+        localStorage.setItem('selectedAvatarScript', Url);
     };
 
+function CharacterAkari() {
+        
+        localStorage.setItem('selectedVoiceScript', '');
+  
+        localStorage.setItem('selectedBKGURL', '');
 
+        localStorage.setItem('selectedAIScript', './response/akari.js');
+
+        localStorage.setItem('selectedAvatarScript', './avatar/akari.js');
+};
+
+function CharacterHiyori() {
+        
+        localStorage.setItem('selectedVoiceScript', '');
+    
+        localStorage.setItem('selectedBKGURL', "./wallpapers/backdrop.png");
+  
+        localStorage.setItem('selectedAIScript', './response/hiyori.js');
+
+        localStorage.setItem('selectedAvatarScript', '');
+};
 
     console.log('Background image loaded from persistent settings: ' + BKGURL);
 </script>
