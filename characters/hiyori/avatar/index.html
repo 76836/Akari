@@ -1,0 +1,161 @@
+<!DOCTYPE HTML>
+
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+</head>
+<div id="overlay">
+    <div class="speech-bubble" id="output"></div>
+    <script>
+        function textbubble(message) {
+            if (message == '') {
+                return;
+            };
+            document.getElementById('output').innerHTML = "<p class='thetext'>" + message + "</p>";
+            document.getElementById('overlay').classList.remove('fade-out');
+            setTimeout(function () {
+                document.getElementById('overlay').classList.add('fade-out');
+            }, 2000);
+
+        };
+        textbubble("!!?");
+    </script>
+</div>
+
+<body>
+    <style>
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 98%;
+            background-color: transparent;
+            opacity: 1;
+            transition: opacity 0.5s ease-out;
+            z-index: 1;
+        }
+
+        #overlay.fade-out {
+            opacity: 0;
+        }
+
+        .speech-bubble {
+            position: relative;
+            /* Allow pseudo-element positioning */
+            border-bottom: none;
+            /* Remove bottom border */
+            color: white;
+            font-size: xx-large;
+            background-color: black;
+            position: fixed;
+            top: calc(50vh - 310px);
+            width: 300px;
+            height: 50px;
+            border: 3px solid white;
+            border-radius: 20px;
+            left: calc(50vw - 150px);
+            text-align: center;
+            font-size: 45px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+
+            &:after {
+                content: "";
+                position: absolute;
+                bottom: -25px;
+                /* Adjust position as needed */
+                left: 50%;
+                transform: translateX(-50%);
+                border: 10px solid transparent;
+                /* Match border width */
+                border-top: 10px solid white;
+                /* Set arrow color */
+            }
+        }
+
+        .thetext {
+            color: white;
+            font-size: xx-large;
+            position: fixed;
+            top: calc(50vh - 330px);
+            width: 300px;
+            height: 50px;
+            left: calc(50vw - 147.5px);
+            text-align: center;
+            font-size: 30px;
+        }
+
+        body {
+            background-color: transparent;
+            background-repeat: no-repeat;
+            background-size: cover;
+            overflow: hidden;
+            color: white;
+            min-height: 100vh;
+            font-family: 'Orbitron', sans-serif;
+        }
+    </style>
+
+    <script>
+        localStorage.setItem("emote", "Hello World");
+        // Get a reference to the local storage item
+        var emoteStorage = localStorage.getItem("emote");
+
+        // This function checks for changes in the emote storage and runs the textbubble function
+        function checkEmoteChange() {
+            var newEmote = localStorage.getItem("emote");
+            var reaction = '';
+            // If the emote has changed, run the textbubble function with the new content
+            if (newEmote !== emoteStorage) {
+                if (newEmote.includes("?")) {
+                    reaction = "?";
+                }
+                if (newEmote.includes("!")) {
+                    reaction = "!";
+                }
+                textbubble(reaction);
+                emoteStorage = newEmote; // Update the stored value to avoid future mismatches
+            }
+        }
+        // Call the checkEmoteChange function initially
+        checkEmoteChange();
+        // Set up an interval to call the checkEmoteChange function regularly
+        setInterval(checkEmoteChange, 300); // Check every 100 milliseconds
+        // Note: This code assumes that the `textbubble` function is defined elsewhere.
+        // Add the fade-out class after 3 seconds
+        document.addEventListener("DOMContentLoaded", function () {
+            setTimeout(function () {
+                document.getElementById('overlay').classList.add('fade-out');
+            }, 2000);
+            setTimeout(function () {
+                document.getElementById('overlay').classList.add('noindex');
+            }, 3000);
+        });
+        function sleep(ms) {
+            return new Promise(
+                resolve => setTimeout(resolve, ms)
+            );
+        };
+    </script>
+
+    <div id="waifu">
+        <div id="waifu-message"></div>
+        <div class="waifu-tool">
+            <span class="icon-next"></span>
+            <span class="icon-home"></span>
+            <span class="icon-message"></span>
+            <span class="icon-camera"></span>
+            <span class="icon-volumeup"></span>
+            <span class="icon-volumedown"></span>
+            <span class="icon-about"></span>
+            <span class="icon-cross"></span>
+        </div>
+        <canvas id="live2d2"></canvas>
+        <canvas id="live2d4"></canvas>
+    </div>
+    <script src="dist/live2d_bundle.js"></script>
+    <script async type="module" src="waifu-tips.js"></script>
+</body>
+
+</html>
