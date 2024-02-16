@@ -11,7 +11,7 @@ var thehtml =`
     border:0;
 }
 </style>
-<iframe src="http://127.0.0.1:8084/characters/hiyori/avatar/index" class="avatariframe"></iframe>
+<iframe src="./characters/hiyori/avatar/" class="avatariframe"></iframe>
 
 `;
 document.getElementById('avatar').innerHTML = thehtml;
