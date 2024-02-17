@@ -64,7 +64,7 @@ function ask(message) {
         // Create a div element for the dialog box
         let dialog = document.createElement("div");
         // Set some style properties for the dialog box
-        dialog.style.position = "absolute";
+        dialog.style.position = "fixed";
         dialog.style.top = "50%";
         dialog.style.left = "50%";
         dialog.style.transform = "translate(-50%, -50%)";
@@ -215,21 +215,19 @@ async function respond(outcome) {
         return;
     };
 
-    const PackageInstallerSynonyms = new Array("good", "i did", "i will", "yeah", "great", "yes");
-    if (ArrayInString(PackageInstallerSynonyms, outcome)) {
-        if (qreplied == false) {
+    const YesSynonyms = new Array("good", "i did", "i will", "yeah", "great", "yes");
+    if (ArrayInString(YesSynonyms, outcome) && (qreplied == false) == true) {
             var qfinalize = [];
             qfinalize[1] = "That's good.";
             qfinalize[2] = "Awesome!";
             qfinalize[3] = "I'm happy to hear that!";
             say(qfinalize[1 + Math.floor(Math.random() * 3)]);
-        };
         qreplied = true;
         return;
     } else {
         qreplied = true;
     };
-
+    
     if (outcome.includes("open") && outcome.length < 30 == true) {
         console.log('lets hope this app has a .com domain');
         var appname = outcome.replace('open', "");
@@ -281,21 +279,23 @@ async function respond(outcome) {
         console.clear()
         return;
     };
-
-
-    if (outcome.includes("what") && outcome.includes("up") && outcome.length < 18 == true) {
-        console.log('kewords "what" & "up" found');
-        say('version 1.9... AI features are now available, the UI has been subtly redesigned, and sending messages now clears the text box.');
+    if (outcome.includes("version") && outcome.length < 20 == true) {
+        console.log('keword "version" found');
+        say('Akari Framework 2.0... Live2D avatar compatability has been added, and now you can choose between multiple characters to chat with.');
         return;
     };
-
-
+    
+if (serverStatus != "connected") {
+    if (outcome.includes("what") && outcome.includes("up") && outcome.length < 18 == true) {
+        console.log('kewords "what" & "up" found');
+        say('Akari Framework 2.0... Live2D avatar compatability has been added, and now you can choose between multiple characters to chat with.');
+        return;
+    };
     if (outcome.includes("hello there") && outcome.length < 19 == true) {
         console.log(' I will deal with this Jedi slime myself. \n   Your move.');
         say('General Kenobi. You are a bold one.');
         return;
     };
-
     if (outcome.includes("hey") || outcome.includes("hello") || outcome.includes("hi") && outcome.length < 10 == true) {
         console.log('keword "hello" or "hi" found.');
         if (outcome.includes("hello")) {
@@ -309,11 +309,9 @@ async function respond(outcome) {
 
             say(mapg1 + getResponseByDayOfWeek());
         }
-
-
         return;
     };
-
+};
     if (outcome.includes("search") == true) {
         console.log('keyword "search" found.');
         var query = outcome.replace('search', "");
