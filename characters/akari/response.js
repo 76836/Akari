@@ -214,18 +214,18 @@ async function respond(outcome) {
         };
 
         // Respond to questions about the weather
-        if (outcome.includes("weather") && outcome.includes("what")) {
+        if (outcome.includes("weather") && outcome.includes("what") && outcome.length < 37 == true) {
             console.log('keywords "what" & "weather" found');
             say("I can't access information about the weather, sorry.");
             await sleep(600);
             say("I'll try to search for the weaher on Bing instead.");
             await sleep(300);
-            newwindow('https://bing.com/search?q=' + query);
+            newwindow('https://bing.com/search?q=Weather');
             return;
         };
 
         // Respond to questions about the date
-        if (outcome.includes("date") && outcome.includes("what") && outcome.length < 20 == true) {
+        if (outcome.includes("date") && outcome.includes("what") && outcome.length < 30 == true) {
             console.log('keywords "what" & "date" found');
             var d = new Date();
             say("The date is " + d.toLocaleDateString());
@@ -233,9 +233,13 @@ async function respond(outcome) {
         };
 
         // Respond to compliments
-        if (outcome.includes("you") && (outcome.includes("smart") || outcome.includes("cool") || outcome.includes("awesome") || outcome.includes("nice"))) {
+        if ((!outcome.includes("not")) && (!outcome.includes("n't")) && outcome.includes("you") && (outcome.includes("smart") || outcome.includes("cool") || outcome.includes("awesome") || outcome.includes("nice"))) {
             console.log('compliment found');
-            say("Thank you, you are very kind.");
+            var responses = [];
+            responses[1] = 'Thank you!';
+            responses[2] = `I'm glad you think so.`
+            responses[3] = `Thanks! that's nice of you to say.`
+            say(responses[1 + Math.floor(Math.random() * 3)]);
             return;
         };
 
@@ -254,7 +258,7 @@ async function respond(outcome) {
                 responses[4] = `Ok. <br> "`
                 say(responses[1 + Math.floor(Math.random() * 4)] + joketoquote + '"');
             };
-            const url = 'https://v2.jokeapi.dev/joke/Any';
+            const url = 'https://v2.jokeapi.dev/joke/Any?safe-mode';
             fetch(url)
                 .then(response => response.json())
                 .then(data => quoteAsJoke(data.joke))
