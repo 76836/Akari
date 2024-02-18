@@ -158,18 +158,133 @@ async function respond(outcome) {
     var ogtxt = outcome;
     outcome = outcome.toLowerCase();
 
-    if (outcome.includes("akari") && outcome.length < 7 == true) {
-        console.log('keyword "akari" found');
-        var responses = [];
-        responses[1] = "That's me.";
-        responses[2] = "Hi! What can I do for you?"
-        responses[3] = "What's up?"
-        responses[4] = "What do you need?"
-        say(responses[1 + Math.floor(Math.random() * 4)]);
-        return;
+
+
+
+    /*
+    
+    Conversational abilities without AI server connection
+    
+    */
+    if (serverStatus != "connected") {
+
+        // Release notes lol
+        if (outcome.includes("what") && outcome.includes("up") && outcome.length < 18 == true) {
+            console.log('kewords "what" & "up" found');
+            say('Akari Framework 2.0... Live2D avatar compatability has been added, and now you can choose between multiple characters to chat with.');
+            return;
+        };
+
+        // Star Wars easter egg
+        if (outcome.includes("hello there") && outcome.length < 19 == true) {
+            console.log(' I will deal with this Jedi slime myself. \n   Your move.');
+            say('General Kenobi. You are a bold one.');
+            return;
+        };
+
+        // Respond to simple greetings
+        if (outcome.includes("hey") || outcome.includes("hello") || outcome.includes("hi") && outcome.length < 10 == true) {
+            console.log('keword "hello" or "hi" found.');
+            if (outcome.includes("hello")) {
+                say('Hello there.');
+            } else {
+                if (outcome.includes("hey") == true) {
+                    var mapg1 = "Hi!";
+                } else {
+                    var mapg1 = getGreetingByTime()
+                };
+
+                say(mapg1 + getResponseByDayOfWeek());
+            }
+            return;
+        };
+
+        // Respond to questions about Akari
+        if ((outcome.includes("who") && outcome.includes("you") && outcome.length < 17 == true) || (outcome.includes("what") && outcome.includes("name") && outcome.length < 17 == true)) {
+            console.log('kewords "who" & "you" or "what" & "name" found');
+            say("I'm Akari.");
+            return;
+        };
+
+        // Respond to questions about how Akari works
+        if (outcome.includes("how") && (outcome.includes("you") || outcome.includes("akari") || outcome.includes("this")) && outcome.includes("work") && outcome.length < 35 == true) {
+            console.log('keywords "how",  "work" and a word addressing this project detected');
+            say("Right now all of my responses are pre-recorded because there is no active AI connection. When you send a message, my response script will scan your message for any keywords that match something I know or can do, then runs a specialized mini-program to carry out that task, my response script also checks for an AI connection when you send a message, so it can decide whether to give you a pre recorded response, or use AI to answer.");
+            return;
+        };
+
+        // Respond to questions about the weather
+        if (outcome.includes("weather") && outcome.includes("what")) {
+            console.log('keywords "what" & "weather" found');
+            say("I can't access information about the weather, sorry.");
+            await sleep(600);
+            say("I'll try to search for the weaher on Bing instead.");
+            await sleep(300);
+            newwindow('https://bing.com/search?q=' + query);
+            return;
+        };
+
+        // Respond to questions about the date
+        if (outcome.includes("date") && outcome.includes("what") && outcome.length < 20 == true) {
+            console.log('keywords "what" & "date" found');
+            var d = new Date();
+            say("The date is " + d.toLocaleDateString());
+            return;
+        };
+
+        // Respond to compliments
+        if (outcome.includes("you") && (outcome.includes("smart") || outcome.includes("cool") || outcome.includes("awesome") || outcome.includes("nice"))) {
+            console.log('compliment found');
+            say("Thank you, you are very kind.");
+            return;
+        };
+
+        // Tell jokes
+        if (outcome.includes("joke") && outcome.includes("tell") && outcome.length < 25 == true) {
+            console.log('keywords "tell" & "joke" found');
+            function quoteAsJoke(joketoquote) {
+                if (joketoquote == "undefined") {
+                    say("I can't think of any good ones right now.");
+                    return;
+                };
+                var responses = [];
+                responses[1] = 'How about "';
+                responses[2] = `Here's one I found: "`
+                responses[3] = `Here's a good one: "`
+                responses[4] = `Ok. <br> "`
+                say(responses[1 + Math.floor(Math.random() * 4)] + joketoquote + '"');
+            };
+            const url = 'https://v2.jokeapi.dev/joke/Any';
+            fetch(url)
+                .then(response => response.json())
+                .then(data => quoteAsJoke(data.joke))
+                .catch(error => say('Error:', error));
+
+            return;
+        };
+
+        // Respond to being addressed
+        if (outcome.includes("akari") && outcome.length < 7 == true) {
+            console.log('keyword "akari" found');
+            var responses = [];
+            responses[1] = "That's me.";
+            responses[2] = "Hi! What can I do for you?"
+            responses[3] = "What's up?"
+            responses[4] = "What do you need?"
+            say(responses[1 + Math.floor(Math.random() * 4)]);
+            return;
+        };
+
+
     };
 
-    if (outcome.includes("exit") && outcome.length < 12 == true) {
+
+
+
+
+
+
+    if (outcome.includes("exit") && outcome.length < 20 == true) {
         console.log('keyword "exit" found');
         say("I'll try to close this window...");
         await sleep(1000);
@@ -187,7 +302,6 @@ async function respond(outcome) {
 
         return;
     };
-
 
 
     if (outcome.includes("directions ") && (outcome.includes(" to ") || outcome.includes("get ") == true)) {
@@ -215,19 +329,20 @@ async function respond(outcome) {
         return;
     };
 
+
     const YesSynonyms = new Array("good", "i did", "i will", "yeah", "great", "yes");
     if (ArrayInString(YesSynonyms, outcome) && (qreplied == false) == true) {
-            var qfinalize = [];
-            qfinalize[1] = "That's good.";
-            qfinalize[2] = "Awesome!";
-            qfinalize[3] = "I'm happy to hear that!";
-            say(qfinalize[1 + Math.floor(Math.random() * 3)]);
+        var qfinalize = [];
+        qfinalize[1] = "That's good.";
+        qfinalize[2] = "Awesome!";
+        qfinalize[3] = "I'm happy to hear that!";
+        say(qfinalize[1 + Math.floor(Math.random() * 3)]);
         qreplied = true;
         return;
     } else {
         qreplied = true;
     };
-    
+
     if (outcome.includes("open") && outcome.length < 30 == true) {
         console.log('lets hope this app has a .com domain');
         var appname = outcome.replace('open', "");
@@ -284,34 +399,7 @@ async function respond(outcome) {
         say('Akari Framework 2.0... Live2D avatar compatability has been added, and now you can choose between multiple characters to chat with.');
         return;
     };
-    
-if (serverStatus != "connected") {
-    if (outcome.includes("what") && outcome.includes("up") && outcome.length < 18 == true) {
-        console.log('kewords "what" & "up" found');
-        say('Akari Framework 2.0... Live2D avatar compatability has been added, and now you can choose between multiple characters to chat with.');
-        return;
-    };
-    if (outcome.includes("hello there") && outcome.length < 19 == true) {
-        console.log(' I will deal with this Jedi slime myself. \n   Your move.');
-        say('General Kenobi. You are a bold one.');
-        return;
-    };
-    if (outcome.includes("hey") || outcome.includes("hello") || outcome.includes("hi") && outcome.length < 10 == true) {
-        console.log('keword "hello" or "hi" found.');
-        if (outcome.includes("hello")) {
-            say('Hello there.');
-        } else {
-            if (outcome.includes("hey") == true) {
-                var mapg1 = "Hi!";
-            } else {
-                var mapg1 = getGreetingByTime()
-            };
 
-            say(mapg1 + getResponseByDayOfWeek());
-        }
-        return;
-    };
-};
     if (outcome.includes("search") == true) {
         console.log('keyword "search" found.');
         var query = outcome.replace('search', "");
@@ -341,6 +429,7 @@ if (serverStatus != "connected") {
         closewindow()
         return;
     }
+
 
     if (serverStatus == "connected") {
         typing("Akari AI");
