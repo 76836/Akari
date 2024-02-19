@@ -1,0 +1,495 @@
+<!DOCTYPE HTML>
+<html id="html">
+<head>
+    <title>Akari FrameWork v2b</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="initial-scale=1">
+    <link rel="manifest" href="./app.webmanifest">
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="stylesheet" href="../index.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+    <link rel="shortcut icon" href="./favicon.ico">
+    <meta name="msapplication-TileColor" content="#603cba">
+    <meta name="theme-color" content="#00ffff">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+</head>
+
+<body onclick="document.getElementById('micbutton').className='button-round';recognition.stop();">
+    <div id="overlay">
+        <div class="console" id="output"></div>
+        <script>
+            function loadscreen(message) {
+                document.getElementById('output').innerHTML += message + '<br>';
+            };
+            loadscreen("Project Loading...");
+        </script>
+    </div>
+    <div id="avatar"></div>
+    <div id="windowspot"></div>
+    <div id="messages">
+    </div>
+    <br><br><br>
+    <div id="status-area"></div>
+
+    <button class="button-round" id="micbutton" onclick="voicerecognitionstart();">voice typing</button>
+    <form><input type="text" id="box" class="box" placeholder="What's up?"></input></form>
+    <button class="button-long"
+        onclick="textOnly = 'text'; enter(document.getElementById('box').value); document.getElementById('box').value = '';">Send.</button>
+
+
+
+
+        <span id="recording-indicator"
+        style="border-radius: 10px; -moz-border-radius: 10px; -webkit-border-radius: 10px; width: 20px; height: 20px; background: red;"></span>
+      <div id="output" style="height:150px;overflow:auto;">
+    
+    
+        <script>
+          // These will be initialized later
+          var recognizer, recorder, callbackManager, audioContext, outputContainer;
+          // Only when both recorder and recognizer do we have a ready application
+          var isRecorderReady = isRecognizerReady = false;
+    
+          // A convenience function to post a message to the recognizer and associate
+          // a callback to its response
+          function postRecognizerJob(message, callback) {
+            var msg = message || {};
+            if (callbackManager) msg.callbackId = callbackManager.add(callback);
+            if (recognizer) recognizer.postMessage(msg);
+          };
+    
+          // This function initializes an instance of the recorder
+          // it posts a message right away and calls onReady when it
+          // is ready so that onmessage can be properly set
+          function spawnWorker(workerURL, onReady) {
+            recognizer = new Worker(workerURL);
+            recognizer.onmessage = function (event) {
+              onReady(recognizer);
+            };
+            // As arguments, you can pass non-default path to pocketsphinx.js and pocketsphinx.wasm:
+            // recognizer.postMessage({'pocketsphinx.wasm': '/path/to/pocketsphinx.wasm', 'pocketsphinx.js': '/path/to/pocketsphinx.js'});
+            recognizer.postMessage({});
+          };
+    
+          // To display the hypothesis sent by the recognizer
+          var again = false;
+          async function updateHyp(hyp) {
+            if (again) {return;};
+            if (hyp.includes('AKARI')) {
+              again = true;
+              console.log(hyp);
+              recorder && recorder.stop();
+              displayRecording(false);
+              dictate();
+              var id = 0;
+              if (recorder && recorder.start(id)) displayRecording(true);
+              await sleep(200);
+              again = false;
+            };
+          };
+    
+          // This updates the UI when the app might get ready
+          // Only when both recorder and recognizer are ready do we enable the buttons
+          function updateUI() {
+            if (isRecorderReady && isRecognizerReady) console.log('go');
+          };
+    
+          // This is just a logging window where we display the status
+          function updateStatus(newStatus) {
+            return;
+          };
+    
+          // A not-so-great recording indicator
+          function displayRecording(display) {
+            if (display) document.getElementById('recording-indicator').innerHTML = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+            else document.getElementById('recording-indicator').innerHTML = "";
+          };
+    
+          // Callback function once the user authorises access to the microphone
+          // in it, we instanciate the recorder
+          function startUserMedia(stream) {
+            var input = audioContext.createMediaStreamSource(stream);
+            // Firefox hack https://support.mozilla.org/en-US/questions/984179
+            window.firefox_audio_hack = input;
+            var audioRecorderConfig = { errorCallback: function (x) { updateStatus("Error from recorder: " + x); } };
+            recorder = new AudioRecorder(input, audioRecorderConfig);
+            // If a recognizer is ready, we pass it to the recorder
+            if (recognizer) recorder.consumers = [recognizer];
+            isRecorderReady = true;
+            updateUI();
+            updateStatus("Audio recorder ready");
+          };
+    
+          // This starts recording. We first need to get the id of the grammar to use
+          var startRecording = function () {
+            var id = 0;
+            if (recorder && recorder.start(id)) displayRecording(true);
+          };
+    
+          // Stops recording
+          var stopRecording = function () {
+            recorder && recorder.stop();
+            displayRecording(false);
+          };
+    
+          // Called once the recognizer is ready
+          // We then add the grammars to the input select tag and update the UI
+          var recognizerReady = function () {
+    
+            isRecognizerReady = true;
+            updateUI();
+            updateStatus("Recognizer ready");
+          };
+    
+          // This adds words to the recognizer. When it calls back, we add grammars
+          var feedWords = function (words) {
+            postRecognizerJob({ command: 'addWords', data: words },
+              function () { recognizerReady(); });
+          };
+    
+          // This initializes the recognizer. When it calls back, we add words
+          var initRecognizer = function () {
+            // You can pass parameters to the recognizer, such as : {command: 'initialize', data: [["-hmm", "my_model"], ["-fwdflat", "no"]]}
+            postRecognizerJob({ command: 'initialize', data: [["-kws", "kws.txt"], ["-dict", "kws.dict"]] },
+              function () {
+                if (recorder) recorder.consumers = [recognizer];
+                feedWords(wordList);
+              });
+          };
+    
+          // When the page is loaded, we spawn a new recognizer worker and call getUserMedia to
+          // request access to the microphone
+          window.onload = function () {
+            outputContainer = document.getElementById("output");
+            updateStatus("Initializing web audio and speech recognizer, waiting for approval to access the microphone");
+            callbackManager = new CallbackManager();
+            spawnWorker("js/recognizer.js", function (worker) {
+              // This is the onmessage function, once the worker is fully loaded
+              worker.onmessage = function (e) {
+                // This is the case when we have a callback id to be called
+                if (e.data.hasOwnProperty('id')) {
+                  var clb = callbackManager.get(e.data['id']);
+                  var data = {};
+                  if (e.data.hasOwnProperty('data')) data = e.data.data;
+                  if (clb) clb(data);
+                }
+                // This is a case when the recognizer has a new hypothesis
+                if (e.data.hasOwnProperty('hyp')) {
+                  var newHyp = e.data.hyp;
+                  if (e.data.hasOwnProperty('final') && e.data.final) newHyp = "Final: " + newHyp;
+                  updateHyp(newHyp);
+                }
+                // This is the case when we have an error
+                if (e.data.hasOwnProperty('status') && (e.data.status == "error")) {
+                  updateStatus("Error in " + e.data.command + " with code " + e.data.code);
+                }
+              };
+              // Once the worker is fully loaded, we can call the initialize function
+              // but before that we lazy-load two files for keyword spoting (key phrase
+              // file plus associated dictionary.
+              postRecognizerJob({
+                command: 'lazyLoad',
+                data: {
+                  folders: [], files: [["/", "kws.txt", "../kws.txt"],
+                  ["/", "kws.dict", "../kws.dict"]]
+                }
+              }, initRecognizer);
+            });
+    
+            // The following is to initialize Web Audio
+            try {
+              window.AudioContext = window.AudioContext || window.webkitAudioContext;
+              window.URL = window.URL || window.webkitURL;
+              audioContext = new AudioContext();
+            } catch (e) {
+              updateStatus("Error initializing Web Audio browser");
+            }
+            if (navigator.mediaDevices.getUserMedia) navigator.mediaDevices.getUserMedia({ audio: true }).then(startUserMedia).catch(function (e) {
+              updateStatus("No live audio input in this browser");
+            });
+            else updateStatus("No web audio support in this browser");
+    
+            // Wiring JavaScript to the UI
+            var startBtn = document.getElementById('html');
+            startBtn.onclick = startRecording;
+            //stopBtn.onclick = stopRecording;
+          };
+    
+          // This is the list of words that need to be added to the recognizer
+          // This follows the CMU dictionary format
+          var wordList = [["ONE", "W AH N"], ["TWO", "T UW"], ["THREE", "TH R IY"], ["FOUR", "F AO R"], ["FIVE", "F AY V"], ["SIX", "S IH K S"], ["SEVEN", "S EH V AH N"], ["EIGHT", "EY T"], ["NINE", "N AY N"], ["ZERO", "Z IH R OW"], ["NEW-YORK", "N UW Y AO R K"], ["NEW-YORK-CITY", "N UW Y AO R K S IH T IY"], ["PARIS", "P AE R IH S"], ["PARIS(2)", "P EH R IH S"], ["SHANGHAI", "SH AE NG HH AY"], ["SAN-FRANCISCO", "S AE N F R AE N S IH S K OW"], ["LONDON", "L AH N D AH N"], ["BERLIN", "B ER L IH N"], ["SUCKS", "S AH K S"], ["ROCKS", "R AA K S"], ["IS", "IH Z"], ["NOT", "N AA T"], ["GOOD", "G IH D"], ["GOOD(2)", "G UH D"], ["GREAT", "G R EY T"], ["WINDOWS", "W IH N D OW Z"], ["LINUX", "L IH N AH K S"], ["UNIX", "Y UW N IH K S"], ["MAC", "M AE K"], ["AND", "AE N D"], ["AND(2)", "AH N D"], ["O", "OW"], ["S", "EH S"], ["X", "EH K S"]];
+          var grammars = [];
+          var grammarIds = [];
+    
+
+
+
+
+          function sleep(ms) {
+            return new Promise(
+              resolve => setTimeout(resolve, ms)
+            );
+          };
+    
+          async function dictate() {
+            voicerecognitionstart();
+          };
+        </script>
+        <!-- These are the two JavaScript files you must load in the HTML,
+        The recognizer is loaded through a Web Worker -->
+        <script src="js/audioRecorder.js"></script>
+        <script src="js/callbackManager.js"></script>
+
+
+
+
+    <script>
+        async function processquery() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('q');
+            if (query !== null) {
+                console.log('Query string found.');
+                loadscreen("[ok] ✅ Processing url query.");
+                bubble_incoming(query);
+                bubble("⚠️ Responding to URL query. <br><button onclick='newwindow(`data:text/html,<style>body{background-color:black; color:white;}</style><h1>URL queries</h1> <br> <h2>You can send a message to Akari instantly upon loading by adding ?q=your message here to Akaris url.<br> When this feature is used Akari system will detect it and warn you.<h2>`);'>?</button>");
+                respond(query);
+            } else {
+                console.log('No query string found.');
+            };
+        };
+
+
+        // Add the fade-out class after 3 seconds
+        document.addEventListener("DOMContentLoaded", function () {
+            setTimeout(function () {
+                document.getElementById('overlay').classList.add('fade-out');
+                console.log('UI loaded.');
+                processquery();
+                loadscreen("[ok] Project loaded.");
+                say(getGreetingByTime());
+            }, 1000);
+            setTimeout(function () {
+                document.getElementById('overlay').classList.add('noindex');
+            }, 1500);
+        });
+
+
+        document.getElementById('box').onkeydown = function (event) {
+            var e = event || window.event;
+            if (e.keyCode == 13) {
+                textOnly = 'text';
+                enter(document.getElementById('box').value);
+                document.getElementById('box').value = '';
+                return false;
+            }
+        };
+
+
+        var VoiceScript = localStorage.getItem('selectedVoiceScript');
+        var AvatarScript = localStorage.getItem('selectedAvatarScript');
+        var AIScript = localStorage.getItem('selectedAIScript');
+        var BKGURL = localStorage.getItem('selectedBKGURL');
+        var AI_is_enabled = localStorage.getItem('selectedAISetting');
+
+        var textOnly = 'text';
+        var serverStatus = "disconnected";
+
+        if (AI_is_enabled == null || AI_is_enabled == "") {
+            AI_is_enabled = "No";
+        };
+        if (AI_is_enabled == "Yes") {
+            var socket = new WebSocket("ws://localhost:8765");
+
+            socket.onmessage = function (event) {
+                console.log("[OK]Received from server:", event.data);
+                say(event.data);
+            };
+
+            socket.onopen = function (event) {
+                console.log("[OK]Connected to WebSocket server.");
+                loadscreen("[ok] A.I. services are connected.");
+                serverStatus = "connected";
+                // Send a message to the server
+                socket.send("test");
+            };
+        } else {
+            console.log('[ok] AI services are disabled');
+            loadscreen("[ok] A.I. services are disabled.");
+        };
+
+        if (BKGURL == null || BKGURL == "") {
+            BKGURL = "../wallpapers/colors.jpg";
+        };
+
+        var ExCSS1 = document.createElement("style");
+        ExCSS1.innerHTML = `
+body  {
+        background-image: url("`+ BKGURL + `");
+      background-color: black;
+        background-repeat: no-repeat;
+        background-size: cover;
+  color:white;
+  margin:7px;
+        overflow-x: hidden;
+        min-height:100vh;
+  background-attachment: fixed;
+}`;
+
+        var head = document.getElementsByName("head")[0];
+        document.head.appendChild(ExCSS1);
+
+        console.log('Background image loaded from persistent settings: ' + BKGURL);
+
+
+
+        if (AvatarScript == null || AvatarScript == "") {
+            AvatarScript = "../characters/akari/avatar.js";
+        };
+
+        if (AIScript == null || AIScript == "") {
+            AIScript = "../characters/akari/response.js";
+        };
+
+        if (VoiceScript == null || VoiceScript == "") {
+            VoiceScript = "../characters/akari/speech.js";
+        };
+
+        var ExJS1 = document.createElement("script");
+        ExJS1.src = VoiceScript;
+
+        var head = document.getElementsByName("head")[0];
+        document.head.appendChild(ExJS1);
+
+        console.log('VoiceScript =' + VoiceScript);
+
+
+
+        var ExJS2 = document.createElement("script");
+        ExJS2.src = AIScript;
+
+        head = document.getElementsByName("head")[0];
+        document.head.appendChild(ExJS2);
+
+        console.log('AIScript =' + AIScript);
+
+
+        var ExJS3 = document.createElement("script");
+        ExJS3.src = AvatarScript;
+
+        head = document.getElementsByName("head")[0];
+        document.head.appendChild(ExJS3);
+
+        console.log('AvatarScript =' + AvatarScript);
+
+        loadscreen("[ok] User preferances loaded from storage.");
+
+
+
+        //integrated functions
+        function bubble(text) {
+            var Outgoing = '<p class="responsetxt">' + text + '</p><br>';
+            var messages = document.getElementById('messages');
+            messages.insertAdjacentHTML('beforebegin', Outgoing);
+            window.scrollTo(0, document.body.scrollHeight);
+        };
+
+        function say(text) {
+            clearstatus();
+            emote(text);
+            if (textOnly == 'text') {
+                bubble(text);
+            } else {
+                speak(text);
+            }
+        };
+
+        function emote(text) {
+            localStorage.setItem("emote", text);
+        };
+
+        function bubble_incoming(outcome) {
+            var incoming = '<p class="command">' + outcome + '</p><br><br><br>';
+            var messages = document.getElementById('messages');
+            messages.insertAdjacentHTML('beforebegin', incoming);
+            window.scrollTo(0, document.body.scrollHeight);
+        };
+
+        function enter(input) {
+            bubble_incoming(input);
+            respond(input);
+        };
+
+        function newwindow(weblocation) {
+            var windowcode = '<iframe src="' + weblocation + '" class="windowstyle"></iframe><button class="buttonstyle" onclick="closewindow();">Close window.</button>';
+            var spot = document.getElementById('windowspot');
+            spot.innerHTML = windowcode;
+        };
+        function closewindow() {
+            var spot = document.getElementById('windowspot');
+            spot.innerHTML = '';
+        };
+
+        function typing(subject) {
+            var notifiercode = '<button class="typingnotifier" onclick="console.log(`\nThis is in fact a button.\n`);">' + subject + ' is typing . . .</button>';
+            var spot = document.getElementById('status-area');
+            spot.innerHTML = notifiercode;
+        };
+
+        function clearstatus() {
+            var spot = document.getElementById('status-area');
+            spot.innerHTML = '';
+        };
+
+        function sleep(ms) {
+            return new Promise(
+                resolve => setTimeout(resolve, ms)
+            );
+        };
+
+        var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        var recognition = new SpeechRecognition();
+
+        recognition.onspeechend = async function () {
+            await sleep(200);
+            recognition.stop();
+        };
+
+        recognition.onresult = async function (event) {
+            var speechinput = event.results[0][0].transcript;
+            document.getElementById('micbutton').className = 'button-round';
+            document.getElementById('box').value = speechinput;
+        };
+
+        async function voicerecognitionstart() {
+            await sleep(100);
+            recognition.start();
+            document.getElementById('micbutton').className = 'mic-on';
+        };
+    </script>
+
+
+    <div id="AI_Components">
+        <script>
+            async function SCheck() {
+                await sleep(1000);
+                if (serverStatus == "connected") {
+                    console.log('Akari AI Components are active.');
+                    loadscreen("[ok] A.I. services are active.");
+                } else {
+                    loadscreen("<b>[error] Failed to connect to the server.</b>");
+                    var strikezone = document.getElementById('AI_Components');
+                    strikezone.innerHTML = '';
+                };
+            };
+
+            SCheck();
+        </script>
+    </div>
+
+</body>
+
+</html>
