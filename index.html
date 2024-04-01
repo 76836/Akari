@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html id="html">
 <head>
-    <title>Akari FrameWork v2b</title>
+    <title>Akari FrameWork v2c</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="viewport" content="initial-scale=1">
     <link rel="manifest" href="./app.webmanifest">
@@ -18,7 +18,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
 </head>
 
-<body onclick="document.getElementById('micbutton').className='button-round';recognition.stop();">
+<body onclick="clickoff();">
     <div id="overlay">
         <div class="console" id="output"></div>
         <script>
@@ -35,12 +35,37 @@
     <br><br><br>
     <div id="status-area"></div>
 
-    <button class="button-round" id="micbutton" onclick="voicerecognitionstart();">voice typing</button>
-    <form><input type="text" id="box" class="box" placeholder="What's up?"></input></form>
-    <button class="button-long"
-        onclick="textOnly = 'text'; enter(document.getElementById('box').value); document.getElementById('box').value = '';">Send.</button>
+    <button class="button-menu" onclick="newwindow('./settings');">⁝</button>
+    <button class="button-long" id="micbutton" onclick="goakari();">voice</button>
+    <form><input type="text" id="box" class="box" placeholder="What's up?" onclick="setTimeout(function () {document.getElementById('micbutton').innerText='send'; }, 100);"></input></form>
+    
+
 
     <script>
+
+function clickoff() {
+    document.getElementById('micbutton').className='button-long';
+    document.getElementById('micbutton').innerText='voice';
+    recognition.stop();
+};
+
+function goakari() {
+    if (document.getElementById('box').value) {
+        textOnly = 'text';
+        enter(document.getElementById('box').value); 
+        document.getElementById('box').value = '';
+        setTimeout(function () {document.getElementById('micbutton').innerText='sent'; }, 10);
+        setTimeout(function () {document.getElementById('micbutton').innerText='voice'; }, 1500);
+    }else{
+        if (document.getElementById('micbutton').innerText == 'send') {
+            setTimeout(function () {document.getElementById('micbutton').innerText='no'; }, 10);
+            return;
+        };
+        voicerecognitionstart();
+    };
+};
+
+
         async function processquery() {
             const urlParams = new URLSearchParams(window.location.search);
             const query = urlParams.get('q');
@@ -253,14 +278,16 @@ body  {
 
         recognition.onresult = async function (event) {
             var speechinput = event.results[0][0].transcript;
-            document.getElementById('micbutton').className = 'button-round';
-            document.getElementById('box').value = speechinput;
+            document.getElementById('micbutton').className = 'button-long';
+            document.getElementById('micbutton').innerText='voice';
+            enter(speechinput);
         };
 
         async function voicerecognitionstart() {
             await sleep(100);
             recognition.start();
             document.getElementById('micbutton').className = 'mic-on';
+            document.getElementById('micbutton').innerText='Speech-to-text listening...';
         };
     </script>
 
