@@ -99,14 +99,14 @@
     font-size: x-large;
     position: fixed;
     bottom: 7px;
-    left: 114px;
-    width: calc(100% - 247px);
+    left: 7px;
+    width: calc(100% - 140px);
     border: 0;
     border: 2px solid black;
     z-index: 21;
 }
 
-.button-round {
+.button-menu {
     padding: 5px 10px;
     border-radius: 20px;
     background-color: #111111;
@@ -117,9 +117,9 @@
     line-height: 30px;
     font-size: large;
     position: fixed;
-    bottom: 7px;
-    left: 7px;
-    width: 100px;
+    top: 7px;
+    right: 7px;
+    width: 50px;
     border: 0;
     overflow: hidden;
     border: 2px solid black;
