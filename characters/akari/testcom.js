@@ -330,7 +330,7 @@ async function respond(outcome) {
 
     if (outcome.includes("help") && outcome.length < 15 == true) {
         console.log('command "help" entered');
-        say("I can open apps, search for youtube video videos, get directions to places, solve basic math, and search with bing. I also know the time, can reload or exit this project, and close windows; that's all if you AREN'T connected to AI services");
+        say("I can open apps, search for youtube video videos, get directions to places, solve basic math, and search with bing. I also know the time, can reload or exit this project, and close windows; after linking a phone with /linkphone, I can pause and play it's media, mute it, ping it, and lock it. And I'll get more abilities soon!");
         return;
     };
 
@@ -475,9 +475,11 @@ if (phoneurl) {
 
 
     if ((outcome.includes("/linkphone") == true) && outcome.length < 200 == true) {
+        const input = outcome;
         console.log('command "/linkphone" recognized.');
         const newUrl = input.split(' ')[1]; 
         localStorage.setItem('privateUrl', newUrl);
+        say("Okay, it's saved!");
         say("I'll contact your phone with this link.");
         return;
     }
