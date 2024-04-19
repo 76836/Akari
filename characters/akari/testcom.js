@@ -1,3 +1,4 @@
+var phoneurl = localStorage.getItem('privateUrl');
 
 function getGreetingByTime() {
     const currentHour = new Date().getHours();
@@ -435,53 +436,51 @@ async function respond(outcome) {
     }
 
 
-//so yeah the tidbit of code below is AI i'll rewrite it myself later
-
-
-  
-  
-    // Define the commands
-const commands = ['/pause', '/lock', '/ping', '/seturl'];
-
-  var input = outcome;
-
-    var words = input.split(' ');
-
-    // Check each word to see if it's a command
-    for (let word of words) {
-        if (commands.includes(word)) {
-            // If the word is a command, execute it
-            executeCommand(word, input);
-            return;
-        };
+if (phoneurl) {
+    if ((outcome.includes("play") || outcome.includes("resume") || outcome.includes("unpause")) == true && outcome.length < 20 == true) {
+        console.log('media keyword recognized.');
+        say("Pressing play on your phone...");
+        fetch(`${phoneurl}?q=/play`);
+        return;
     };
 
-// Function to execute a command
-function executeCommand(command, input) {
-    switch (command) {
-        case '/pause':
-        case '/lock':
-        case '/ping':
-            // Make a webhook request to the private URL
-            const url = localStorage.getItem('privateUrl');
-            fetch(`${url}?q=${command}`);
-            say("I'll send that to your phone");
-            break;
-        case '/seturl':
-            // Set the secret URL in localStorage
-            const newUrl = input.split(' ')[1]; // Assumes the URL is the second word in the input
-            localStorage.setItem('privateUrl', newUrl);
-            say("Ok, I'll contact your phone with this link.");
-            break;
+    if ((outcome.includes("mute") && outcome.includes("phone")) == true && outcome.length < 20 == true) {
+        console.log('keyword "mute" recognized.');
+        say("Okay I'm muting it.");
+        fetch(`${phoneurl}?q=/mute`);
+        return;
+    };
+
+    if ((outcome.includes("pause")) == true && outcome.length < 20 == true) {
+        console.log('media keyword recognized.');
+        say("Ok, I'll pause your phone...");
+        fetch(`${phoneurl}?q=/pause`);
+        return;
+    };
+    
+    if ((outcome.includes("lock") == true) && outcome.includes("phone") == true && outcome.length < 27 == true) {
+        console.log('keyword "lock" recognized.');
+        fetch(`${phoneurl}?q=/lock`);
+        say("Got it, I just sent the lock signal your phone.");
+        return;
+    };
+    
+    if ((outcome.includes("ping") == true) && outcome.includes("phone") == true && outcome.length < 20 == true) {
+        console.log('keyword "ping" recognized.');
+        say("I'll send a ping to your phone");
+        fetch(`${phoneurl}?q=/ping`);
+        return;
     };
 };
 
 
-
-
-
-  
-
+    if ((outcome.includes("/linkphone") == true) && outcome.length < 200 == true) {
+        console.log('command "/linkphone" recognized.');
+        const newUrl = input.split(' ')[1]; 
+        localStorage.setItem('privateUrl', newUrl);
+        say("I'll contact your phone with this link.");
+        return;
+    }
   
     if (serverStatus == "connected") {
         typing("Akari AI");
