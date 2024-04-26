@@ -1,0 +1,201 @@
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+<script type="text/javascript">
+    // More API functions here:
+    // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
+
+    // the link to your model provided by Teachable Machine export panel
+    const URL = "https://teachablemachine.withgoogle.com/models/xhq6kOdVh/";
+
+    let model, webcam, labelContainer, maxPredictions;
+
+    // Load the image model and setup the webcam
+    async function init() {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+
+        // load the model and metadata
+        // Refer to tmImage.loadFromFiles() in the API to support files from a file picker
+        // or files from your local hard drive
+        // Note: the pose library adds "tmImage" object to your window (window.tmImage)
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+
+        // Convenience function to setup a webcam
+        const flip = true; // whether to flip the webcam
+        webcam = new tmImage.Webcam(200, 200, flip); // width, height, flip
+        await webcam.setup(); // request access to the webcam
+        await webcam.play();
+        window.requestAnimationFrame(loop);
+
+        // append elements to the DOM
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+    }
+
+    async function loop() {
+        webcam.update(); // update the webcam frame
+        await predict();
+        window.requestAnimationFrame(loop);
+    }
+
+    // run the webcam image through the image model
+
+
+    // ... (existing init and predict functions)
+
+    // Additional variables to track confidence and timing
+    let confidenceCheck = {};
+    let backgroundClasses = {
+        'yes': 'green',
+        'no': 'red'
+    };
+
+    // Modified predict function
+    async function predict() {
+        // predict can take in an image, video or canvas html element
+        const prediction = await model.predict(webcam.canvas);
+        for (let i = 0; i < maxPredictions; i++) {
+            const classPrediction =
+                prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+
+
+            // Check if the prediction confidence is high and others are low
+            if (prediction[i].probability > 0.9) {
+                // Initialize confidence check for the class if not exists
+                if (!confidenceCheck[prediction[i].className]) {
+                    confidenceCheck[prediction[i].className] = { 'start': new Date().getTime(), 'end': null };
+                } else {
+                    // Check if it has been 2 seconds
+                    if (new Date().getTime() - confidenceCheck[prediction[i].className].start > 1000) {
+                        console.log(prediction[i].className);
+                        document.body.style.backgroundColor = backgroundClasses[prediction[i].className] || '';
+                        confidenceCheck = {}; // Reset the confidence check
+                    }
+                }
+            } else if (prediction[i].probability < 0.05) {
+                // Reset the start time if the confidence drops below 5%
+                if (confidenceCheck[prediction[i].className]) {
+                    confidenceCheck[prediction[i].className].start = new Date().getTime();
+                }
+            }
+        }
+    }
+</script>
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width" />
+
+<style>
+    .div {
+    position: absolute;
+    z-index: 7;
+    background-color: blue;
+    text-align: left;
+    border: 1px solid transparent;
+    overflow: hidden;
+    border-radius: 2vh;
+    width: 200px;
+    height: 200px;
+}
+
+.iframe {
+    width: 100%;
+    border: 0;
+    height: calc(100% - 4.4vh);
+    border-radius: 2vh;
+    transition-duration: 0.2s;
+}
+
+.iframe:Hover {
+    width: 100%;
+    border: 0;
+    height: calc(100% - 4.4vh);
+    border-radius: 0;
+    transition-duration: 0.2s;
+}
+</style>
+
+<div class="div" id="mydiv">
+
+    <div class="iframe" id="mydivheader">
+        <div class="iframe" id="webcam-container"></div>
+    </div>
+</div>
+</div>
+
+
+
+<body onload="init()">
+    <h1>Megumin</h1>
+</body>
+
+
+<script>function dragElement(elmnt) {
+        var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+        if (document.getElementById(elmnt.id + "header")) {
+            document.getElementById(elmnt.id + "header").onmousedown = dragMouseDown;
+            document.getElementById(elmnt.id + "header").ontouchstart = dragMouseDown;
+        } else {
+            elmnt.onpointerdown = dragMouseDown;
+        }
+
+        function dragMouseDown(e) {
+            e = e || window.event;
+            e.preventDefault();
+
+            if (e.type === 'touchstart') {
+                pos3 = e.touches[0].clientX;
+                pos4 = e.touches[0].clientY;
+            } else {
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+            }
+
+            document.onmouseup = closeDragElement;
+            document.ontouchend = closeDragElement;
+            document.onmousemove = elementDrag;
+            document.ontouchmove = elementDrag;
+        }
+
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+
+            if (e.type === 'touchmove') {
+                pos1 = pos3 - e.touches[0].clientX;
+                pos2 = pos4 - e.touches[0].clientY;
+                pos3 = e.touches[0].clientX;
+                pos4 = e.touches[0].clientY;
+            } else {
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+            }
+
+            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            document.ontouchend = null;
+            document.onmouseup = null;
+            document.onmousemove = null;
+            document.ontouchmove = null;
+        }
+    }
+
+    dragElement(document.getElementById("mydiv"));
+
+
+</script>
