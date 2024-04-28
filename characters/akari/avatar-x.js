@@ -62,10 +62,12 @@ document.getElementById("avatar").appendChild(ExJS2);
             );
         };
 
-await sleep(300);
 
 
-
+async function letmesleep(){
+    await sleep(300);
+};
+letmesleep();
 
 // More API functions here:
 // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
