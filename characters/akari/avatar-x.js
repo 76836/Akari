@@ -1,4 +1,4 @@
-console.log('Preparing to load Akari Vision...')
+console.log('Preparing to load Akari Vision...');
 const targetDiv = document.getElementById('avatar');
 targetDiv.innerHTML = `
 <style>
@@ -46,15 +46,13 @@ targetDiv.innerHTML = `
 </div>
 `
 
-avatararea = document.getElementById("avatar");
-
 var ExJS2 = document.createElement("script");
 ExJS2.src = "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"
-document.avatararea.appendChild(ExJS2);
+document.getElementById("avatar").appendChild(ExJS2);
 
 var ExJS2 = document.createElement("script");
 ExJS2.src = "https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js";
-document.avatararea.appendChild(ExJS2);
+document.getElementById("avatar").appendChild(ExJS2);
 
 
 
@@ -213,3 +211,4 @@ function dragElement(elmnt) {
     }
 }
 dragElement(document.getElementById("mydiv"));
+console.log('Akari Vision loaded.');
