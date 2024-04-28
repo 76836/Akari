@@ -9,7 +9,7 @@ targetDiv.innerHTML = `
         z-index: 7;
         background-color: darkcyan;
         text-align: left;
-        border: 1px solid transparent;
+        border: 2px solid transparent;
         overflow: hidden;
         border-radius: 2vh;
         width: 200px;
@@ -43,15 +43,17 @@ targetDiv.innerHTML = `
 
 
 const audioElement = document.createElement('audio');
-audioElement.setAttribute('src', './Summon.mp3');
+audioElement.setAttribute('src', 'https://76836.github.io/Akari/characters/akari/Summon.mp3');
 audioElement.setAttribute('id', 'summonAudio');
 
 const avatarDiv = document.getElementById('avatar');
 avatarDiv.appendChild(audioElement);
 
 const playAudio = () => {
+  console.log('There should be a sound now');
   const audio = document.getElementById('summonAudio');
   audio.play();
+  console.log('Did you hear it?');
 }
 
 
