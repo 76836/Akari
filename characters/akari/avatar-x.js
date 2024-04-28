@@ -5,7 +5,7 @@ const targetDiv = document.getElementById('avatar');
 targetDiv.innerHTML = `
 <style>
     .cdiv {
-        position: absolute;
+        position: fixed;
         z-index: 7;
         background-color: blue;
         text-align: left;
@@ -20,13 +20,6 @@ targetDiv.innerHTML = `
         border: 0;
         height: calc(100% - 4.4vh);
         border-radius: 2vh;
-        transition-duration: 0.2s;
-    }
-    .iframe:Hover {
-        width: 100%;
-        border: 0;
-        height: calc(100% - 4.4vh);
-        border-radius: 0;
         transition-duration: 0.2s;
     }
     .dimmer {
@@ -49,42 +42,17 @@ targetDiv.innerHTML = `
 `
 
 
-/*
-var ExJS2 = document.createElement("script");
-ExJS2.src = "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"
-document.getElementById("avatar").appendChild(ExJS2);
+const audioElement = document.createElement('audio');
+audioElement.setAttribute('src', './summon.m4a');
+audioElement.setAttribute('id', 'summonAudio');
 
-var ExJS2 = document.createElement("script");
-ExJS2.src = "https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js";
-document.getElementById("avatar").appendChild(ExJS2);
+const avatarDiv = document.getElementById('avatar');
+avatarDiv.appendChild(audioElement);
 
-
-
-        function sleep(ms) {
-            return new Promise(
-                resolve => setTimeout(resolve, ms)
-            );
-        };
-
-
-
-async function letmesleep(){
-    await sleep(3000);
-};
-letmesleep();
-
-
-// Scripts to execute in order
-let scripts = [
-    'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js',
-    'https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js'
-];
-
-scripts.forEach(function(url) {
-    let scriptElement = document.createElement('script');
-    scriptElement.src = url;
-    document.body.appendChild(scriptElement);
-});
+const playAudio = () => {
+  const audio = document.getElementById('summonAudio');
+  audio.play();
+}
 
 
 
@@ -203,6 +171,7 @@ async function respondcamera() {
     };
     if (camresult == 'wave') {
         goakari();
+        playAudio();
         return;
     };
     if (camresult == 'person') {
