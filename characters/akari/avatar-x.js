@@ -65,7 +65,7 @@ document.getElementById("avatar").appendChild(ExJS2);
 
 
 async function letmesleep(){
-    await sleep(300);
+    await sleep(3000);
 };
 letmesleep();
 
