@@ -72,7 +72,7 @@ async function letmesleep(){
     await sleep(3000);
 };
 letmesleep();
-*/
+
 
 // Scripts to execute in order
 let scripts = [
@@ -91,7 +91,34 @@ scripts.forEach(function(url) {
 
 
 
-window.addEventListener('load', function() {
+window.addEventListener('load', function() {    
+});
+
+*/
+
+
+
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+
+async function loadAllScripts() {
+    try {
+        await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js');
+        await loadScript('https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js');
+
+
+
+
+
+
+
 
 // More API functions here:
 // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
@@ -242,5 +269,14 @@ function dragElement(elmnt) {
 }
 dragElement(document.getElementById("mydiv"));
 console.log('Akari Vision loaded.');
-    
-});
+
+
+
+        
+    } catch (error) {
+        console.error('Error loading scripts:', error);
+    }
+}
+
+loadAllScripts();
+
