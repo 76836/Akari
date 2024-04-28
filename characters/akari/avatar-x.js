@@ -1,3 +1,5 @@
+//I'm gonna be honest I don't know what I'm doing.
+
 console.log('Preparing to load Akari Vision...');
 const targetDiv = document.getElementById('avatar');
 targetDiv.innerHTML = `
@@ -46,6 +48,8 @@ targetDiv.innerHTML = `
 </div>
 `
 
+
+/*
 var ExJS2 = document.createElement("script");
 ExJS2.src = "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"
 document.getElementById("avatar").appendChild(ExJS2);
@@ -68,6 +72,26 @@ async function letmesleep(){
     await sleep(3000);
 };
 letmesleep();
+*/
+
+// Scripts to execute in order
+let scripts = [
+    'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js',
+    'https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js'
+];
+
+scripts.forEach(function(url) {
+    let scriptElement = document.createElement('script');
+    scriptElement.src = url;
+    document.body.appendChild(scriptElement);
+});
+
+
+
+
+
+
+window.addEventListener('load', function() {
 
 // More API functions here:
 // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
@@ -218,3 +242,5 @@ function dragElement(elmnt) {
 }
 dragElement(document.getElementById("mydiv"));
 console.log('Akari Vision loaded.');
+    
+});
