@@ -56,9 +56,13 @@ document.getElementById("avatar").appendChild(ExJS2);
 
 
 
+        function sleep(ms) {
+            return new Promise(
+                resolve => setTimeout(resolve, ms)
+            );
+        };
 
-
-
+await sleep(300);
 
 
 
