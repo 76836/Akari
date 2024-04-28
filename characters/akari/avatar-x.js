@@ -7,7 +7,7 @@ targetDiv.innerHTML = `
     .cdiv {
         position: fixed;
         z-index: 7;
-        background-color: blue;
+        background-color: darkcyan;
         text-align: left;
         border: 1px solid transparent;
         overflow: hidden;
@@ -43,7 +43,7 @@ targetDiv.innerHTML = `
 
 
 const audioElement = document.createElement('audio');
-audioElement.setAttribute('src', './summon.m4a');
+audioElement.setAttribute('src', './Summon.mp3');
 audioElement.setAttribute('id', 'summonAudio');
 
 const avatarDiv = document.getElementById('avatar');
