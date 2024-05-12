@@ -1,0 +1,87 @@
+#cool
+from gpt4all import GPT4All
+import asyncio
+import websockets
+import datetime
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+model = GPT4All("orca_mini.bin", allow_download=False)
+
+# HTML template for the web interface
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Akari AI</title>
+</head>
+<body>
+    <h1>Akari AI Web Server Interface</h1>
+    <form action="/ask" method="post">
+        <label for="prompt">Enter your prompt:</label>
+        <input type="text" id="prompt" name="prompt" required>
+        <input type="submit" value="Ask Akari">
+    </form>
+    <p>Response:</p>
+    <pre>{response}</pre>
+</body>
+</html>
+"""
+
+# Handle HTTP requests
+class AkariRequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/":
+            # Serve the HTML form when accessing the root URL
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(HTML_TEMPLATE.format(response="").encode("utf-8"))
+        else:
+            # Handle other GET requests (e.g., favicon.ico)
+            self.send_response(404)
+            self.end_headers()
+
+    def do_POST(self):
+        if self.path == "/ask":
+            content_length = int(self.headers["Content-Length"])
+            prompt = self.rfile.read(content_length).decode("utf-8")
+            response = generate_response(prompt)
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(HTML_TEMPLATE.format(response=response).encode("utf-8"))
+        else:
+            self.send_response(404)
+            self.end_headers()
+            
+def generate_response(prompt):
+
+    system_template = "You are Akari AI"
+    first_input = system_template + f"\nUSER: {prompt}\nAKARI: "
+    response = model.generate(first_input, max_tokens=512, temp=0.7, top_k=40, top_p=0.4)
+    response = response.replace("USER:", "").strip()
+    return response
+
+# Start the HTTP server
+def run_server():
+   server_address = ("localhost", 8280)
+   httpd = HTTPServer(server_address, AkariRequestHandler)
+   print("Akari AI Web Interface running at http://localhost:8280/")
+   httpd.serve_forever()
+
+# Start the WebSocket server
+async def handle_websocket(websocket, path):
+    try:
+        while True:
+            message = await websocket.recv()
+            # Handle WebSocket messages (if needed)
+            # ...
+    except websockets.exceptions.ConnectionClosed:
+        print("\n[Error] WebSocket connection closed\n")
+
+if __name__ == "__main__":
+    # Start both servers
+    asyncio.get_event_loop().run_until_complete(websockets.serve(handle_websocket, "localhost", 8765))
+    run_server()
+
+
