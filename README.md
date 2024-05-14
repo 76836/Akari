@@ -34,6 +34,12 @@ Support for other browsers like safari and firefox may be limited.
 Integrate Akari into your iPhone with the Shortcuts app by entering commands into the url: `https://76836.github.io/Akari?q=Your%20Input%20Here` Make sure to url encode the input.
 
 
+(soon) Version 2.1: <br>
+Adding new ways to summon Akari, along with a server upgrade, and new features being tested on mobile.
+
+Version 2.0: <br>
+Made new ability to switch between multiple chatacters, added ability to swap out the avater module.
+
 Version 1.9b: <br>
 Added search engine-like ability to respond to a command in the url `https://76836.github.io/Akari?q=command`
 
