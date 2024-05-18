@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+    <title>framework mini</title>
+    <style>
+        .button {
+            position: fixed;
+            bottom: 10vw;
+            right: 10vw;
+            height: 20vh;
+            width: 20vh;
+            background-color: white;
+            border-radius: 10vh;
+            z-index: 3;
+            transition-duration: 0.5s;
+        }
+
+        .button.on {
+            background-color: red;
+            transition-duration: 0.5s;
+        }
+
+        .div1 {
+            position: fixed;
+            bottom: calc(5vw - 4px);
+            right: calc(5vw - 4px);
+            height: calc(50vh - 7.5vw);
+            width: 90vw;
+            background-color: rgb(0, 0, 0);
+            border-radius: 7vh;
+            border: 2px solid white;
+        }
+
+        .div2 {
+            position: fixed;
+            top: calc(5vw - 4px);
+            right: calc(5vw - 4px);
+            height: calc(50vh - 7.5vw);
+            width: 90vw;
+            background-color: rgb(0, 0, 0);
+            border-radius: 7vh;
+            border: 2px solid white;
+        }
+
+        .humantext {
+            position: fixed;
+            margin: 0;
+            padding: 0;
+            bottom: calc(5vw - 0px + 7vh);
+            left: calc(7.5vw + 2px);
+            height: calc(50vh - 7.5vw - 14vh);
+            width: calc(90vw - 20vh);
+            background-color: rgb(0, 0, 0);
+            border: 0px solid rgb(107, 103, 103);
+            color: aliceblue;
+            font-size: xx-large;
+            z-index: 2;
+            overflow: scroll;
+        }
+
+        .robotext {
+            position: fixed;
+            margin: 0;
+            padding-right: 5px;
+            top: calc(5vw - 0px + 7vh);
+            right: calc(7.5vw + 2px);
+            height: calc(50vh - 7.5vw - 14vh);
+            width: calc(80vw - 20vh);
+            background-color: rgb(0, 0, 0);
+            border: 0px solid rgb(107, 103, 103);
+            color: aliceblue;
+            font-size: xx-large;
+            z-index: 2;
+            text-align: end;
+            text-wrap: break-word;
+            overflow: scroll;
+        }
+
+        .button2 {
+            top: 10vw;
+            background-color: cyan;
+            left: 10vw;
+            border-radius: 10vh;
+            height: 20vh;
+            width: 20vh;
+            position: fixed;
+            z-index: 3;
+            transition-duration: 0.5s;
+        }
+
+        .button2.on {
+            background-color: red;
+            transition-duration: 0.5s;
+        }
+
+        body {
+            background-color: rgb(0, 0, 0);
+            color: white;
+            margin: 0;
+            padding: 0;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+
+
+
+
+
+
+
+
+        .windowstyle {
+            border: 4px solid #111111;
+            background-color: transparent;
+            margin: 0%;
+            margin-top: 7vh;
+            width: 86vw;
+            height: 80vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            margin-left: 7vw;
+            margin-right: 7vw;
+            z-index: 30;
+            border-radius: 2vh;
+        }
+
+        .buttonstyle {
+            border: 4px solid crimson;
+            margin: 0%;
+            width: 16vh;
+            height: 8vh;
+            background-color: darkred;
+            font-size: large;
+            color: white;
+            border-radius: 2vh;
+            z-index: 31;
+            margin-left: 7vw;
+            margin-right: 7vw;
+            position: fixed;
+            top: calc(83vh + 7px);
+            left: 0;
+            transition-duration: 0.3s;
+        }
+    </style>
+
+    <div id="windowspot"></div>
+
+<body>
+    <div class="div2"></div>
+    <div class="div1"></div>
+    <button class="button" id="button" onpointerdown="startListening()" onpointerup="stopListening()"></button>
+    <button class="button2" id="button2" onpointerdown="startListening()" onpointerup="stopListening()"></button>
+    <div class="robotext" id="response-box"></div> <!-- Top half: AI response -->
+    <p class="humantext" id="transcribed-text"></p> <!-- Bottom half: Transcribed text -->
+
+
+    </div>
+</body>
+<script>
+
+    function getGreetingByTime() {
+        const currentHour = new Date().getHours();
+        if (currentHour < 12) {
+            return "Good morning!";
+        } else if (currentHour < 18) {
+            return "Good afternoon.";
+        } else {
+            return "Good evening.";
+        };
+    };
+    function getResponseByDayOfWeek() {
+        const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const currentDayOfWeek = new Date().getDay();
+        const currentDay = daysOfWeek[currentDayOfWeek];
+        switch (currentDay) {
+            case 'Monday':
+                return " It's the start of a new week! What do you need?";
+            case 'Tuesday':
+                return " What do you want to do today?";
+            case 'Wednesday':
+                return " What can I do for you?";
+            case 'Thursday':
+                var currentHour = new Date().getHours();
+                if (currentHour > 13) {
+                    qreplied = false;
+                    return " Did you eat a good lunch yet?";
+                } else {
+                    qreplied = false;
+                    return " Did you sleep well?"
+                };
+            case 'Friday':
+                qreplied = false;
+                return " Ready for the weekend?";
+            case 'Saturday':
+                qreplied = false;
+                return " Enjoy the weekend!";
+            case 'Sunday':
+                var currentHour = new Date().getHours();
+                if (currentHour > 12) {
+                    qreplied = false;
+                    return " How was church?";
+                } else {
+                    qreplied = false;
+                    return " Have fun at church!"
+                };
+            default:
+                return " How can I assist you today?";
+        }
+    };
+
+
+    function ArrayInString(textArray, inputString) {
+        // Convert the input string to lowercase for case-insensitive matching
+        const lowerCaseInput = inputString.toLowerCase();
+        // Check if any text entry in the array is present in the input string
+        return textArray.some(text => lowerCaseInput.includes(text.toLowerCase()));
+    }
+
+    // This function creates a dialog box with a message and returns a promise
+    function ask(message) {
+        // Create a promise object
+        let promise = new Promise(function (resolve, reject) {
+
+            resolve(true);
+
+        });
+        // Return the promise object
+        return promise;
+    };
+
+    function solve(mathExpression) {
+        // Convert numbers in words to actual numbers
+        const wordsToNumbers = {
+            zero: 0,
+            one: 1,
+            two: 2,
+            three: 3,
+            four: 4,
+            five: 5,
+            six: 6,
+            seven: 7,
+            eight: 8,
+            nine: 9,
+            ten: 10,
+        };
+
+        // Convert English operation words to JS symbols
+        const wordsToSymbols = {
+            plus: '+',
+            minus: '-',
+            times: '*',
+            'divided by': '/',
+            'multiplied by': '*',
+        };
+
+        // Replace words with numbers and operation symbols
+        const expressionWithNumbersAndSymbols = mathExpression.replace(
+            /\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|plus|minus|times|divided)\b/gi,
+            match => wordsToNumbers[match.toLowerCase()] !== undefined ? wordsToNumbers[match.toLowerCase()] : wordsToSymbols[match.toLowerCase()]
+        );
+
+        try {
+            // Create a function from the expression and execute it
+            const result = new Function(`return ${expressionWithNumbersAndSymbols}`)();
+            return result.toString();
+        } catch (error) {
+            console.error('Error evaluating expression:', error);
+            return 'Error';
+        }
+    }
+    var qreplied = true;
+    async function respond(outcome) {
+        var ogtxt = outcome;
+        outcome = outcome.toLowerCase();
+
+
+
+
+        /*
+        
+        Conversational abilities without AI server connection
+        
+        */
+        if (serverStatus != "connected") {
+
+            // Release notes lol
+            if (outcome.includes("what") && outcome.includes("up") && outcome.length < 18 == true) {
+                console.log('kewords "what" & "up" found');
+                say('The sky.');
+                return;
+            };
+
+            // Star Wars easter egg
+            if (outcome.includes("hello there") && outcome.length < 19 == true) {
+                console.log(' I will deal with this Jedi slime myself. \n   Your move.');
+                say('General Kenobi. You are a bold one.');
+                return;
+            };
+
+            // Respond to simple greetings
+            if (outcome.includes("hey") || outcome.includes("hello") || outcome.includes("hi") && outcome.length < 10 == true) {
+                console.log('keword "hello" or "hi" found.');
+                if (outcome.includes("hello")) {
+                    say('Hello there.');
+                } else {
+                    if (outcome.includes("hey") == true) {
+                        var mapg1 = "Hi!";
+                    } else {
+                        var mapg1 = getGreetingByTime()
+                    };
+
+                    say(mapg1 + getResponseByDayOfWeek());
+                }
+                return;
+            };
+
+            // Respond to questions about Akari
+            if ((outcome.includes("who") && outcome.includes("you") && outcome.length < 17 == true) || (outcome.includes("what") && outcome.includes("name") && outcome.length < 17 == true)) {
+                console.log('kewords "who" & "you" or "what" & "name" found');
+                say("I don't have a name.");
+                return;
+            };
+
+            // Respond to questions about how Akari works
+            if (outcome.includes("how") && (outcome.includes("you") || outcome.includes("akari") || outcome.includes("this")) && outcome.includes("work") && outcome.length < 35 == true) {
+                console.log('keywords "how",  "work" and a word addressing this project detected');
+                say("When you send a message, my response script will scan your message for any keywords that match something I know or can do, then runs a specialized mini-program to carry out that task.");
+                return;
+            };
+
+            // Respond to questions about the weather
+            if (outcome.includes("weather") && outcome.includes("what") && outcome.length < 37 == true) {
+                console.log('keywords "what" & "weather" found');
+                say("I can't access information about the weather, sorry.");
+                await sleep(600);
+                say("I'll try to search for the weather on Bing instead.");
+                await sleep(300);
+                newwindow('https://bing.com/search?q=Weather');
+                return;
+            };
+
+            // Respond to questions about the date
+            if (outcome.includes("date") && outcome.includes("what") && outcome.length < 30 == true) {
+                console.log('keywords "what" & "date" found');
+                var d = new Date();
+                say("The date is " + d.toLocaleDateString());
+                return;
+            };
+
+            // Respond to compliments
+            if ((!outcome.includes("not")) && (!outcome.includes("n't")) && outcome.includes("you") && (outcome.includes("smart") || outcome.includes("cool") || outcome.includes("awesome") || outcome.includes("nice"))) {
+                console.log('compliment found');
+                var responses = [];
+                responses[1] = 'Thank you!';
+                responses[2] = `I'm glad you think so.`
+                responses[3] = `Thanks! that's nice of you to say.`
+                say(responses[1 + Math.floor(Math.random() * 3)]);
+                return;
+            };
+
+            // Tell jokes
+            if (outcome.includes("joke") && outcome.includes("tell") && outcome.length < 25 == true) {
+                console.log('keywords "tell" & "joke" found');
+                function quoteAsJoke(joketoquote) {
+                    if (joketoquote == undefined) {
+                        say("I can't think of any good ones right now.");
+                        return;
+                    };
+                    var responses = [];
+                    responses[1] = 'How about "';
+                    responses[2] = `Here's one I found: "`
+                    responses[3] = `Here's a good one: "`
+                    responses[4] = `Ok. <br> "`
+                    say(responses[1 + Math.floor(Math.random() * 4)] + joketoquote + '"');
+                };
+                const url = 'https://v2.jokeapi.dev/joke/Any?safe-mode';
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => quoteAsJoke(data.joke))
+                    .catch(error => say('Error:', error));
+
+                return;
+            };
+
+        };
+
+
+
+
+
+
+
+        if (outcome.includes("exit") && outcome.length < 20 == true) {
+            console.log('keyword "exit" found');
+            say("I'll try to close this window...");
+            await sleep(1000);
+            window.close();
+            await sleep(1000);
+            say("Sorry, I don't think I'm able to close this window.");
+            return;
+        };
+
+
+        if (outcome.includes("time") && outcome.includes("what") == true) {
+            console.log('keywords "time" & "what" found');
+            var d = new Date();
+            say('The time is... ' + d.toLocaleTimeString())
+
+            return;
+        };
+
+
+        if (outcome.includes("directions ") && (outcome.includes(" to ") || outcome.includes("get ") == true)) {
+            console.log('keywords "directions" & "to"/"get" found');
+            var location = outcome.replace('directions', "");
+            location = location.replace(' to ', " ");
+            location = location.replace('get ', " ");
+            say('getting directions to ' + location);
+            ask('Do you want to open the external website "maps.google.com"?').then(async function (choice) {
+                if (choice) {
+                    await sleep(300);
+                    window.open('https://www.google.com/maps/search/' + location);
+                    return;
+                } else {
+                    say("Sorry, I can't access Google Maps right now.")
+                };
+                return;
+            });
+        };
+
+
+        if (outcome.includes("help") && outcome.length < 15 == true) {
+            console.log('command "help" entered');
+            say("I can open apps, search for youtube video videos, get directions to places, solve basic math, and search with bing. I also know the time, and can reload or exit this project.");
+            return;
+        };
+
+
+        const YesSynonyms = new Array("good", "i did", "i will", "yeah", "great", "yes");
+        if (ArrayInString(YesSynonyms, outcome) && (qreplied == false) == true) {
+            var qfinalize = [];
+            qfinalize[1] = "That's good.";
+            qfinalize[2] = "Awesome!";
+            qfinalize[3] = "I'm happy to hear that!";
+            say(qfinalize[1 + Math.floor(Math.random() * 3)]);
+            qreplied = true;
+            return;
+        } else {
+            qreplied = true;
+        };
+
+        if (outcome.includes("open") && outcome.length < 30 == true) {
+            console.log('lets hope this app has a .com domain');
+            var appname = outcome.replace('open', "");
+            appname = appname.replace(/\s+/g, '')
+            appname = appname.replace('.', "");
+            if (appname.includes("settings")) { say('Opening settings.'); newwindow('./settings'); return; };
+
+            if (appname.includes("calculator")) { say(`I'll open the calculator. If you want to solve an equation quickly, type "Solve" followed by your equation,`); newwindow('https://76836.github.io/webdesk/programs/calculator'); return; };
+            ask('Do you want to open the external website "' + appname + '.com"?').then(async function (choice) {
+                if (choice) {
+                    say('redirecting you to ' + appname + ".com");
+                    await sleep(300);
+                    window.open('https://' + appname + '.com');
+                    return;
+                } else {
+                    var excuses = [];
+                    excuses[1] = `I couldn't open "` + appname + '", sorry.';
+                    excuses[2] = "I can't open that app.";
+                    excuses[3] = "Nothing I have access to matches your request.";
+                    say(excuses[1 + Math.floor(Math.random() * 3)]);
+                    return;
+                };
+            });
+            return;
+        };
+
+
+        if (outcome.includes("youtube") || outcome.includes(" play ") == true) {
+            console.log('keywords "youtube" & "search"/"play" found');
+            var video = outcome.replace('youtube', "");
+            video = video.replace('search', "");
+            video = video.replace('play', "");
+            video = video.replace(' on ', " ");
+            video = video.replace(' for ', " ");
+            say('looking for ' + video + " on YouTube");
+            ask('Do you want to open the external website "YouTube.com"?').then(async function (choice) {
+                if (choice) {
+                    window.open('https://youtube.com/search?q=' + video);
+                }
+            });
+            return;
+        };
+
+
+        if (outcome.includes("destruct") && outcome.includes("self") && outcome.length < 30 == true) {
+            console.log('the self destruct program has been launched');
+            if (outcome.includes("1")) { say('self destruct launched, goodbye.'); } else { say('passcode incorrect'); return; };
+            document.getElementById('html').innerHTML = '';
+            console.clear()
+            return;
+        };
+        if (outcome.includes("version") && outcome.length < 20 == true) {
+            console.log('keword "version" found');
+            say('Akari Framework mini version 1');
+            return;
+        };
+
+        if (outcome.includes("search") == true) {
+            console.log('keyword "search" found.');
+            var query = outcome.replace('search', "");
+            query = query.replace(' for ', " ");
+            say("searching for " + query);
+            await sleep(300);
+            newwindow('https://bing.com/search?q=' + query);
+            return;
+        };
+
+        if (outcome.includes("solve ")) {
+            const mathExpression = outcome.replace("solve", "");
+            say(solve(mathExpression));
+            return;
+        };
+
+        if (outcome.includes("re") && (outcome.includes("start") || outcome.includes("load") || outcome.includes("set") == true) && outcome.length < 8 == true) {
+            console.log('Restart command recognized, restarting in 5 seconds...');
+            say("Ok, I'll be back in just a few seconds.");
+            await sleep(5000);
+            window.location.reload();
+            return;
+        };
+        if ((outcome.includes("close") == true) && outcome.length < 20 == true) {
+            console.log('keyword "close" recognized.');
+            say("Ok, I'll close the last window that I opened.");
+            closewindow()
+            return;
+        }
+
+
+        if (serverStatus == "connected") {
+            typing("Akari AI");
+            socket.send(ogtxt);
+        } else {
+            console.log('no keywords found, too bad.');
+            var excuses = [];
+            excuses[1] = "Sorry, I don't understand that command.";
+            excuses[2] = "I don't know what to do, sorry about that.";
+            excuses[3] = "I don't understand that command, maybe try rephrasing it?";
+            excuses[4] = "Sorry, I don't understand that command.";
+            excuses[5] = "Sorry, I don't understand what you said.";
+            excuses[6] = "I don't know what to do, sorry.";
+            excuses[7] = "I don't know what to do, sorry about that.";
+            excuses[8] = "I don't understand the command, maybe try rephrasing it?";
+            say(excuses[1 + Math.floor(Math.random() * 8)]);
+        };
+
+    };
+</script>
+
+
+<script>
+    var textOnly = 'text';
+    var serverStatus = "disconnected";
+
+    function sleep(ms) {
+        return new Promise(
+            resolve => setTimeout(resolve, ms)
+        );
+    };
+
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById('transcribed-text').innerHTML = transcript;
+        respond(transcript);
+    };
+
+    function startListening() {
+        recognition.start();
+        document.getElementById('button').classList.add('on');
+    };
+
+    function stopListening() {
+        recognition.stop();
+        document.getElementById('button').classList.remove('on');
+    };
+
+    function speak(text) {
+        document.getElementById('button2').classList.add('on');
+        var utterance = new SpeechSynthesisUtterance(text);
+        speechSynthesis.speak(utterance);
+        utterance.addEventListener("end", (event) => {
+            document.getElementById('button2').classList.remove('on');
+        });
+    }
+
+    function say(response) {
+        document.getElementById('response-box').textContent = response;
+        speak(response);
+    };
+
+    function newwindow(weblocation) {
+        var windowcode = '<iframe src="' + weblocation + '" class="windowstyle"></iframe><button class="buttonstyle" onclick="closewindow();">Close window.</button>';
+        var spot = document.getElementById('windowspot');
+        spot.innerHTML = windowcode;
+    };
+    function closewindow() {
+        var spot = document.getElementById('windowspot');
+        spot.innerHTML = '';
+    };
+
+
+</script>
