@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose Your Default Assistant</title>
+    <style>
+        body{
+            background-color: black;
+            color:white;
+            font-family: sans-serif;
+        }
+        .assistant-button {
+            display: inline-block;
+            margin: 10px;
+            width: calc(100vw - 60px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: xx-large;
+            cursor: pointer;
+        }
+        .h1{
+            margin-left:10px;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="h1">Choose Your Default Assistant</h1>
+
+    <div id="assistant-options"></div>
+
+    <h2 class="h1">You can change this later.</h2>
+
+    <script>
+
+        // Check if a default assistant is already set
+        const defaultAssistant = localStorage.getItem('defaultAssistant');
+        if (defaultAssistant) {
+            window.location.href = defaultAssistant;
+        }
+
+        const assistants = [
+            { url: './', name: 'Akari Framework (reccomended)' },
+            { url: './mini', name: 'Quick assistant' }
+        ];
+
+        function chooseAssistant(url) {
+            localStorage.setItem('defaultAssistant', url);
+
+            window.location.href = url;
+        }
+
+        const optionsContainer = document.getElementById('assistant-options');
+        assistants.forEach((assistant) => {
+            const button = document.createElement('div');
+            button.className = 'assistant-button';
+            button.innerHTML = `
+                <img src="${assistant.url}/favicon.ico">
+                ${assistant.name}
+            `;
+            button.onclick = () => chooseAssistant(assistant.url);
+            optionsContainer.appendChild(button);
+        });
+
+    </script>
+</body>
+</html>
