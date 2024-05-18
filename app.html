@@ -38,7 +38,7 @@
         const defaultAssistant = localStorage.getItem('defaultAssistant');
         if (defaultAssistant) {
             window.location.href = defaultAssistant;
-        }
+        } else {
 
         const assistants = [
             { url: './', name: 'Akari Framework (reccomended)' },
@@ -62,7 +62,7 @@
             button.onclick = () => chooseAssistant(assistant.url);
             optionsContainer.appendChild(button);
         });
-
+        };
     </script>
 </body>
 </html>
