@@ -1,3 +1,5 @@
+say('Akari AI with Google Gemini. (v1.0-pre)');
+
 (function() {
     // Function to prompt for API key and save to local storage
     function promptForApiKey() {
@@ -42,6 +44,7 @@
                     const response = await result.response;
                     const text = response.text();
                     console.log(text);
+                    say(text);
                     return text;
                 };
             }
