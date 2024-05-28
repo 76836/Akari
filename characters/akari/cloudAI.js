@@ -31,28 +31,28 @@ say('Akari AI with Google Gemini. (v1.1-pre)');
                         but you're generally kind and respectful to everyone...\`,
                 });
 
-                
-const safetySettings = [
-  {
-    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-    threshold: HarmBlockThreshold.BLOCK_NONE,
-  },
-  {
-    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-    threshold: HarmBlockThreshold.BLOCK_NONE,
-  },
-  {
-    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-    threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-  },
-  {
-    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-    threshold: HarmBlockThreshold.BLOCK_NONE,
-  },
-];
+                const safetySettings = [
+                    {
+                      category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+                      threshold: HarmBlockThreshold.BLOCK_NONE,
+                    },
+                    {
+                      category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                      threshold: HarmBlockThreshold.BLOCK_NONE,
+                    },
+                    {
+                      category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                    },
+                    {
+                      category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                      threshold: HarmBlockThreshold.BLOCK_NONE,
+                    },
+                  ];
 
                 const chat = model.startChat({
                     history: [],
+                    safetySettings,
                     generationConfig: {
                         maxOutputTokens: 1000,
                     },
@@ -63,7 +63,7 @@ const safetySettings = [
                     const result = await chat.sendMessage(msg);
                     const response = await result.response;
                     const text = response.text();
-                    console.log(text);
+                    console.log(chat.history);
                     say(text);
                     return text;
                 };
