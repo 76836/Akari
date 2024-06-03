@@ -18,7 +18,7 @@ say('Akari AI with Google Gemini. (v1.4)');
     const currentTime = new Date().toLocaleString();
     script.textContent = `
             import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
-            import { HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
+            import { HarmBlockThreshold, HarmCategory } from "https://esm.run/@google/generative-ai";
 
             const safetySettings = [
               {
