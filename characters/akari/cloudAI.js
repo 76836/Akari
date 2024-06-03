@@ -3,7 +3,7 @@ say('Akari AI with Google Gemini. (v1.4)');
 (function () {
   // Function to prompt for API key and save to local storage
   function promptForApiKey() {
-    const apiKey = prompt("Please enter your Google Generative AI API key:");
+    const apiKey = prompt("Please enter your Google Gemini API key. (Free tier API keys may collect and store chat information, Akari treats this AI service as non-confidential.)");
     if (apiKey) {
       localStorage.setItem('genAI_API_KEY', apiKey);
       return apiKey;
@@ -26,9 +26,18 @@ say('Akari AI with Google Gemini. (v1.4)');
                 threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
               },
               {
+                category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+              },
+              {
+                category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+              },
+              {
                 category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
                 threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
               },
+              
             ];
             
             const API_KEY = "${apiKey}";
@@ -47,6 +56,8 @@ say('Akari AI with Google Gemini. (v1.4)');
                         System information (in case you need it):
                         Akari AI with Google Gemini v1.4
                         AI model: gemini-1.5-flash-latest
+                        maxOutputTokens: 1000
+                        Persistent chat history: not yet implemented
                         Message rendering method: HTML
                         Chat is private: False
                         System time: ${currentTime}
@@ -56,7 +67,7 @@ say('Akari AI with Google Gemini. (v1.4)');
                 const chat = model.startChat({
                     history: [],
                     generationConfig: {
-                        maxOutputTokens: 100,
+                        maxOutputTokens: 1000,
                     },
                 });
 
