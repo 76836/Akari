@@ -19,6 +19,10 @@
     <p class="title" style="color:darkcyan;">SETTINGS</p>
 
     <p class="smallertext">Background image:</p>
+    <button class="setbutton" onclick="document.getElementById('bkgurl').value = './wallpapers/luna.png';">Luna</button>
+    <button class="setbutton" onclick="document.getElementById('bkgurl').value = './wallpapers/colors.jpg';">Colors</button>
+    <button class="setbutton" onclick="document.getElementById('bkgurl').value = './wallpapers/backdrop.png';">Backdrop</button>
+    <button class="setbutton" onclick="document.getElementById('bkgurl').value = './wallpapers/Foreshadowing.jpg';">Foreshadowing</button>
     <input class="box" id="bkgurl" placeholder="./wallpapers/horizon.jpg" type=text>
     <button class="setbutton" onclick="setBKG()">Set wallpaper</button>
     
@@ -28,8 +32,13 @@
     <button class="setbutton" onclick="setvoice()">Save Changes</button>
 
 
-    <p class="smallertext">Response generation script:</p>
-    <input class="box" id="AIurl" placeholder="./response/akari.js" type=text>
+    <p class="smallertext">Quick command recognition script:</p>
+    <input class="box" id="reflexurl" placeholder="./response/akari.js" type=text>
+    <button class="setbutton" onclick="setreflex()">Save Changes</button>
+
+    <p class="smallertext">Natural language processing / Artificial Intelligence script:</p>
+    <button class="setbutton" onclick="document.getElementById('AIurl').value = './characters/akari/Gemini.js';">Use Gemini API</button>
+    <input class="box" id="AIurl" placeholder="./characters/akari/CloudAI.js" type=text>
     <button class="setbutton" onclick="setAI()">Save Changes</button>
 
 
@@ -58,7 +67,7 @@
     <button class="setbutton" onclick="CharacterHiyori();">Hiyori Momose (Live2D)</button>
 
     <br><br><br><br>
-    <p class="smallertext">Settings 2.1 beta</p>
+    <p class="smallertext">Settings 2.1</p>
 
 </body>
 
@@ -150,6 +159,9 @@
     var AIScript = localStorage.getItem('selectedAIScript');
     document.getElementById('AIurl').value = AIScript;
 
+    var ReflexScript = localStorage.getItem('selectedReflexScript');
+    document.getElementById('reflexurl').value = ReflexScript;
+
     var AvatarScript = localStorage.getItem('selectedAvatarScript');
     document.getElementById('avatarurl').value = AvatarScript;
 
@@ -175,6 +187,11 @@
         localStorage.setItem('selectedAIScript', Url);
     };
 
+    function setreflex() {
+        var Url = document.getElementById('reflexurl').value;
+        localStorage.setItem('selectedReflexScript', Url);
+    };
+
     function setavatar() {
         var Url = document.getElementById('avatarurl').value;
         localStorage.setItem('selectedAvatarScript', Url);
@@ -191,7 +208,9 @@ function CharacterAkari() {
   
         localStorage.setItem('selectedBKGURL', '');
 
-        localStorage.setItem('selectedAIScript', './characters/akari/response.js');
+        localStorage.setItem('selectedReflexScript', './characters/akari/response.js');
+
+        localStorage.setItem('selectedAIScript', '');
 
         localStorage.setItem('selectedAvatarScript', './characters/akari/avatar.js');
 
@@ -204,12 +223,13 @@ function CharacterHiyori() {
     
         localStorage.setItem('selectedBKGURL', "./wallpapers/backdrop.png");
   
-        localStorage.setItem('selectedAIScript', './characters/hiyori/response.js');
+        localStorage.setItem('selectedReflexScript', './characters/hiyori/response.js');
+
+        localStorage.setItem('selectedAIScript', './characters/hiyori/Gemini.js');
 
         localStorage.setItem('selectedAvatarScript', './characters/hiyori/avatar.js');
 
         localStorage.setItem('selectedWakeScript', '');
 };
 
-    console.log('Background image loaded from persistent settings: ' + BKGURL);
 </script>
