@@ -1,7 +1,8 @@
 <!DOCTYPE HTML>
 <html id="html">
+
 <head>
-    <title>Akari FrameWork v2c</title>
+    <title>Akari FrameWork v2.1</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="viewport" content="initial-scale=1">
     <link rel="manifest" href="./app.webmanifest">
@@ -12,7 +13,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
     <link rel="shortcut icon" href="./favicon.ico">
     <meta name="msapplication-TileColor" content="#603cba">
-    <meta name="theme-color" content="#00ffff">
+    <meta name="theme-color" content="#000000">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
@@ -25,45 +26,48 @@
             function loadscreen(message) {
                 document.getElementById('output').innerHTML += message + '<br>';
             };
-            loadscreen("Project Loading...");
+            loadscreen("FrameWork 2.1 Loading...");
         </script>
     </div>
     <div id="avatar"></div>
     <div id="windowspot"></div>
     <div id="messages">
+        <div id="wallpaperPanel"></div>
     </div>
     <br><br><br>
     <div id="status-area"></div>
 
     <button class="button-menu" onclick="newwindow('./settings');">⁝</button>
     <button class="button-long" id="micbutton" onclick="goakari();">voice</button>
-    <form><input type="text" id="box" class="box" placeholder="What's up?" onclick="setTimeout(function () {document.getElementById('micbutton').innerText='send'; }, 100);"></input></form>
-    
+    <form><input type="text" id="box" class="box" placeholder="What's up?"
+            onclick="setTimeout(function () {document.getElementById('micbutton').innerText='send'; }, 100);"></input>
+    </form>
+
 
 
     <script>
 
-function clickoff() {
-    document.getElementById('micbutton').className='button-long';
-    document.getElementById('micbutton').innerText='voice';
-    recognition.stop();
-};
-
-function goakari() {
-    if (document.getElementById('box').value) {
-        textOnly = 'text';
-        enter(document.getElementById('box').value); 
-        document.getElementById('box').value = '';
-        setTimeout(function () {document.getElementById('micbutton').innerText='sent'; }, 10);
-        setTimeout(function () {document.getElementById('micbutton').innerText='voice'; }, 1500);
-    }else{
-        if (document.getElementById('micbutton').innerText == 'send') {
-            setTimeout(function () {document.getElementById('micbutton').innerText='no'; }, 10);
-            return;
+        function clickoff() {
+            document.getElementById('micbutton').className = 'button-long';
+            document.getElementById('micbutton').innerText = 'voice';
+            recognition.stop();
         };
-        voicerecognitionstart();
-    };
-};
+
+        function goakari() {
+            if (document.getElementById('box').value) {
+                textOnly = 'text';
+                enter(document.getElementById('box').value);
+                document.getElementById('box').value = '';
+                setTimeout(function () { document.getElementById('micbutton').innerText = 'sent'; }, 10);
+                setTimeout(function () { document.getElementById('micbutton').innerText = 'voice'; }, 1500);
+            } else {
+                if (document.getElementById('micbutton').innerText == 'send') {
+                    setTimeout(function () { document.getElementById('micbutton').innerText = 'no'; }, 10);
+                    return;
+                };
+                voicerecognitionstart();
+            };
+        };
 
 
         async function processquery() {
@@ -87,7 +91,7 @@ function goakari() {
                 document.getElementById('overlay').classList.add('fade-out');
                 console.log('UI loaded.');
                 processquery();
-                loadscreen("[ok] Project loaded.");
+                loadscreen("[ok] Interface loaded.");
                 say(getGreetingByTime());
             }, 1000);
             setTimeout(function () {
@@ -110,11 +114,15 @@ function goakari() {
         var VoiceScript = localStorage.getItem('selectedVoiceScript');
         var AvatarScript = localStorage.getItem('selectedAvatarScript');
         var AIScript = localStorage.getItem('selectedAIScript');
+        var ReflexScript = localStorage.getItem('selectedReflexScript');
+        var WakeScript = localStorage.getItem('selectedWakeScript');
         var BKGURL = localStorage.getItem('selectedBKGURL');
         var AI_is_enabled = localStorage.getItem('selectedAISetting');
+        // added reflex and wake scripts
 
         var textOnly = 'text';
         var serverStatus = "disconnected";
+        // Should I move AI server connection to a seperate script? I think I will.
 
         if (AI_is_enabled == null || AI_is_enabled == "") {
             AI_is_enabled = "No";
@@ -145,17 +153,17 @@ function goakari() {
 
         var ExCSS1 = document.createElement("style");
         ExCSS1.innerHTML = `
-body  {
+        body  {
         background-image: url("`+ BKGURL + `");
-      background-color: black;
+        background-color: black;
         background-repeat: no-repeat;
         background-size: cover;
-  color:white;
-  margin:7px;
+        color:white;
+        margin:7px;
         overflow-x: hidden;
         min-height:100vh;
-  background-attachment: fixed;
-}`;
+        background-attachment: fixed;
+        }`;
 
         var head = document.getElementsByName("head")[0];
         document.head.appendChild(ExCSS1);
@@ -169,39 +177,66 @@ body  {
         };
 
         if (AIScript == null || AIScript == "") {
-            AIScript = "./characters/akari/response.js";
+            AIScript = null;
+        };
+
+        if (WakeScript == null || WakeScript == "") {
+            WakeScript = "./characters/akari/wake.js";
+        };
+
+        if (ReflexScript == null || ReflexScript == "") {
+            ReflexScript = "./characters/akari/response.js";
         };
 
         if (VoiceScript == null || VoiceScript == "") {
-            VoiceScript = "./characters/akari/speech.js";
+            VoiceScript = null;
         };
 
-        var ExJS1 = document.createElement("script");
-        ExJS1.src = VoiceScript;
 
-        var head = document.getElementsByName("head")[0];
-        document.head.appendChild(ExJS1);
-
-        console.log('VoiceScript =' + VoiceScript);
-
-
-
-        var ExJS2 = document.createElement("script");
-        ExJS2.src = AIScript;
-
-        head = document.getElementsByName("head")[0];
-        document.head.appendChild(ExJS2);
-
-        console.log('AIScript =' + AIScript);
+        if (VoiceScript) {
+            var ExJS1 = document.createElement("script");
+            ExJS1.src = VoiceScript;
+            var head = document.getElementsByName("head")[0];
+            document.head.appendChild(ExJS1);
+            console.log('VoiceScript =' + VoiceScript);
+        };
 
 
-        var ExJS3 = document.createElement("script");
-        ExJS3.src = AvatarScript;
+        if (AIScript) {
+            var ExJS2 = document.createElement("script");
+            ExJS2.src = AIScript;
+            head = document.getElementsByName("head")[0];
+            document.head.appendChild(ExJS2);
+            console.log('AIScript =' + AIScript);
+        };
 
-        head = document.getElementsByName("head")[0];
-        document.head.appendChild(ExJS3);
 
-        console.log('AvatarScript =' + AvatarScript);
+        if (AvatarScript) {
+            var ExJS3 = document.createElement("script");
+            ExJS3.src = AvatarScript;
+            head = document.getElementsByName("head")[0];
+            document.head.appendChild(ExJS3);
+            console.log('AvatarScript =' + AvatarScript);
+        };
+
+
+        if (WakeScript) {
+            var ExJS4 = document.createElement("script");
+            ExJS4.src = WakeScript;
+            head = document.getElementsByName("head")[0];
+            document.head.appendChild(ExJS4);
+            console.log('WakeScript =' + WakeScript);
+        };
+
+
+        if (ReflexScript) {
+            var ExJS5 = document.createElement("script");
+            ExJS5.src = ReflexScript;
+            head = document.getElementsByName("head")[0];
+            document.head.appendChild(ExJS5);
+            console.log('ReflexScript =' + ReflexScript);
+        };
+
 
         loadscreen("[ok] User preferances loaded from storage.");
 
@@ -279,7 +314,7 @@ body  {
         recognition.onresult = async function (event) {
             var speechinput = event.results[0][0].transcript;
             document.getElementById('micbutton').className = 'button-long';
-            document.getElementById('micbutton').innerText='voice';
+            document.getElementById('micbutton').innerText = 'voice';
             enter(speechinput);
         };
 
@@ -287,7 +322,7 @@ body  {
             await sleep(100);
             recognition.start();
             document.getElementById('micbutton').className = 'mic-on';
-            document.getElementById('micbutton').innerText='Speech-to-text listening...';
+            document.getElementById('micbutton').innerText = 'Speech-to-text listening...';
         };
     </script>
 
