@@ -1,4 +1,8 @@
 
+if (typeof CloudAI === 'undefined') {
+  var CloudAI = false;
+};
+
 function getGreetingByTime() {
     const currentHour = new Date().getHours();
     if (currentHour < 12) {
@@ -166,12 +170,12 @@ async function respond(outcome) {
     Conversational abilities without AI server connection
     
     */
-    if (serverStatus != "connected") {
+    if (serverStatus != "connected" || CloudAI != true) {
 
         // Release notes lol
         if (outcome.includes("what") && outcome.includes("up") && outcome.length < 18 == true) {
             console.log('kewords "what" & "up" found');
-            say('Akari Framework 2.0... Live2D avatar compatability has been added, and now you can choose between multiple characters to chat with.');
+            say('Akari Framework 2.1... The Akari wake word was brought back, and Google Gemini was added as my AI!');
             return;
         };
 
@@ -400,7 +404,7 @@ async function respond(outcome) {
     };
     if (outcome.includes("version") && outcome.length < 20 == true) {
         console.log('keword "version" found');
-        say('Akari Framework 2.0... Live2D avatar compatability has been added, and now you can choose between multiple characters to chat with.');
+        say('Akari Framework 2.1... The Akari wake word was brought back, and Google Gemini was added as my AI!');
         return;
     };
 
@@ -439,6 +443,10 @@ async function respond(outcome) {
         typing("Akari AI");
         socket.send(ogtxt);
     } else {
+        if (CloudAI == true) {
+            typing("Akari AI");
+            GenerateResponse(ogtxt);
+        }else{
         console.log('no keywords found, too bad.');
         var excuses = [];
         excuses[1] = "Sorry, I don't understand that command.";
@@ -450,6 +458,7 @@ async function respond(outcome) {
         excuses[7] = "I don't know what to do, sorry about that.";
         excuses[8] = "I don't understand the command, maybe try rephrasing it?";
         say(excuses[1 + Math.floor(Math.random() * 8)]);
+        };
     };
 
 };
