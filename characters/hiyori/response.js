@@ -1,61 +1,7 @@
 
-function getGreetingByTime() {
-    const currentHour = new Date().getHours();
-    if (currentHour < 12) {
-        return "Good morning!";
-    } else if (currentHour < 18) {
-        return "Good afternoon.";
-    } else {
-        return "Good evening.";
-    };
+if (typeof CloudAI === 'undefined') {
+  var CloudAI = false;
 };
-function getResponseByDayOfWeek() {
-    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const currentDayOfWeek = new Date().getDay();
-    const currentDay = daysOfWeek[currentDayOfWeek];
-    switch (currentDay) {
-        case 'Monday':
-            return " It's the start of a new week! What do you need?";
-        case 'Tuesday':
-            return " What do you want to do today?";
-        case 'Wednesday':
-            return " What can I do for you?";
-        case 'Thursday':
-            var currentHour = new Date().getHours();
-            if (currentHour > 13) {
-                qreplied = false;
-                return " Did you eat a good lunch yet?";
-            } else {
-                qreplied = false;
-                return " Did you sleep well?"
-            };
-        case 'Friday':
-            qreplied = false;
-            return " Ready for the weekend?";
-        case 'Saturday':
-            qreplied = false;
-            return " Enjoy the weekend!";
-        case 'Sunday':
-            var currentHour = new Date().getHours();
-            if (currentHour > 12) {
-                qreplied = false;
-                return " How was church?";
-            } else {
-                qreplied = false;
-                return " Have fun at church!"
-            };
-        default:
-            return " How can I assist you today?";
-    }
-};
-
-
-function ArrayInString(textArray, inputString) {
-    // Convert the input string to lowercase for case-insensitive matching
-    const lowerCaseInput = inputString.toLowerCase();
-    // Check if any text entry in the array is present in the input string
-    return textArray.some(text => lowerCaseInput.includes(text.toLowerCase()));
-}
 
 // This function creates a dialog box with a message and returns a promise
 function ask(message) {
@@ -112,47 +58,6 @@ function ask(message) {
     return promise;
 };
 
-
-function solve(mathExpression) {
-    // Convert numbers in words to actual numbers
-    const wordsToNumbers = {
-        zero: 0,
-        one: 1,
-        two: 2,
-        three: 3,
-        four: 4,
-        five: 5,
-        six: 6,
-        seven: 7,
-        eight: 8,
-        nine: 9,
-        ten: 10,
-    };
-
-    // Convert English operation words to JS symbols
-    const wordsToSymbols = {
-        plus: '+',
-        minus: '-',
-        times: '*',
-        'divided by': '/',
-        'multiplied by': '*',
-    };
-
-    // Replace words with numbers and operation symbols
-    const expressionWithNumbersAndSymbols = mathExpression.replace(
-        /\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|plus|minus|times|divided)\b/gi,
-        match => wordsToNumbers[match.toLowerCase()] !== undefined ? wordsToNumbers[match.toLowerCase()] : wordsToSymbols[match.toLowerCase()]
-    );
-
-    try {
-        // Create a function from the expression and execute it
-        const result = new Function(`return ${expressionWithNumbersAndSymbols}`)();
-        return result.toString();
-    } catch (error) {
-        console.error('Error evaluating expression:', error);
-        return 'Error';
-    }
-}
 var qreplied = true;
 async function respond(outcome) {
     var ogtxt = outcome;
@@ -215,20 +120,6 @@ async function respond(outcome) {
         return;
     };
 
-    const PackageInstallerSynonyms = new Array("good", "i did", "i will", "yeah", "great", "yes");
-    if (ArrayInString(PackageInstallerSynonyms, outcome)) {
-        if (qreplied == false) {
-            var qfinalize = [];
-            qfinalize[1] = "That's awesome.";
-            qfinalize[2] = "Perfect!";
-            qfinalize[3] = "I'm glad to hear that!";
-            say(qfinalize[1 + Math.floor(Math.random() * 3)]);
-        };
-        qreplied = true;
-        return;
-    } else {
-        qreplied = true;
-    };
 
     if (outcome.includes("open") && outcome.length < 30 == true) {
         console.log('lets hope this app has a .com domain');
@@ -257,7 +148,7 @@ async function respond(outcome) {
     };
 
 
-    if (outcome.includes("youtube") || outcome.includes(" play ") == true) {
+    if ((outcome.includes("youtube") || outcome.includes(" play ") == true) && outcome.length < 33 == true ) {
         console.log('keywords "youtube" & "search"/"play" found');
         var video = outcome.replace('youtube', "");
         video = video.replace('search', "");
@@ -283,38 +174,10 @@ async function respond(outcome) {
     };
 
 
-    if (outcome.includes("what") && outcome.includes("up") && outcome.length < 18 == true) {
-        console.log('kewords "what" & "up" found');
-        say('version 2.0... Live2D support has been added, and now you can choose which character you talk to!');
         return;
     };
 
-
-    if (outcome.includes("hello there") && outcome.length < 19 == true) {
-        console.log(' I will deal with this Jedi slime myself. \n   Your move.');
-        say('General Kenobi. You are a bold one.');
-        return;
-    };
-
-    if (outcome.includes("hey") || outcome.includes("hello") || outcome.includes("hi") && outcome.length < 10 == true) {
-        console.log('keword "hello" or "hi" found.');
-        if (outcome.includes("hello")) {
-            say('Hello there.');
-        } else {
-            if (outcome.includes("hey") == true) {
-                var mapg1 = "Hi!";
-            } else {
-                var mapg1 = getGreetingByTime()
-            };
-
-            say(mapg1 + getResponseByDayOfWeek());
-        }
-
-
-        return;
-    };
-
-    if (outcome.includes("search") == true) {
+    if (outcome.includes("search ") == true && outcome.length < 33 == true && outcome.includes(" search") == false) {
         console.log('keyword "search" found.');
         var query = outcome.replace('search', "");
         query = query.replace(' for ', " ");
@@ -324,11 +187,6 @@ async function respond(outcome) {
         return;
     };
 
-    if (outcome.includes("solve ")) {
-        const mathExpression = outcome.replace("solve", "");
-        say(solve(mathExpression));
-        return;
-    };
 
     if (outcome.includes("re") && (outcome.includes("start") || outcome.includes("load") || outcome.includes("set") == true) && outcome.length < 8 == true) {
         console.log('Restart command recognized, restarting in 5 seconds...');
@@ -344,10 +202,10 @@ async function respond(outcome) {
         return;
     }
 
-    if (serverStatus == "connected") {
-        typing("Akari AI");
-        socket.send(ogtxt);
-    } else {
+   if (CloudAI == true) {
+            typing("Hiyori");
+            GenerateResponse(ogtxt);
+        }else{
         console.log('no keywords found, too bad.');
         say('AI disconnected! ')
     };
