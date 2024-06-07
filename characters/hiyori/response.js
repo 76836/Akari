@@ -1,6 +1,9 @@
+function getGreetingByTime() {
+    return "hello!";
+};
 
 if (typeof CloudAI === 'undefined') {
-  var CloudAI = false;
+    var CloudAI = false;
 };
 
 // This function creates a dialog box with a message and returns a promise
@@ -58,7 +61,6 @@ function ask(message) {
     return promise;
 };
 
-var qreplied = true;
 async function respond(outcome) {
     var ogtxt = outcome;
     outcome = outcome.toLowerCase();
@@ -148,7 +150,7 @@ async function respond(outcome) {
     };
 
 
-    if ((outcome.includes("youtube") || outcome.includes(" play ") == true) && outcome.length < 33 == true ) {
+    if ((outcome.includes("youtube") || outcome.includes(" play ") == true) && outcome.length < 33 == true) {
         console.log('keywords "youtube" & "search"/"play" found');
         var video = outcome.replace('youtube', "");
         video = video.replace('search', "");
@@ -174,8 +176,8 @@ async function respond(outcome) {
     };
 
 
-        return;
-    };
+    return;
+
 
     if (outcome.includes("search ") == true && outcome.length < 33 == true && outcome.includes(" search") == false) {
         console.log('keyword "search" found.');
@@ -202,10 +204,10 @@ async function respond(outcome) {
         return;
     }
 
-   if (CloudAI == true) {
-            typing("Hiyori");
-            GenerateResponse(ogtxt);
-        }else{
+    if (CloudAI == true) {
+        typing("Hiyori");
+        GenerateResponse(ogtxt);
+    } else {
         console.log('no keywords found, too bad.');
         say('AI disconnected! ')
     };
