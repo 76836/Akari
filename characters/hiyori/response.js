@@ -175,10 +175,6 @@ async function respond(outcome) {
         return;
     };
 
-
-    return;
-
-
     if (outcome.includes("search ") == true && outcome.length < 33 == true && outcome.includes(" search") == false) {
         console.log('keyword "search" found.');
         var query = outcome.replace('search', "");
