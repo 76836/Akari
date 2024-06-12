@@ -32,7 +32,7 @@
     <div id="avatar"></div>
     <div id="windowspot"></div>
     <div id="messages">
-        <div id="wallpaperPanel"></div>
+    <div class="background-container" id="wallpaperPanel"></div>
     </div>
     <br><br><br>
     <div id="status-area"></div>
@@ -153,20 +153,52 @@
 
         var ExCSS1 = document.createElement("style");
         ExCSS1.innerHTML = `
-        body  {
-        background-image: url("`+ BKGURL + `");
-        background-color: black;
-        background-repeat: no-repeat;
-        background-size: cover;
-        color:white;
-        margin:7px;
-        overflow-x: hidden;
-        min-height:100vh;
-        background-attachment: fixed;
+        .background-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        .background-image {
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+        }
+        .iframe-container {
+            width: 100%;
+            height: 100%;
+        }
+        .iframe-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
         }`;
 
         var head = document.getElementsByName("head")[0];
         document.head.appendChild(ExCSS1);
+
+        var url = BKGURL;
+        function isImage(url) {
+            return(url.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null);
+        };
+        function setBackgroundImage(url) {
+            const container = document.getElementById('wallpaperPanel');
+            container.style.backgroundImage = `url('${url}')`;
+        };
+        function setIframe(url) {
+            const container = document.getElementById('wallpaperPanel');
+            const iframe = document.createElement('iframe');
+            iframe.src = url;
+            container.appendChild(iframe);
+        };
+        if (isImage(url)) {
+            setBackgroundImage(url);
+        } else {
+            setIframe(url);
+        };
 
         console.log('Background image loaded from persistent settings: ' + BKGURL);
 
