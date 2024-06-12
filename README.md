@@ -28,14 +28,20 @@ First release. (for testing)
 <br>
 <br>
 # Akari Framework
-Akari Voice Assistant v1.9.
+Akari Voice Assistant v2.1.
 Fully usable on chrome-based browsers at: https://76836.github.io/Akari
 Support for other browsers like safari and firefox may be limited.
 Integrate Akari into your iPhone with the Shortcuts app by entering commands into the url: `https://76836.github.io/Akari?q=Your%20Input%20Here` Make sure to url encode the input.
 
 
-(soon) Version 2.1: <br>
-Adding new ways to summon Akari, along with a server upgrade, and new features being tested on mobile.
+(soon) Version 2.2: <br>
+Maybe now i'll make the server upgrade and new features for mobile. We'll see.
+
+(soon) Version 2.1b: <br>
+Style changes? Custom CSS? Live wallpapers?
+
+Version 2.1: <br>
+Added automatic Gemini support, more module slots, some quick options in settings, and some small improvements elsewhere.
 
 Version 2.0: <br>
 Made new ability to switch between multiple chatacters, added ability to swap out the avater module.
