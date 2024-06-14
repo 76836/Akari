@@ -57,7 +57,7 @@
 
 .responsetxt {
     display: inline-block;
-    padding: 0px 5px;
+    padding: 5px 10px;
     border-radius: 0px 10px 10px 10px;
     background-color: transparent;
     background-image: linear-gradient(to right, #900, rgba(9, 9, 9, 0.5));
@@ -68,7 +68,8 @@
     font-size: large;
     border: 0px solid black;
     margin-right: 150px;
-    width: calc(50vw - 140px);
+    width: 90vw;
+    z-index: 2;
 }
 
 .command {
@@ -83,7 +84,8 @@
     float: right;
     border: 2px solid black;
     margin-left: 150px;
-    width: calc(50vw - 140px);
+    width: 90vw;
+    z-index: 2;
 }
 
 .box {
