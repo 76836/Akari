@@ -167,10 +167,7 @@
 }
 
 body {
-    background-image: url("https://76836.github.io/webdesk/images/wallpapers/water.png");
-    background-color: darkgray;
-    background-repeat: no-repeat;
-    background-size: cover;
+    background-color: black;
     overflow-x: hidden;
     color: white;
     min-height: 100vh;
@@ -178,6 +175,32 @@ body {
     word-wrap: break-word;
 }
 
+.background-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-position: center;
+    z-index: -1;
+}
+
+.iframe-container {
+    position:fixed;
+    top:0;
+    left:0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+}
+
+iframe {
+    border: none;
+}
 
 .windowstyle {
     border: 4px solid #111111;
