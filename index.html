@@ -1,15 +1,13 @@
 <!DOCTYPE HTML>
 <html id="html">
-
 <head>
-    <title>Akari FrameWork v2.1</title>
+    <title>Akari FrameWork v2.1b</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="viewport" content="initial-scale=1">
     <link rel="manifest" href="./app.webmanifest">
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width" />
-    <link rel="stylesheet" href="./index.css">
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
     <link rel="shortcut icon" href="./favicon.ico">
     <meta name="msapplication-TileColor" content="#603cba">
@@ -26,14 +24,13 @@
             function loadscreen(message) {
                 document.getElementById('output').innerHTML += message + '<br>';
             };
-            loadscreen("FrameWork 2.1 Loading...");
+            loadscreen("FrameWork 2.1b starting...");
         </script>
     </div>
-    <div id="avatar"></div>
-    <div id="windowspot"></div>
-    <div id="messages">
     <div class="background-container" id="wallpaperPanel"></div>
-    </div>
+    <div id="avatar"></div>
+    <div id="messages"></div>
+    <div id="windowspot"></div>
     <br><br><br>
     <div id="status-area"></div>
 
@@ -43,16 +40,12 @@
             onclick="setTimeout(function () {document.getElementById('micbutton').innerText='send'; }, 100);"></input>
     </form>
 
-
-
     <script>
-
         function clickoff() {
             document.getElementById('micbutton').className = 'button-long';
             document.getElementById('micbutton').innerText = 'voice';
             recognition.stop();
         };
-
         function goakari() {
             if (document.getElementById('box').value) {
                 textOnly = 'text';
@@ -69,7 +62,6 @@
             };
         };
 
-
         async function processquery() {
             const urlParams = new URLSearchParams(window.location.search);
             const query = urlParams.get('q');
@@ -84,21 +76,19 @@
             };
         };
 
-
         // Add the fade-out class after 3 seconds
         document.addEventListener("DOMContentLoaded", function () {
             setTimeout(function () {
                 document.getElementById('overlay').classList.add('fade-out');
                 console.log('UI loaded.');
                 processquery();
-                loadscreen("[ok] Interface loaded.");
+                loadscreen("[ok] Interface ready.");
                 say(getGreetingByTime());
             }, 1000);
             setTimeout(function () {
                 document.getElementById('overlay').classList.add('noindex');
             }, 1500);
         });
-
 
         document.getElementById('box').onkeydown = function (event) {
             var e = event || window.event;
@@ -110,15 +100,16 @@
             }
         };
 
-
         var VoiceScript = localStorage.getItem('selectedVoiceScript');
         var AvatarScript = localStorage.getItem('selectedAvatarScript');
         var AIScript = localStorage.getItem('selectedAIScript');
         var ReflexScript = localStorage.getItem('selectedReflexScript');
         var WakeScript = localStorage.getItem('selectedWakeScript');
         var BKGURL = localStorage.getItem('selectedBKGURL');
+        var CSSURL = localStorage.getItem('selectedCSSURL');
         var AI_is_enabled = localStorage.getItem('selectedAISetting');
         // added reflex and wake scripts
+        // custom css now too 
 
         var textOnly = 'text';
         var serverStatus = "disconnected";
@@ -148,131 +139,105 @@
         };
 
         if (BKGURL == null || BKGURL == "") {
-            BKGURL = "./wallpapers/colors.jpg";
+            BKGURL = "../squares";
         };
-
-        var ExCSS1 = document.createElement("style");
-        ExCSS1.innerHTML = `
-        .background-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-        }
-        .background-image {
-            width: 100%;
-            height: 100%;
-            background-size: cover;
-            background-position: center;
-        }
-        .iframe-container {
-            width: 100%;
-            height: 100%;
-        }
-        .iframe-container iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }`;
-
-        var head = document.getElementsByName("head")[0];
-        document.head.appendChild(ExCSS1);
 
         var url = BKGURL;
+        // Function to check if the URL is an image
         function isImage(url) {
-            return(url.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null);
-        };
+            return (url.match(/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i) != null);
+        }
+
+        // Function to set the background as an image
         function setBackgroundImage(url) {
-            const container = document.getElementById('wallpaperPanel');
-            container.style.backgroundImage = `url('${url}')`;
-        };
+            document.body.style.backgroundImage = `url('${url}')`;
+            document.body.style.backgroundSize = 'cover';
+            document.body.style.backgroundPosition = 'center';
+        }
+
+        // Function to set the background as an iframe
         function setIframe(url) {
-            const container = document.getElementById('wallpaperPanel');
             const iframe = document.createElement('iframe');
             iframe.src = url;
-            container.appendChild(iframe);
-        };
+            iframe.classList.add('iframe-container');
+            document.body.appendChild(iframe);
+        }
+
+        // Determine if the URL is an image or a webpage and set the background accordingly
         if (isImage(url)) {
             setBackgroundImage(url);
         } else {
             setIframe(url);
-        };
-
+        }
+        loadscreen("[ok] Background loaded.");
         console.log('Background image loaded from persistent settings: ' + BKGURL);
 
-
-
         if (AvatarScript == null || AvatarScript == "") {
-            AvatarScript = "./characters/akari/avatar.js";
+            AvatarScript = null;
         };
-
         if (AIScript == null || AIScript == "") {
             AIScript = null;
         };
-
         if (WakeScript == null || WakeScript == "") {
             WakeScript = "./characters/akari/wake.js";
         };
-
         if (ReflexScript == null || ReflexScript == "") {
             ReflexScript = "./characters/akari/response.js";
+            loadscreen("[ok] Using Akari (default) reflex module.");
         };
-
+        if (CSSURL == null || CSSURL == "") {
+            CSSURL = "./index.css";
+        };
         if (VoiceScript == null || VoiceScript == "") {
             VoiceScript = null;
         };
-
-
+        if (CSSURL) {
+            const linkElement = document.createElement('link');
+            linkElement.setAttribute('rel', 'stylesheet');
+            linkElement.setAttribute('href', CSSURL);
+            document.head.appendChild(linkElement);
+            loadscreen("[ok] CSS loaded.");
+        };
         if (VoiceScript) {
             var ExJS1 = document.createElement("script");
             ExJS1.src = VoiceScript;
             var head = document.getElementsByName("head")[0];
             document.head.appendChild(ExJS1);
             console.log('VoiceScript =' + VoiceScript);
+            loadscreen("[ok] Speech synthesis module loaded.");
         };
-
-
         if (AIScript) {
             var ExJS2 = document.createElement("script");
             ExJS2.src = AIScript;
             head = document.getElementsByName("head")[0];
             document.head.appendChild(ExJS2);
             console.log('AIScript =' + AIScript);
+            loadscreen("[ok] AI script loaded.");
         };
-
-
         if (AvatarScript) {
             var ExJS3 = document.createElement("script");
             ExJS3.src = AvatarScript;
             head = document.getElementsByName("head")[0];
             document.head.appendChild(ExJS3);
             console.log('AvatarScript =' + AvatarScript);
+            loadscreen("[ok] Avatar initialized.");
         };
-
-
         if (WakeScript) {
             var ExJS4 = document.createElement("script");
             ExJS4.src = WakeScript;
             head = document.getElementsByName("head")[0];
             document.head.appendChild(ExJS4);
             console.log('WakeScript =' + WakeScript);
+            loadscreen("[ok] Wake word script loaded.");
         };
-
-
         if (ReflexScript) {
             var ExJS5 = document.createElement("script");
             ExJS5.src = ReflexScript;
             head = document.getElementsByName("head")[0];
             document.head.appendChild(ExJS5);
             console.log('ReflexScript =' + ReflexScript);
+            loadscreen("[ok] Reflex module loaded.");
         };
-
-
-        loadscreen("[ok] User preferances loaded from storage.");
-
-
 
         //integrated functions
         function bubble(text) {
@@ -358,7 +323,6 @@
         };
     </script>
 
-
     <div id="AI_Components">
         <script>
             async function SCheck() {
@@ -378,5 +342,4 @@
     </div>
 
 </body>
-
 </html>
