@@ -173,6 +173,8 @@ body {
     min-height: 100vh;
     font-family: 'Orbitron', sans-serif;
     word-wrap: break-word;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
 }
 
 .background-container {
@@ -186,7 +188,8 @@ body {
     justify-content: center;
     align-items: center;
     background-position: center;
-    z-index: -1;
+    background-attachment: fixed;
+    z-index: -100;
 }
 
 .iframe-container {
