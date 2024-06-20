@@ -15,6 +15,117 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+    <style>
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 98%;
+    background-color: black;
+    opacity: 1;
+    transition: opacity 1s ease-out;
+    z-index: 29;
+    border-bottom: 2vh solid red;
+    animation: borderAnimation 2.5s forwards;
+}
+
+@keyframes borderAnimation {
+    0% {
+        border-color: red;
+    }
+
+    100% {
+        border-color: green;
+    }
+}
+
+#overlay.fade-out {
+    opacity: 0;
+}
+
+#overlay.noindex {
+    z-index: -1;
+}
+
+.console {
+    color: white;
+    font-size: xx-large;
+}
+
+body {
+    background-color: black;
+    overflow-x: hidden;
+    color: white;
+    min-height: 100vh;
+    font-family: 'Orbitron', sans-serif;
+    word-wrap: break-word;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+}
+
+.background-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-position: center;
+    background-attachment: fixed;
+    z-index: -100;
+}
+
+.iframe-container {
+    position:fixed;
+    top:0;
+    left:0;
+    width: 100%;
+    height: 100%;
+    z-index: -100;
+}
+
+iframe {
+    border: none;
+}
+
+.windowstyle {
+    border: 4px solid #111111;
+    background-color: transparent;
+    margin: 0%;
+    margin-top: 7vh;
+    width: 86vw;
+    height: 80vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    margin-left: 7vw;
+    margin-right: 7vw;
+    z-index: 30;
+    border-radius: 2vh;
+}
+
+.buttonstyle {
+    border: 4px solid crimson;
+    margin: 0%;
+    width: 16vh;
+    height: 8vh;
+    background-color: darkred;
+    font-size: large;
+    color: white;
+    border-radius: 2vh;
+    z-index: 31;
+    margin-left: 7vw;
+    margin-right: 7vw;
+    position: fixed;
+    top: calc(83vh + 7px);
+    left: 0;
+    transition-duration: 0.3s;
+}
+    </style>
 </head>
 
 <body onclick="clickoff();">
