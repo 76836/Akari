@@ -57,35 +57,21 @@ body {
     background-color: black;
     overflow-x: hidden;
     color: white;
-    min-height: 100vh;
     font-family: 'Orbitron', sans-serif;
     word-wrap: break-word;
     background-attachment: fixed;
     background-repeat: no-repeat;
-}
-
-.background-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-size: cover;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-position: center;
-    background-attachment: fixed;
-    z-index: -100;
+    margin:0;
 }
 
 .iframe-container {
     position:fixed;
     top:0;
     left:0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     z-index: -100;
+    margin:0;
 }
 
 iframe {
@@ -138,11 +124,10 @@ iframe {
             loadscreen("FrameWork 2.1b starting...");
         </script>
     </div>
-    <div class="background-container" id="wallpaperPanel"></div>
+    
     <div id="avatar"></div>
     <div id="messages"></div>
     <div id="windowspot"></div>
-    <br><br><br>
     <div id="status-area"></div>
 
     <button class="button-menu" onclick="newwindow('./settings');">⁝</button>
