@@ -89,11 +89,37 @@
         <textarea wrap="soft" type="text" id="userInput" placeholder="" oninput="handleInput()"></textarea>
         <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
     </div>
-    <script src="./characters/Akari/reflex.js"></script>
-    <script src="./characters/Akari/Gemini.js"></script>
+    <script src="./characters/akari/reflex.js"></script>
+    <script src="./characters/akari/Gemini.js"></script>
     <script>
         var textOnly = 'text';
         var serverStatus = "disconnected";
+        function newwindow(weblocation) {
+            var windowcode = '<iframe src="' + weblocation + '" class="windowstyle"></iframe><button class="buttonstyle" onclick="closewindow();">Close window.</button>';
+            var spot = document.getElementById('windowspot');
+            spot.innerHTML = windowcode;
+        };
+        function closewindow() {
+            var spot = document.getElementById('windowspot');
+            spot.innerHTML = '';
+        };
+
+        function typing(subject) {
+            var notifiercode = '<button class="typingnotifier" onclick="console.log(`\nThis is in fact a button.\n`);">' + subject + ' is typing . . .</button>';
+            var spot = document.getElementById('status-area');
+            spot.innerHTML = notifiercode;
+        };
+
+        function clearstatus() {
+            var spot = document.getElementById('status-area');
+            spot.innerHTML = '';
+        };
+
+        function sleep(ms) {
+            return new Promise(
+                resolve => setTimeout(resolve, ms)
+            );
+        };
       
         const chatContainer = document.getElementById('chatContainer');
         const userInput = document.getElementById('userInput');
