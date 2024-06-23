@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Akari for WearOS</title>
+    <title>WearAkari v1.0</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -89,8 +89,6 @@
         <textarea wrap="soft" type="text" id="userInput" placeholder="" oninput="handleInput()"></textarea>
         <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
     </div>
-    <script src="./characters/akari/reflex.js"></script>
-    <script src="./characters/akari/Gemini.js"></script>
     <script>
         var textOnly = 'text';
         var serverStatus = "disconnected";
@@ -152,5 +150,8 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
     </script>
+    <script src="./characters/akari/response.js"></script>
+    <script src="./characters/akari/Gemini.js"></script>
+    
 </body>
 </html>
