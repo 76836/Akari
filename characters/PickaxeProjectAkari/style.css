@@ -1,0 +1,43 @@
+.typingnotifier {
+    visibility: hidden;
+}
+
+.responsetxt {
+    visibility: hidden;
+}
+
+.command {
+    visibility: hidden;
+}
+
+.box {
+    visibility: hidden;
+}
+
+.button-menu {
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: #111111;
+    color: red;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: center;
+    line-height: 30px;
+    font-size: large;
+    position: fixed;
+    top: 7px;
+    right: 7px;
+    width: 50px;
+    border: 0;
+    overflow: hidden;
+    border: 2px solid black;
+    z-index: 21;
+}
+
+.mic-on {
+    visibility: hidden;
+}
+
+.button-long {
+    visibility: hidden;
+}
