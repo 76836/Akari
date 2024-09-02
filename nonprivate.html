@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+        h1 {
+            color: #ff4500;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .button {
+            font-family: 'Press Start 2P', sans-serif;
+            display: inline-block;
+            padding: 15px 30px;
+            background-color: #ff4500;
+            color: #000;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 18px;
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #ff5722;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1>Privacy Notice</h1>
+        <p>Messages sent to Google Gemini free tier or to the Pickaxe Project are not private and may be reviewed by humans.</p>
+        <p>On-device AI information will never be intentionally shared.</p>
+        <br>
+        <p>Pro tip: You can ask Akari if your current chat is private.</p>
+        <button class="button" onclick="setPrivacyNotice()">Don't show again.</button>
+    </div>
+
+    <script>
+        function setPrivacyNotice() {
+            localStorage.setItem('privacynotice', 'true');
+        }
+    </script>
+</body>
+</html>
