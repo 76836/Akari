@@ -64,12 +64,13 @@
     <br><br>
     <p class="title">Select preconfigured Character:</p>
     <button class="setbutton" onclick="CharacterAkari();">Akari (76836) (default)</button>
+    <button class="setbutton" onclick="CharacterAkariPickaxe();">Akari on Pickaxe Project (76836 and Pickaxe)</button>
     <button class="setbutton" onclick="alert('coming soon');">Luna (76836)</button>
     <button class="setbutton" onclick="alert('coming soon');">Gemini (Google)</button>
     <button class="setbutton" onclick="CharacterHiyori();">Hiyori Momose (Live2D)</button>
 
     <br><br><br><br>
-    <p class="smallertext">Settings 2.1b</p>
+    <p class="smallertext">Settings 2.1c</p>
 
 </body>
 
@@ -219,6 +220,23 @@ function CharacterAkari() {
         localStorage.setItem('selectedWakeScript', './characters/akari/wake.js');
 };
 
+function CharacterAkariPickaxe() {
+        
+        localStorage.setItem('selectedVoiceScript', '');
+  
+        localStorage.setItem('selectedBKGURL', '');
+
+        localStorage.setItem('selectedReflexScript', './characters/PickaxeProjectAkari/reflex.js');
+
+        localStorage.setItem('selectedCSSURL', './characters/PickaxeProjectAkari/style.css');
+
+        localStorage.setItem('selectedAIScript', '');
+
+        localStorage.setItem('selectedAvatarScript', '');
+
+        localStorage.setItem('selectedWakeScript', './characters/akari/wake.js');
+};
+    
 function CharacterHiyori() {
         
         localStorage.setItem('selectedVoiceScript', '');
