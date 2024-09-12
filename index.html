@@ -3,11 +3,10 @@
 <head>
     <title>Akari FrameWork v2.1b</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="viewport" content="initial-scale=1">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="manifest" href="./app.webmanifest">
     <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width" />
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
     <link rel="shortcut icon" href="./favicon.ico">
     <meta name="msapplication-TileColor" content="#603cba">
@@ -21,7 +20,7 @@
     top: 0;
     left: 0;
     width: 100%;
-    height: 98%;
+    height: 100vh;
     background-color: black;
     opacity: 1;
     transition: opacity 1s ease-out;
@@ -118,7 +117,7 @@ iframe {
     <div id="overlay">
         <div class="console" id="output"></div>
         <script>
-            function loadscreen(message) {
+            async function loadscreen(message) {
                 document.getElementById('output').innerHTML += message + '<br>';
             };
             loadscreen("FrameWork 2.1b starting...");
