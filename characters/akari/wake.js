@@ -34,7 +34,7 @@ async function loadAllScripts() {
     // https://github.com/tensorflow/tfjs-models/tree/master/speech-commands
 
     // the link to your model provided by Teachable Machine export panel
-    const URL = "https://teachablemachine.withgoogle.com/models/lbOv7eXML/";
+    const URL = "https://teachablemachine.withgoogle.com/models/SwNFRUBwu/";
 
     async function createModel() {
         const checkpointURL = URL + "model.json"; // model topology
@@ -64,6 +64,9 @@ async function loadAllScripts() {
             const scores = result.scores; // probability of prediction for each class
             // render the probability scores per class
             if (result.scores[1] > 0.97 && result.scores[1] < 1.62) {
+                 bubble_incoming('Akari');
+            };
+            if (result.scores[2] > 0.97 && result.scores[2] < 1.62) {
                 playAudio();
                 goakari();
             };
