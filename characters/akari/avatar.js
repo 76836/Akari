@@ -2,7 +2,7 @@ const html = `
 
 <style>
     .cdiv {
-        position: absolute;
+        position: fixed;
         z-index: 7;
         background-color: rgba(255,055,255,0.5);
         text-align: left;
@@ -145,14 +145,6 @@ function detectSadness(text) {
            (frownFaces && frownFaces.length > 0);
 }
 
-function detectAnger(text) {
-    const angerKeywords = ['angry', 'mad', 'furious', 'rage', 'hate'];
-    const cursing = text.match(/\b(f|sh|d[a-z]+)\b/gi);
-    const capsLockWords = text.split(' ').filter(word => word === word.toUpperCase() && word.length > 3);
-
-    return angerKeywords.some(word => text.includes(word)) || (cursing && cursing.length > 0) || capsLockWords.length > 1;
-}
-
 function detectSurprise(text) {
     const surpriseKeywords = ['surprised', 'shocked', 'wow', 'unbelievable', 'no way'];
     const exclamations = (text.match(/!+/g) || []).length;
@@ -259,6 +251,14 @@ function detectCuriosity(text) {
     const questionMarks = (text.match(/\?+/g) || []).length;
     
     return curiosityKeywords.some(word => text.includes(word)) || questionMarks > 1;
+}
+
+function detectAnger(text) {
+    const angerKeywords = ['angry', 'mad', 'furious', 'rage', 'hate'];
+    const cursing = text.match(/\b(f|sh|d[a-z]+)\b/gi);
+    const capsLockWords = text.split(' ').filter(word => word === word.toUpperCase() && word.length > 3);
+
+    return angerKeywords.some(word => text.includes(word)) || (cursing && cursing.length > 2) || capsLockWords.length > 1;
 }
 
 
