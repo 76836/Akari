@@ -293,7 +293,7 @@ if (detectEmbarrassment(etxt) == true) {nil="embarassed.webp"};
 if (detectRelief(etxt) == true) {nil="relief.webp"};
 if (detectCuriosity(etxt) == true) {nil="curious.jpeg"};
 const imageElem = document.getElementById('avatarimage');
-imageElem.src = "./characters/Akari/emote2/" + nil;
+imageElem.src = "./characters/akari/emote2/" + nil;
     };
 
     localStorage.setItem("emote", "Hello World");
