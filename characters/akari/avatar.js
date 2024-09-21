@@ -9,8 +9,8 @@ const html = `
         border: 1px solid transparent;
         overflow: hidden;
         border-radius: 2vh;
-        width: 27vw;
-        height: 54vw;
+        width: 27vh;
+        height: 52vh;
     }
 
     .iframei {
@@ -36,7 +36,7 @@ const html = `
     font-size:large;
     background-color: rgba(100,255,255,0.5);
     border-radius: 2vh;
-    height:6vw;
+    height:4vh;
     padding:0;
     margin:0;
     border:0;
@@ -302,7 +302,7 @@ imageElem.src = "./characters/akari/emote2/" + nil;
      function checkEmoteChange() {
         var newEmote = localStorage.getItem("emote");
         if (newEmote !== emoteStorage) {
-            updateImage('newEmote');
+            updateImage(newEmote.toLowerCase());
             emoteStorage = newEmote; // Update the stored value to avoid future mismatches
         }
     }
