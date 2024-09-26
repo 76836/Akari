@@ -1,4 +1,4 @@
-say('Qwen2 0.5B running locally via MLC WebLLM (adapter v0.0)');
+say('Qwen2 0.5B running locally via MLC WebLLM (adapter v0.1)');
 var CloudAI = true;
 (function () {
 
@@ -9,7 +9,7 @@ var CloudAI = true;
         script.textContent = `
            import * as webllm from "https://esm.run/@mlc-ai/web-llm";
 
-        import { CreateMLCEngine } from "@mlc-ai/web-llm";
+        import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm";
 
         // Callback function to update model loading progress
         const initProgressCallback = (initProgress) => {
