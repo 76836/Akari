@@ -128,7 +128,7 @@ iframe {
     margin-right: 150px;
     width: 60vw;
     z-index: 2;
-    margin-bottom: 40px;
+    margin-bottom: 55px;
 }
 
 .command {
@@ -145,6 +145,7 @@ iframe {
     margin-left: 150px;
     width: 60vw;
     z-index: 2;
+    margin-bottom: 55px;
 }
 
 .box {
@@ -170,8 +171,8 @@ iframe {
 .button-menu {
     padding: 5px 10px;
     border-radius: 20px;
-    background-color: #111111;
-    color: red;
+    background-color: #003333;
+    color: cyan;
     background-repeat: repeat-x;
     background-size: auto 100%;
     text-align: center;
@@ -183,7 +184,7 @@ iframe {
     width: 50px;
     border: 0;
     overflow: hidden;
-    border: 2px solid black;
+    border: 0px solid black;
     z-index: 21;
 }
 
@@ -211,8 +212,8 @@ iframe {
     position: fixed;
     margin:0;
     padding: 0;
-    width: 80vw;
-    left:10vw;
+    width: 90vw;
+    left:5vw;
     height: 30vh;
     bottom:5vh;
     background-color: #003333;
@@ -257,7 +258,7 @@ iframe {
     <div id="windowspot"></div>
     <div id="status-area"></div>
 
-    <div class="uipanel">
+    <div id="uidiv" class="uipanel">
     <div id="messages"></div>
     <button class="button-menu" onclick="newwindow('./settings');">⁝</button>
     <button class="button-long" id="micbutton" onclick="goakari();">voice</button>
@@ -472,7 +473,8 @@ iframe {
             var incoming = '<p class="command">' + outcome + '</p><br><br><br>';
             var messages = document.getElementById('messages');
             messages.insertAdjacentHTML('beforebegin', incoming);
-            window.scrollTo(0, document.body.scrollHeight);
+            var objDiv = document.getElementById("uidiv");
+            objDiv.scrollTop = objDiv.scrollHeight;
         };
 
         function enter(input) {
