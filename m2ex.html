@@ -1,0 +1,549 @@
+<!DOCTYPE HTML>
+<html id="html">
+<head>
+    <title>Akari Mobile (experimental)</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="./app.webmanifest">
+    <meta charset="utf-8" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+    <link rel="shortcut icon" href="./favicon.ico">
+    <meta name="msapplication-TileColor" content="#603cba">
+    <meta name="theme-color" content="#000000">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+    <style>
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    background-color: black;
+    opacity: 1;
+    transition: opacity 1s ease-out;
+    z-index: 29;
+    border: 0;
+}
+
+
+.console {
+    color: white;
+    font-size: large;
+}
+
+body {
+    background-color: black;
+    overflow-x: hidden;
+    color: white;
+    font-family: 'Orbitron', sans-serif;
+    word-wrap: break-word;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    margin:0;
+}
+
+.iframe-container {
+    position:fixed;
+    top:0;
+    left:0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -100;
+    margin:0;
+}
+
+iframe {
+    border: none;
+}
+
+.windowstyle {
+    border: 4px solid #111111;
+    background-color: transparent;
+    margin: 0%;
+    margin-top: 7vh;
+    width: 86vw;
+    height: 80vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    margin-left: 7vw;
+    margin-right: 7vw;
+    z-index: 30;
+    border-radius: 2vh;
+}
+
+.buttonstyle {
+    border: 4px solid crimson;
+    margin: 0%;
+    width: 16vh;
+    height: 8vh;
+    background-color: darkred;
+    font-size: large;
+    color: white;
+    border-radius: 2vh;
+    z-index: 31;
+    margin-left: 7vw;
+    margin-right: 7vw;
+    position: fixed;
+    top: calc(83vh + 7px);
+    left: 0;
+    transition-duration: 0.3s;
+}
+
+.typingnotifier {
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: transparent;
+    background-image: linear-gradient(to right, #005050, transparent);
+    color: crimson;
+    font-weight: bold;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: left;
+    line-height: 30px;
+    font-size: x-large;
+    position: fixed;
+    bottom: 54px;
+    left: 7px;
+    width: 45vw;
+    border: 0;
+    overflow: hidden;
+}
+
+.responsetxt {
+    display: inline-block;
+    padding: 10px 15px;
+    border-radius: 0px 20px 20px 20px;
+    background-color: transparent;
+    background-image: linear-gradient(to right, rgba(255, 55, 55, 0.5), rgba(77, 255, 255, 0.4), rgba(128, 0, 128, 0.3), rgba(9, 9, 9, 0.2));
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: center;
+    line-height: 30px;
+    font-size: large;
+    border: 2px solid black;
+    margin-right: 150px;
+    width: 60vw;
+    z-index: 2;
+    margin-bottom: 40px;
+}
+
+.command {
+    padding: 10px 15px;
+    border-radius: 20px 20px 0px 20px;
+    background-color: #111;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: center;
+    line-height: 30px;
+    font-size: large;
+    float: right;
+    border: 2px solid black;
+    margin-left: 150px;
+    width: 60vw;
+    z-index: 2;
+}
+
+.box {
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: transparent;
+    background-image: linear-gradient(to right, #111111, #003333, transparent);
+    color: white;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: left;
+    line-height: 30px;
+    font-size: x-large;
+    position: fixed;
+    bottom: calc(7px + 5vh);
+    left: calc(10vw + 7px);
+    width: calc(80vw - 140px);
+    border: 0;
+    border: 2px solid black;
+    z-index: 21;
+}
+
+.button-menu {
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: #111111;
+    color: red;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: center;
+    line-height: 30px;
+    font-size: large;
+    position: fixed;
+    bottom: calc(7px + 35vh + 7px);
+    right: calc(10vw + 7px);
+    width: 50px;
+    border: 0;
+    overflow: hidden;
+    border: 2px solid black;
+    z-index: 21;
+}
+
+.mic-on {
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: red;
+    color: white;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: center;
+    line-height: 60px;
+    font-size: x-large;
+    position: fixed;
+    bottom: 7px;
+    left: 7px;
+    width: calc(100vw - 14px);
+    border: 0;
+    overflow: hidden;
+    border: 2px solid black;
+    z-index: 22;
+}
+
+.uipanel{
+    position: fixed;
+    margin:0;
+    padding: 0;
+    width: 80vw;
+    left:10vw;
+    height: 30vh;
+    bottom:5vh;
+    background-color: #003333;
+    border-radius: 20px;
+    overflow:scroll;
+}
+
+.button-long {
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: #111111;
+    color: cyan;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: center;
+    line-height: 30px;
+    font-size: x-large;
+    position: fixed;
+    bottom: calc(5vh + 7px);
+    right: calc(10vw + 7px);
+    width: 100px;
+    border: 0;
+    overflow: hidden;
+    border: 2px solid black;
+    z-index: 21;
+}
+    </style>
+</head>
+
+<body onclick="clickoff();">
+    <div id="overlay">
+        <div class="console" id="output"></div>
+        <script>
+            async function loadscreen(message) {
+                document.getElementById('output').innerHTML = message;
+            };
+            loadscreen("FrameWork 2.1b starting...");
+        </script>
+    </div>
+    
+    <div id="avatar"></div>
+    <div id="windowspot"></div>
+    <div id="status-area"></div>
+
+    <div class="uipanel">
+    <div id="messages"></div>
+    <button class="button-menu" onclick="newwindow('./settings');">⁝</button>
+    <button class="button-long" id="micbutton" onclick="goakari();">voice</button>
+    <form><input type="text" id="box" class="box" placeholder="What's up?"
+            onclick="setTimeout(function () {document.getElementById('micbutton').innerText='send'; }, 100);"></input>
+    </form>
+</div>
+
+    <script>
+        function clickoff() {
+            document.getElementById('micbutton').className = 'button-long';
+            document.getElementById('micbutton').innerText = 'voice';
+            recognition.stop();
+        };
+        function goakari() {
+            if (document.getElementById('box').value) {
+                textOnly = 'text';
+                enter(document.getElementById('box').value);
+                document.getElementById('box').value = '';
+                setTimeout(function () { document.getElementById('micbutton').innerText = 'sent'; }, 10);
+                setTimeout(function () { document.getElementById('micbutton').innerText = 'voice'; }, 1500);
+            } else {
+                if (document.getElementById('micbutton').innerText == 'send') {
+                    setTimeout(function () { document.getElementById('micbutton').innerText = 'no'; }, 10);
+                    return;
+                };
+                voicerecognitionstart();
+            };
+        };
+
+        async function processquery() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('q');
+            if (query !== null) {
+                console.log('Query string found.');
+                loadscreen("[ok] ✅ Processing url query.");
+                bubble_incoming(query);
+                bubble("⚠️ Responding to URL query. <br><button onclick='newwindow(`data:text/html,<style>body{background-color:black; color:white;}</style><h1>URL queries</h1> <br> <h2>You can send a message to Akari instantly upon loading by adding ?q=your message here to Akaris url.<br> When this feature is used Akari system will detect it and warn you.<h2>`);'>?</button>");
+                respond(query);
+            } else {
+                console.log('No query string found.');
+            };
+        };
+
+        // Add the fade-out class after 3 seconds
+        document.addEventListener("DOMContentLoaded", function () {
+            setTimeout(function () {
+                document.getElementById('overlay').classList.add('fade-out');
+                console.log('UI loaded.');
+                processquery();
+                loadscreen("[ok] Interface ready.");
+                say(getGreetingByTime());
+            }, 1000);
+            setTimeout(function () {
+                document.getElementById('overlay').classList.add('noindex');
+            }, 1500);
+        });
+
+        document.getElementById('box').onkeydown = function (event) {
+            var e = event || window.event;
+            if (e.keyCode == 13) {
+                textOnly = 'text';
+                enter(document.getElementById('box').value);
+                document.getElementById('box').value = '';
+                return false;
+            }
+        };
+
+        var VoiceScript = localStorage.getItem('selectedVoiceScript');
+        var AvatarScript = localStorage.getItem('selectedAvatarScript');
+        var AIScript = localStorage.getItem('selectedAIScript');
+        var ReflexScript = localStorage.getItem('selectedReflexScript');
+        var BKGURL = localStorage.getItem('selectedBKGURL');
+        var AI_is_enabled = localStorage.getItem('selectedAISetting');
+        // added reflex and wake scripts
+        // custom css now too 
+
+        var textOnly = 'text';
+        var serverStatus = "disconnected";
+        // Should I move AI server connection to a seperate script? I think I will.
+
+        if (AI_is_enabled == null || AI_is_enabled == "") {
+            AI_is_enabled = "No";
+        };
+        if (AI_is_enabled == "Yes") {
+            var socket = new WebSocket("ws://localhost:8765");
+
+            socket.onmessage = function (event) {
+                console.log("[OK]Received from server:", event.data);
+                say(event.data);
+            };
+
+            socket.onopen = function (event) {
+                console.log("[OK]Connected to WebSocket server.");
+                loadscreen("[ok] A.I. services are connected.");
+                serverStatus = "connected";
+                // Send a message to the server
+                socket.send("test");
+            };
+        } else {
+            console.log('[ok] AI services are disabled');
+            loadscreen("[ok] A.I. services are disabled.");
+        };
+
+        if (BKGURL == null || BKGURL == "") {
+            BKGURL = "../squares";
+        };
+
+        var url = BKGURL;
+        // Function to check if the URL is an image
+        function isImage(url) {
+            return (url.match(/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i) != null);
+        }
+
+        // Function to set the background as an image
+        function setBackgroundImage(url) {
+            document.body.style.backgroundImage = `url('${url}')`;
+            document.body.style.backgroundSize = 'cover';
+            document.body.style.backgroundPosition = 'center';
+        }
+
+        // Function to set the background as an iframe
+        function setIframe(url) {
+            const iframe = document.createElement('iframe');
+            iframe.src = url;
+            iframe.classList.add('iframe-container');
+            document.body.appendChild(iframe);
+        }
+
+        // Determine if the URL is an image or a webpage and set the background accordingly
+        if (isImage(url)) {
+            setBackgroundImage(url);
+        } else {
+            setIframe(url);
+        }
+        loadscreen("[ok] Background loaded.");
+        console.log('Background image loaded from persistent settings: ' + BKGURL);
+
+        if (AvatarScript == null || AvatarScript == "") {
+            AvatarScript = null;
+        };
+        if (AIScript == null || AIScript == "") {
+            AIScript = null;
+        };
+        
+        if (ReflexScript == null || ReflexScript == "") {
+            ReflexScript = "./characters/akari/response.js";
+            loadscreen("[ok] Using Akari (default) reflex module.");
+        };
+    
+        if (VoiceScript == null || VoiceScript == "") {
+            VoiceScript = null;
+        };
+       
+        if (VoiceScript) {
+            var ExJS1 = document.createElement("script");
+            ExJS1.src = VoiceScript;
+            var head = document.getElementsByName("head")[0];
+            document.head.appendChild(ExJS1);
+            console.log('VoiceScript =' + VoiceScript);
+            loadscreen("[ok] Speech synthesis module loaded.");
+        };
+        if (AIScript) {
+            var ExJS2 = document.createElement("script");
+            ExJS2.src = AIScript;
+            head = document.getElementsByName("head")[0];
+            document.head.appendChild(ExJS2);
+            console.log('AIScript =' + AIScript);
+            loadscreen("[ok] AI script loaded.");
+        };
+        if (AvatarScript) {
+            var ExJS3 = document.createElement("script");
+            ExJS3.src = AvatarScript;
+            head = document.getElementsByName("head")[0];
+            document.head.appendChild(ExJS3);
+            console.log('AvatarScript =' + AvatarScript);
+            loadscreen("[ok] Avatar initialized.");
+        };
+        
+        if (ReflexScript) {
+            var ExJS5 = document.createElement("script");
+            ExJS5.src = ReflexScript;
+            head = document.getElementsByName("head")[0];
+            document.head.appendChild(ExJS5);
+            console.log('ReflexScript =' + ReflexScript);
+            loadscreen("[ok] Reflex module loaded.");
+        };
+
+        //integrated functions
+        function bubble(text) {
+            var Outgoing = '<p class="responsetxt">' + text + '</p><br>';
+            var messages = document.getElementById('messages');
+            messages.insertAdjacentHTML('beforebegin', Outgoing);
+            window.scrollTo(0, document.body.scrollHeight);
+        };
+
+        function say(text) {
+            clearstatus();
+            emote(text);
+            if (textOnly == 'text') {
+                bubble(text);
+            } else {
+                speak(text);
+            }
+        };
+
+        function emote(text) {
+            localStorage.setItem("emote", text);
+        };
+
+        function bubble_incoming(outcome) {
+            var incoming = '<p class="command">' + outcome + '</p><br><br><br>';
+            var messages = document.getElementById('messages');
+            messages.insertAdjacentHTML('beforebegin', incoming);
+            window.scrollTo(0, document.body.scrollHeight);
+        };
+
+        function enter(input) {
+            bubble_incoming(input);
+            respond(input);
+        };
+
+        function newwindow(weblocation) {
+            var windowcode = '<iframe src="' + weblocation + '" class="windowstyle"></iframe><button class="buttonstyle" onclick="closewindow();">Close window.</button>';
+            var spot = document.getElementById('windowspot');
+            spot.innerHTML = windowcode;
+        };
+        function closewindow() {
+            var spot = document.getElementById('windowspot');
+            spot.innerHTML = '';
+        };
+
+        function typing(subject) {
+           loadscreen(subject + " is typing...");
+        };
+
+        function clearstatus() {
+            loadscreen("new message");
+        };
+
+        function sleep(ms) {
+            return new Promise(
+                resolve => setTimeout(resolve, ms)
+            );
+        };
+
+        var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        var recognition = new SpeechRecognition();
+
+        recognition.onspeechend = async function () {
+            await sleep(200);
+            recognition.stop();
+        };
+
+        recognition.onresult = async function (event) {
+            var speechinput = event.results[0][0].transcript;
+            document.getElementById('micbutton').className = 'button-long';
+            document.getElementById('micbutton').innerText = 'voice';
+            enter(speechinput);
+        };
+
+        async function voicerecognitionstart() {
+            await sleep(100);
+            recognition.start();
+            document.getElementById('micbutton').className = 'mic-on';
+            document.getElementById('micbutton').innerText = 'Speech-to-text listening...';
+        };
+    </script>
+
+    <div id="AI_Components">
+        <script>
+            async function SCheck() {
+                await sleep(1000);
+                if (serverStatus == "connected") {
+                    console.log('Akari AI Components are active.');
+                    loadscreen("[ok] A.I. services are active.");
+                } else {
+                    loadscreen("<b>[error] Failed to connect to the server.</b>");
+                    var strikezone = document.getElementById('AI_Components');
+                    strikezone.innerHTML = '';
+                };
+            };
+
+            SCheck();
+        </script>
+    </div>
+
+</body>
+</html>
