@@ -583,7 +583,7 @@ ${live2d_settings.waifuEdgeSide}px;
 position:fixed;
 top:calc(50vh - 300px);
 left:calc(50vw - 600px);
-z-index:20;
+z-index:14;
 font-size:0
 }
 
@@ -595,7 +595,7 @@ height:auto;
 left:2rem;
 top:20px;
 opacity:0;
-z-index:998;
+z-index:16;
 margin:auto;
 padding:5px 10px;
 border:1px solid rgba(104,216,255,0.62);
@@ -620,7 +620,7 @@ color:#7500b7;
 #live2d2,#live2d4 {
 position:relative;
 display:none;
-z-index:997
+z-index:15;
 }
 
 .waifu-tool {
@@ -629,7 +629,7 @@ color:#d73b66;
 top:130px;
 ${live2d_settings.waifuEdgeSide.split(":")[0]}:10px;
 position:absolute;
-z-index:998
+z-index:16;
 }
 
 #waifu:hover > .waifu-tool {
