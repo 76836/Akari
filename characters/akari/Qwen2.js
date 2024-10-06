@@ -37,9 +37,9 @@ var CloudAI = true;
 function postMessages(messages) {
     messages.forEach(message => {
         if (message.role === "user") {
-            inputsay(message.content);
+            bubble_incoming(message.content);
         } else if (message.role === "assistant") {
-            say(message.content);
+            bubble(message.content);
         }
     });
 };
