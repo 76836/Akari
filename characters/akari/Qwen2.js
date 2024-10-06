@@ -1,4 +1,4 @@
-say('Qwen2 0.5B running locally via MLC WebLLM (adapter v0.3) (experimental persistent memory and time awareness enabled)');
+say('Qwen2 0.5B running locally via MLC WebLLM (adapter v0.4) (experimental persistent memory and time awareness enabled)');
 var CloudAI = true;
 (function () {
 
@@ -13,6 +13,7 @@ var CloudAI = true;
         // Callback function to update model loading progress
         const initProgressCallback = (initProgress) => {
             console.log(initProgress);
+            loadscreen(initProgress);
         }
         const selectedModel = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
 
@@ -32,6 +33,18 @@ var CloudAI = true;
 
     // Retrieve chat history from localStorage
     let chatHistory = JSON.parse(localStorage.getItem(chatHistoryKey)) || [];
+    
+function postMessages(messages) {
+    messages.forEach(message => {
+        if (message.role === "user") {
+            inputsay(message.content);
+        } else if (message.role === "assistant") {
+            say(message.content);
+        }
+    });
+};
+postMessages(chatHistory);
+loadscreen('restored chat history');
 
     // Add new user message
     chatHistory.push({ role: "user", content: msg });
