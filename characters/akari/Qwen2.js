@@ -1,4 +1,16 @@
-say('Qwen2 0.5B running locally via MLC WebLLM (adapter v0.4) (experimental persistent memory and time awareness enabled)');
+say('Qwen2 0.5B running locally via MLC WebLLM (adapter v0.4) (with experimental persistent memory and time awareness)');
+function postMessages(messages) {
+    messages.forEach(message => {
+        if (message.role === "user") {
+            bubble_incoming(message.content);
+        } else if (message.role === "assistant") {
+            bubble(message.content);
+        }
+    });
+};
+let chatHistory = JSON.parse(localStorage.getItem(chatHistoryKey)) || [];
+postMessages(chatHistory);
+loadscreen('restored chat history');
 var CloudAI = true;
 (function () {
 
@@ -33,18 +45,6 @@ var CloudAI = true;
 
     // Retrieve chat history from localStorage
     let chatHistory = JSON.parse(localStorage.getItem(chatHistoryKey)) || [];
-    
-function postMessages(messages) {
-    messages.forEach(message => {
-        if (message.role === "user") {
-            bubble_incoming(message.content);
-        } else if (message.role === "assistant") {
-            bubble(message.content);
-        }
-    });
-};
-postMessages(chatHistory);
-loadscreen('restored chat history');
 
     // Add new user message
     chatHistory.push({ role: "user", content: msg });
