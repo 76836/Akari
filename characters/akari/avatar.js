@@ -1,67 +1,142 @@
 const html = `
-
 <style>
     .cdiv {
         position: fixed;
         z-index: 7;
-        background-color: rgba(255,055,255,0.5);
+        background-color: rgba(255, 55, 255, 0.5);
         text-align: left;
         border: 1px solid transparent;
         overflow: hidden;
         border-radius: 2vh;
         width: 27vh;
-        height: 52vh;
+        height: 57vh;
+        transition: 0;
+        display: flex;
+        flex-direction: column;
     }
 
     .iframei {
         width: 100%;
         border: 0;
         height: auto;
-        border-radius: 2vh;
-        transition-duration: 0.2s;
-        padding:0;
-        margin:0;
-    }
-
-    .iframei:Hover {
-        width: 100%;
-        border: 0;
-        height: auto;
         border-radius: 1vh;
-        transition-duration: 0.2s;
+        transition: all 0.4s ease;
+        padding: 0;
+        margin: 0;
     }
 
-    .minbutton{
-    width: 100%;
-    font-size:large;
-    background-color: rgba(100,255,255,0.5);
-    border-radius: 2vh;
-    height:4vh;
-    padding:0;
-    margin:0;
-    border:0;
-    transition-duration: 0.2s;
+ .iframei:hover {
+        border-radius: 2vh;
+        margin-bottom: 0.5vh;
     }
 
-    .minbutton:hover{
-    background-color: rgba(100,255,255,0.7);
-    border-radius: 1vh;
-    border:0;
-    transition-duration: 0.2s;
+    /* Separate button styling */
+    .minbutton, .fullscreenbutton {
+        font-size: large;
+        border-radius: 1vh;
+        height: 4vh;
+        padding: 0;
+        margin-bottom: 0.5vh;
+        border: 0;
+        transition: all 0.2s ease;
+    }
+
+    .minbutton {
+        background-color: rgba(100, 255, 255, 0.5);
+    }
+
+    .fullscreenbutton {
+        background-color: rgba(255, 200, 100, 0.5);
+    }
+
+    .minbutton:hover {
+        background-color: rgba(100, 255, 255, 0.7);
+        border-radius: 2vh;
+        transition: all 0.2s ease;
+    }
+
+    .fullscreenbutton:hover {
+        background-color: rgba(255, 200, 100, 0.7);
+        border-radius: 2vh;
+        transition: all 0.2s ease;
+    }
+
+    /* Minimized state */
+    .minimized .iframei {
+        height: 0;
+        opacity: 0;
+        transition: all 0.4s ease;
+    }
+
+    .minimized {
+        height: 4vh; /* Just the height of the button */
+    }
+
+    /* Fullscreen mode */
+    .fullscreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .fullscreen img {
+       position: fixed;
+       top: 50%;
+       left: 50%;
+       transform: translate(-50%, -50%);
+       border-radius: 0;
+       width: auto;
+       height: 100%;
+       object-fit: cover;
+       cursor: pointer;
+    }
+
+    /* Hide buttons in fullscreen mode */
+    .fullscreen .button-container {
+        display: none;
+    }
+
+    /* Ensure buttons don't get cut off */
+    .button-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5vh;
+        margin-top: auto; /* Keep buttons at the bottom */
     }
 </style>
 
 <div class="cdiv" id="mydiv">
-
     <div class="iframei" id="mydivheader">
-        <img id="avatarimage" class="iframei" src=""></img>
+        <img id="avatarimage" class="iframei" src="" alt="avatar image">
     </div>
-    
-    <button class="minbutton">minimize</button>
+
+    <div class="button-container">
+        <button class="minbutton" id="minimizeBtn">Minimize</button>
+        <button class="fullscreenbutton" id="fullscreenBtn">Full Size</button>
+    </div>
 </div>
+
+<script>
+ 
+</script>
+
 
 
 `;
+
+
+
+
+
+
+
+
 document.getElementById('avatar').innerHTML = html;
 /* told you i'd finish this script later. */
 // um but its not done quite yet...
@@ -310,3 +385,49 @@ imageElem.src = "./characters/akari/emote2/" + nil;
     checkEmoteChange();
     // Set up an interval to call the checkEmoteChange function regularly
     setInterval(checkEmoteChange, 1000); // Check every second
+
+
+
+    const avatarImage = document.getElementById('avatarimage');
+    const minimizeBtn = document.getElementById('minimizeBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const myDiv = document.getElementById('mydiv');
+
+    let isMinimized = false;
+    let isFullscreen = false;
+
+    // Minimize button action
+    minimizeBtn.addEventListener('click', () => {
+        isMinimized = !isMinimized;
+        if (isMinimized) {
+            myDiv.classList.add('minimized');
+            minimizeBtn.textContent = 'Restore';
+        } else {
+            myDiv.classList.remove('minimized');
+            minimizeBtn.textContent = 'Minimize';
+        }
+    });
+
+    // Fullscreen button action
+    fullscreenBtn.addEventListener('click', () => {
+        enterFullscreen();
+        closeDragElement();
+    });
+
+    // Clicking the image in fullscreen mode exits fullscreen
+    avatarImage.addEventListener('click', () => {
+        if (isFullscreen) {
+            exitFullscreen();
+            dragElement(document.getElementById("mydiv"));
+        }
+    });
+
+    function enterFullscreen() {
+        isFullscreen = true;
+        myDiv.classList.add('fullscreen');
+    }
+
+    function exitFullscreen() {
+        isFullscreen = false;
+        myDiv.classList.remove('fullscreen');
+    }
