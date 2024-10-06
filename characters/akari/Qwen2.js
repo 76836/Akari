@@ -1,4 +1,4 @@
-say('Qwen2 0.5B running locally via MLC WebLLM (adapter v0.4) (with experimental persistent memory and time awareness)');
+say('Qwen2 0.5B running locally via MLC WebLLM (adapter v0.5) (with experimental persistent memory and time awareness)');
 function postMessages(messages) {
     messages.forEach(message => {
         if (message.role === "user") {
@@ -8,7 +8,10 @@ function postMessages(messages) {
         }
     });
 };
-let chatHistory = JSON.parse(localStorage.getItem(chatHistoryKey)) || [];
+let chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
+
+// change the chat history key here too
+
 postMessages(chatHistory);
 loadscreen('restored chat history');
 var CloudAI = true;
