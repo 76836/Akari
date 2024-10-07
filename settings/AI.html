@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html id="html" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+    <link rel="shortcut icon" href="../favicon.ico">
+    <meta name="msapplication-TileColor" content="#603cba">
+    <meta name="theme-color" content="#00ffff">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <p class="title" style="color:darkcyan;">System Intelligence</p>
+
+    <p class="smallertext">Quick command recognition script:</p>
+    <input class="box" id="reflexurl" placeholder="./response/akari.js" type=text>
+    <button class="setbutton" onclick="setreflex()">Save Changes</button>
+
+    <p class="smallertext">Natural language processing / Artificial Intelligence script:</p>
+    <button class="setbutton" onclick="document.getElementById('AIurl').value = './characters/akari/Gemini.js';">Akari (Gemini API) (Key required)</button>
+    <button class="setbutton" onclick="document.getElementById('AIurl').value = './characters/akari/Qwen2.js';">Akari (Qwen2 0.5B local download) (under 500MB)</button>
+    <button class="setbutton" onclick="document.getElementById('AIurl').value = './characters/akari/Llama1B.js';">Akari (Llama 3.2 1B local download) (under 1GB)</button>
+    <button class="setbutton" onclick="document.getElementById('AIurl').value = './characters/hiyori/Gemini.js';">Hiyori (Gemini API) (Key required)</button>
+    <button class="setbutton" onclick="document.getElementById('AIurl').value = '';">Skip the AI (only use preprogrammed responses)</button>
+    <input class="box" id="AIurl" placeholder="~disabled~" type=text>
+    <button class="setbutton" onclick="setAI()">Save Changes</button>
+
+    <br><br>
+    <p class="smallertext">Enable/disable Akari Python Server:</p>
+    <button class="setbutton" onclick="localStorage.setItem('selectedAISetting', 'No');">Disable AI server connection.</button>
+    <button class="setbutton" onclick="localStorage.setItem('selectedAISetting', 'Yes');">Enable AI server connection.</button>
+
+    <br><br>
+    <input class="box" id="APIKey" placeholder="(Saved API key is always hidden.)" type=text>
+    <button class="setbutton" onclick="setAPI()">Set API key.</button>
+    <button class="setbutton" onclick="localStorage.removeItem('genAI_API_KEY');">Reset AI API key.</button>
+
+    <br><br><br><br>
+    <p class="smallertext">IQ cfg panel v1.0</p>
+
+</body>
+
+
+<style>
+    .title {
+        font-size: 2rem;
+        padding-left: 75px;
+        width: 100vw;
+        margin-right: 0;
+        text-align: left;
+        font-family: 'Orbitron', sans-serif;
+        word-wrap: break-word;
+        background-color: transparent;
+        color: darkcyan;
+        border-radius: 10px;
+        padding-bottom: 10px;
+        padding-top: 10px;
+    }
+
+    .box,
+    .setbutton,
+    .smallertext {
+        font-size: 1.2rem;
+        width: calc(100vw - 50px);
+        max-width: 100vw;
+        text-align: center;
+        margin: 5px;
+        margin-left: 25px;
+        background-color: #344;
+        border: 0;
+        color: white;
+        border-radius: 30px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        transition-duration: 0.2s;
+        line-height: 30px;
+    }
+
+    .setbutton:hover {
+        background-color: #544;
+    }
+
+    .box{
+        width: calc(100vw - 103px);
+        background-color: rgba(3, 3, 3, 0.2);
+        text-align: left;
+        padding-left: 50px;
+    }
+
+    .box:hover {
+        max-width: 100vw;
+        margin: 5px;
+        margin-left: 25px;
+        background-color: #333;
+        border: 0;
+        color: white;
+        border-radius: 10px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        transition-duration: 0.2s;
+    }
+
+    .smallertext {
+        border-radius: 10px;
+        background-color: #252525;
+    }
+
+    .smallertext:hover {
+        color:#9ff;
+        transition-duration: 0.2s;
+        background-color: #272727;
+    }
+
+    body {
+        font-family: 'Orbitron', sans-serif;
+        background-color: #222;
+        color: white;
+        margin: 0;
+        overflow-x: hidden;
+    }
+</style>
+
+
+<script>
+ 
+    var AIScript = localStorage.getItem('selectedAIScript');
+    document.getElementById('AIurl').value = AIScript;
+
+    var ReflexScript = localStorage.getItem('selectedReflexScript');
+    document.getElementById('reflexurl').value = ReflexScript;
+
+
+
+    function setAI() {
+        var Url = document.getElementById('AIurl').value;
+        localStorage.setItem('selectedAIScript', Url);
+    };
+
+    function setreflex() {
+        var Url = document.getElementById('reflexurl').value;
+        localStorage.setItem('selectedReflexScript', Url);
+    };
+
+    function setAPI() {
+        var Url = document.getElementById('APIKey').value;
+        localStorage.setItem('genAI_API_KEY', Url);
+    };
+
+</script>
