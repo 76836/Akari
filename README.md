@@ -1,44 +1,25 @@
 # Akari 
-**AI Voice Assistant**
-# Akari Server
+**Fully customizable AI assistant with voice commands, serverless AI, interactive avatars, device control, and more.**
 
-To install and run the server:
-1. Install the newest version of Python.
-2. `pip install gpt4all`
-3. `pip install websockets`
-4. Download "server.py" and run it.
-5. when the terminal says "[ok]Server running." you can connect.
-   
-To use Akari AI: <br>
-1. In Akari settings click "Enable AI".
-2. Go to https://76836.github.io/Akari/
-3. Now you should be able to connect to and use Akari with AI features.
-
-Server version 1.2b: <br>
-Switched models to ggml format because of the new gpt4all update, made the program look cooler, and killed a bug.
-
-Server version 1.2: <br>
-Polished the program a little bit.
-
-Server version 1.1: <br>
-Reconfigured the AI and gave it access to the current time and date.
-
-Server version 1.0: <br>
-First release. (for testing)
 <br>
 <br>
-# Akari Framework
-Akari Voice Assistant v2.1.
-Fully usable on chrome-based browsers at: https://76836.github.io/Akari
-Support for other browsers like safari and firefox may be limited.
+# Akari PWA
+Akari Voice Assistant v2.2.
+Full support on chrome-based browsers.
+Use at: https://76836.github.io/Akari
+Support for safari is not tested and features on firefox may be limited.
 Integrate Akari into your iPhone with the Shortcuts app by entering commands into the url: `https://76836.github.io/Akari?q=Your%20Input%20Here` Make sure to url encode the input.
 
+Note: Version 2.2 is being gradually released along with many UI improvements, some features may not appear yet.
 
-(soon) Version 2.2: <br>
-Maybe now i'll make the server upgrade and new features for mobile. We'll see.
+Version 2.2: <br>
+New mobile UI.
+New local AI with persistent chat history powered by MLC WebLLM that works on any device with a webgpu enabled browser (1 step install process)
+Flux.1 avatar for Akari capable of showing 20 emotions.
+Switched wake word to "Hey Akari".
 
-(soon) Version 2.1b: <br>
-Style changes? Custom CSS? Live wallpapers?
+Version 2.1b: <br>
+Now supports custom CSS and live wallpapers.
 
 Version 2.1: <br>
 Added automatic Gemini support, more module slots, some quick options in settings, and some small improvements elsewhere.
@@ -83,5 +64,33 @@ Fixed problem where Chrome would block the "pop-up".
 
 Version 1.0 upload:
 I made a thing.
+
+
+# Akari Python Server
+
+To install and run the server:
+1. Install the newest version of Python.
+2. `pip install gpt4all`
+3. `pip install websockets`
+4. Download "server.py" and run it.
+5. when the terminal says "[ok]Server running." you can connect.
+   
+To use Akari AI: <br>
+1. In Akari settings click "Enable AI".
+2. Go to https://76836.github.io/Akari/
+3. Now you should be able to connect to and use Akari with AI features.
+
+Server version 1.2b: <br>
+Switched models to ggml format because of the new gpt4all update, made the program look cooler, and killed a bug.
+
+Server version 1.2: <br>
+Polished the program a little bit.
+
+Server version 1.1: <br>
+Reconfigured the AI and gave it access to the current time and date.
+
+Server version 1.0: <br>
+First release. (for testing)
+
 
 😁
