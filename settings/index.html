@@ -5,8 +5,8 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width" />
-    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
-    <link rel="shortcut icon" href="./favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+    <link rel="shortcut icon" href="../favicon.ico">
     <meta name="msapplication-TileColor" content="#603cba">
     <meta name="theme-color" content="#00ffff">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,14 +32,8 @@
     <button class="setbutton" onclick="setvoice()">Save Changes</button>
 
 
-    <p class="smallertext">Quick command recognition script:</p>
-    <input class="box" id="reflexurl" placeholder="./response/akari.js" type=text>
-    <button class="setbutton" onclick="setreflex()">Save Changes</button>
-
-    <p class="smallertext">Natural language processing / Artificial Intelligence script:</p>
-    <button class="setbutton" onclick="document.getElementById('AIurl').value = './characters/akari/Gemini.js';">Use Gemini API</button>
-    <input class="box" id="AIurl" placeholder="./characters/akari/CloudAI.js" type=text>
-    <button class="setbutton" onclick="setAI()">Save Changes</button>
+    <p class="smallertext">AI settings:</p>
+    <button class="setbutton" onclick="window.location.href = './AI';">Open IQ configuration panel.</button>
 
 
     <p class="smallertext">Avatar script:</p>
@@ -52,13 +46,8 @@
     <button class="setbutton" onclick="setwake()">Save Changes</button>
 
     <br><br>
-    <p class="smallertext">Enable/disable AI:</p>
-    <button class="setbutton" onclick="localStorage.setItem('selectedAISetting', 'No');">Disable AI server connection.</button>
-    <button class="setbutton" onclick="localStorage.setItem('selectedAISetting', 'Yes');">Enable AI server connection.</button>
-
-    <br><br>
     <button class="setbutton" onclick="localStorage.removeItem('defaultAssistant');">Reset default assistant in PWA.</button>
-    <button class="setbutton" onclick="localStorage.removeItem('genAI_API_KEY');">Reset AI API key.</button>
+    <button class="setbutton" onclick="localStorage.removeItem('chatHistory');">Delete local chat history.</button>
     
     
     <br><br>
@@ -70,7 +59,7 @@
     <button class="setbutton" onclick="CharacterHiyori();">Hiyori Momose (Live2D)</button>
 
     <br><br><br><br>
-    <p class="smallertext">Settings 2.1c</p>
+    <p class="smallertext">Settings 2.2</p>
 
 </body>
 
