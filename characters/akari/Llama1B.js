@@ -1,4 +1,4 @@
-say('<em>Llama 3.2 1B on MLC WebLLM (adapter v1.1)<em>');
+say('<em>Llama 3.2 1B on MLC WebLLM (adapter v1.0b)<em>');
 function postMessages(messages) {
     messages.forEach(message => {
         if (message.role === "user") {
@@ -48,7 +48,7 @@ function done(obj) {
             say('<b>SYSTEM:<b> Llama 3.2 finished loading.');
             };
         }
-        const selectedModel = "Llama-3.2-1B-Instruct-q4f32_1-MLC";
+        const selectedModel = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
 
         const engine = await CreateMLCEngine(
             selectedModel,
