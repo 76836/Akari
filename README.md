@@ -2,8 +2,15 @@
 **Fully customizable AI assistant with voice commands, serverless AI, interactive avatars, device control, and more.**
 
 <br>
-<br>
+
+
 # Akari PWA
+
+
+<br>
+
+
+
 Akari Voice Assistant v2.2.
 Full support on chrome-based browsers.
 Use at: https://76836.github.io/Akari
