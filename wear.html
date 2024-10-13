@@ -239,6 +239,22 @@
             ReflexScript = "./characters/akari/response.js";
             loadscreen("[ok] Using Akari (default) reflex module.");
         };
+        if (AIScript) {
+            var ExJS2 = document.createElement("script");
+            ExJS2.src = AIScript;
+            head = document.getElementsByName("head")[0];
+            document.head.appendChild(ExJS2);
+            console.log('AIScript =' + AIScript);
+            loadscreen("[ok] AI script loaded.");
+        };
+        if (ReflexScript) {
+            var ExJS5 = document.createElement("script");
+            ExJS5.src = ReflexScript;
+            head = document.getElementsByName("head")[0];
+            document.head.appendChild(ExJS5);
+            console.log('ReflexScript =' + ReflexScript);
+            loadscreen("[ok] Reflex module loaded.");
+        };
     </script>
 </body>
 </html>
