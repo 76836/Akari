@@ -147,6 +147,9 @@
     <script>
         var textOnly = 'text';
         var serverStatus = "disconnected";
+        function loadscreen(content) {
+        console.log(content);
+        };
         function newwindow(weblocation) {
             var windowcode = '<iframe src="' + weblocation + '" class="windowstyle"></iframe><button class="buttonstyle" onclick="closewindow();">Close window.</button>';
             var spot = document.getElementById('windowspot');
