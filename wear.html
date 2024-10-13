@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WearAkari v1.2</title>
+    <title>WearAkari v1.3</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -16,39 +16,41 @@
             height: 100vh;
             background-color: black;
         }
-        .windowstyle {
-    border: 4px solid #111111;
-    background-color: transparent;
-    margin: 0%;
-    margin-top: 7vh;
-    width: 86vw;
-    height: 80vh;
-    position: fixed;
-    top: 0;
-    left: 0;
-    margin-left: 7vw;
-    margin-right: 7vw;
-    z-index: 30;
-    border-radius: 2vh;
-}
 
-.buttonstyle {
-    border: 4px solid crimson;
-    margin: 0%;
-    width: 16vh;
-    height: 8vh;
-    background-color: darkred;
-    font-size: large;
-    color: white;
-    border-radius: 2vh;
-    z-index: 31;
-    margin-left: 7vw;
-    margin-right: 7vw;
-    position: fixed;
-    top: calc(83vh + 7px);
-    left: 0;
-    transition-duration: 0.3s;
-}
+        .windowstyle {
+            border: 4px solid #111111;
+            background-color: transparent;
+            margin: 0%;
+            margin-top: 3vh;
+            width: 86vw;
+            height: 80vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            margin-left: 7vw;
+            margin-right: 7vw;
+            z-index: 30;
+            border-radius: 2vh;
+        }
+
+        .buttonstyle {
+            border: 0;
+            margin: 0%;
+            width: 86vh;
+            height: 12vh;
+            background-color: darkred;
+            font-size: large;
+            color: white;
+            border-radius: 2vh;
+            z-index: 31;
+            margin-left: 8vw;
+            margin-right: 7vw;
+            position: fixed;
+            top: calc(83vh + 7px);
+            left: 0;
+            transition-duration: 0.3s;
+        }
+
         .chat-container {
             width: 90%;
             display: flex;
@@ -56,52 +58,66 @@
             align-items: center;
             overflow-y: auto;
             padding: 20px 0;
-            margin-bottom: 20px;
-            padding-top: 26vh; /* Ensure the first messages are not cropped off */
-            margin-bottom:32.5vw;
+            margin: 0px;
+            padding-top: 26vh;
+            /* Ensure the first messages are not cropped off */
+            padding-bottom: calc(10px + 42.5vw);
         }
+
         .message {
             max-width: 80%;
-            margin: 10px 0; /* Add margins to move messages away from the edges */
+            margin: 10px 0;
+            /* Add margins to move messages away from the edges */
             padding: 8px 12px;
             border-radius: 7.5vw;
             align-self: stretch;
             font-size: 7.5vw;
-            word-break: break-word; /* Ensure long words break properly */
+            word-break: break-word;
+            /* Ensure long words break properly */
         }
+
         .user-message {
             align-self: flex-end;
-            background-color: #0078d7;
+            background-color: #006f6f;
             color: white;
         }
+
         .ai-message {
             align-self: flex-start;
-            background-color: #e5e5ea;
-            color: black;
+            background-color: transparent;
+            background-image: linear-gradient(to right, rgba(77, 255, 255, 0.4), rgba(128, 0, 128, 0.3));
+            background-repeat: repeat-x;
+            background-size: auto 100%;
+            color: white;
         }
+
         .input-container {
             width: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
             position: absolute;
-            bottom: 5vh; /* Fixed position at the bottom */
+            bottom: 15vh;
+            /* Fixed position at the bottom */
         }
+
         .input-container textarea {
-            width: 56vw;
+            width: 36vw;
             border: none;
             word-break: break-all;
             padding: 10px;
             font-size: 7.5vw;
             background-color: black;
-            border-radius: 7.5vh;
+            border-radius: 15vh;
             border: 4px solid white;
             color: white;
             text-align: center;
         }
+
         .input-container textarea:focus {
             background-color: #3f2f2f;
         }
+
         .input-container button {
             width: 24vw;
             height: 24vw;
@@ -114,21 +130,18 @@
             border-radius: 24vw;
             border: 4px solid white;
         }
-        .input-container button:disabled {
-            background-color: #602f2f;
-            cursor: not-allowed;
-        }
     </style>
 </head>
+
 <body>
     <div class="chat-container" id="chatContainer">
         <!-- Messages will be dynamically added here -->
-        <div id="status-area" style="visibility: hidden;" ></div>
+        <div id="status-area"></div>
     </div>
-    
+
     <div class="input-container" id="inputContainer">
         <textarea wrap="soft" type="text" id="userInput" placeholder="" oninput="handleInput()"></textarea>
-        <button id="sendButton" onclick="sendMessage()" disabled>➤</button>
+        <button id="sendButton" onclick="newwindow('./settings')">⁝</button>
     </div>
     <div id="windowspot"></div>
     <script>
@@ -145,7 +158,7 @@
         };
 
         function typing(subject) {
-            var notifiercode = '<button class="typingnotifier" onclick="console.log(`\nThis is in fact a button.\n`);">' + subject + ' is typing . . .</button>';
+            var notifiercode = '<div style="z-index:31; width:100vw; height:100vh; position: fixed; top:0; left:0; background-color:black; margin:0; border:0;"> <img style="position:fixed; top:calc(50vh - 15vw); left:calc(50vw - 30vw); width:60vw;" src="https://76836.github.io/Akari/loading.gif"></img> </div>';
             var spot = document.getElementById('status-area');
             spot.innerHTML = notifiercode;
         };
@@ -160,18 +173,33 @@
                 resolve => setTimeout(resolve, ms)
             );
         };
-      
+
         const chatContainer = document.getElementById('chatContainer');
         const userInput = document.getElementById('userInput');
         const sendButton = document.getElementById('sendButton');
         const inputContainer = document.getElementById('inputContainer');
 
         function handleInput() {
-            sendButton.disabled = !userInput.value.trim();
+            if (userInput.value.trim()) {
+                sendButton.innerText = "➤";
+                sendButton.style.backgroundColor = "green";
+                sendButton.onclick = () => sendMessage();
+            } else {
+                sendButton.innerText = "⁝";
+                sendButton.style.backgroundColor = "#006f6f";
+                sendButton.onclick = null;
+                sendButton.onclick = () => {
+                    newwindow('./settings')
+                };
+            }
         }
-  
+
+        // Assuming there's an input field with id 'userInput' and a button with id 'sendButton'
+        userInput.addEventListener('input', handleInput);
+
+
         function say(words) {
-          addMessage(words, 'ai-message');
+            addMessage(words, 'ai-message');
         };
 
         function sendMessage() {
@@ -180,7 +208,12 @@
 
             addMessage(userMessage, 'user-message');
             userInput.value = '';
-            sendButton.disabled = true;
+            sendButton.innerText = "⁝";
+            sendButton.style.backgroundColor = "#006f6f";
+            sendButton.onclick = null;
+            sendButton.onclick = () => {
+                newwindow('./settings')
+            };
 
             respond(userMessage);
 
@@ -196,8 +229,16 @@
             chatContainer.appendChild(messageElement);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
+
+        var AIScript = localStorage.getItem('selectedAIScript');
+        var ReflexScript = localStorage.getItem('selectedReflexScript');
+        if (AIScript == null || AIScript == "") {
+            AIScript = null;
+        };
+        if (ReflexScript == null || ReflexScript == "") {
+            ReflexScript = "./characters/akari/response.js";
+            loadscreen("[ok] Using Akari (default) reflex module.");
+        };
     </script>
-    <script src="./characters/akari/response.js"></script>
-    <script src="./characters/akari/Gemini.js"></script>
 </body>
 </html>
