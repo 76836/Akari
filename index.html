@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html id="html">
 <head>
-    <title>Akari FrameWork v2.1b</title>
+    <title>Akari v2.2</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -120,7 +120,7 @@ iframe {
             async function loadscreen(message) {
                 document.getElementById('output').innerHTML += message + '<br>';
             };
-            loadscreen("FrameWork 2.1b starting...");
+            loadscreen("Akari 2.2 starting...");
         </script>
     </div>
     
@@ -134,7 +134,16 @@ iframe {
     <form><input type="text" id="box" class="box" placeholder="What's up?"
             onclick="setTimeout(function () {document.getElementById('micbutton').innerText='send'; }, 100);"></input>
     </form>
-
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then((registration) => {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                }).catch((error) => {
+                    console.log('Service Worker registration failed:', error);
+                });
+        }
+    </script>
     <script>
         function clickoff() {
             document.getElementById('micbutton').className = 'button-long';
