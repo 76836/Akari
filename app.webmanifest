@@ -1,7 +1,19 @@
 {
-    "name": "Akari Voice Assistant",
+    "name": "Akari AI Assistant",
     "prefer_related_applications": false,
     "short_name": "Akari",
+ "screenshots": [
+    {
+     "src": "./AkariScreenshot.png",
+      "sizes": "1080x2280",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Akari PWA"
+    }
+],
+
+"description": "Install Akari as a Progressive web app to launch it as an app from your homescreen or digital assistant, use it fully offline, and open all Akari links in the same enviornment. This option uses no extra storage space and can be uninstalled without losing any data.",
+
     "icons": [{
         "src": "./logo512.png",
         "sizes": "512x512",
