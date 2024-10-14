@@ -1,6 +1,7 @@
 const CACHE_NAME = 'AkariOffline';
 const urlsToCache = [
-        './'
+        './',
+        'https://esm.run/@mlc-ai/web-llm'
 ];
 
 // Install event - caching files
