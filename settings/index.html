@@ -17,6 +17,7 @@
 <body>
 
     <p class="title" style="color:darkcyan;">SETTINGS</p>
+    <button class="updatebutton" onclick="installupdates();">Check for and install updates. (up to 20MB download)</button>
 
     <p class="smallertext">Background image:</p>
     <button class="setbutton" onclick="document.getElementById('bkgurl').value = './wallpapers/luna.png';">Luna</button>
@@ -99,6 +100,28 @@
         line-height: 30px;
     }
 
+
+
+    .updatebutton {
+        font-size: 0.8rem;
+        width: calc(100vw - 50px);
+        max-width: 100vw;
+        text-align: center;
+        margin: 5px;
+        margin-left: 25px;
+        border: 0;
+        color: white;
+        border-radius: 30px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        transition-duration: 0.2s;
+        line-height: 30px;
+        background-color: transparent;
+        background-image: linear-gradient(to right, rgba(55, 255, 55, 0.5), rgba(255, 55, 55, 0.5), rgba(77, 255, 255, 0.4), rgba(128, 0, 128, 0.3), rgba(9, 9, 9, 0.2));
+        background-repeat: repeat-x;
+        background-size: auto 100%;
+    }
+    
     .setbutton:hover {
         background-color: #544;
     }
@@ -194,6 +217,19 @@
         localStorage.setItem('selectedWakeScript', Url);
     };
 
+function installupdates() {          
+if (navigator.onLine) {
+    alert('System: Sent update command, reload to apply update.');
+    if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then((registration) => {
+    registration.active.postMessage({ action: 'updateCache' });
+  });
+};
+} else {
+    alert('System: Internet is required to download updates.');
+};
+};
+    
 function CharacterAkari() {
     
         localStorage.setItem('selectedCSSURL', '');
