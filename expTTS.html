@@ -12,7 +12,7 @@
             const text = document.getElementById('textInput').value;
 
             // Create TTS pipeline
-            const synthesizer = await pipeline('text-to-speech', 'https://huggingface.co/Xenova/speecht5_tts', { quantized: false });
+            const synthesizer = await pipeline('text-to-speech', 'Xenova/speecht5_tts', { quantized: false });
 
             // Generate speech from input text
             const speaker_embeddings = 'https://huggingface.co/datasets/Xenova/transformers.js-docs/resolve/main/speaker_embeddings.bin';
