@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Speech</title>
+    <script type="module">
+        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers';
+
+        // Define the generateSpeech function
+        async function generateSpeech() {
+            const text = document.getElementById('textInput').value;
+
+            // Create TTS pipeline
+            const synthesizer = await pipeline('text-to-speech', 'https://huggingface.co/Xenova/speecht5_tts', { quantized: false });
+
+            // Generate speech from input text
+            const speaker_embeddings = 'https://huggingface.co/datasets/Xenova/transformers.js-docs/resolve/main/speaker_embeddings.bin';
+            const result = await synthesizer(text, { speaker_embeddings });
+
+            // Create a Blob from the result and play it
+            const audioBlob = new Blob([result.audio], { type: 'audio/wav' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audioPlayer = document.getElementById('audioPlayer');
+            audioPlayer.src = audioUrl;
+            audioPlayer.play();
+        }
+
+        // Expose the function to the global scope
+        window.generateSpeech = generateSpeech;
+    </script>
+</head>
+<body>
+    <h1>Text-to-Speech script I got from ChatGPT because I'm lazy.</h1>
+    <textarea id="textInput" rows="4" cols="50" placeholder="Enter text here"></textarea>
+    <br>
+    <button onclick="generateSpeech()">Generate Speech</button>
+    <br><br>
+    <audio id="audioPlayer" controls></audio>
+</body>
+</html>
