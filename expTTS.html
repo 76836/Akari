@@ -16,7 +16,7 @@
 
             // Generate speech from input text
             //const speaker_embeddings = 'https://huggingface.co/datasets/Xenova/transformers.js-docs/resolve/main/speaker_embeddings.bin';
-            const speaker_embeddings = './tensor_data.bin';
+            const speaker_embeddings = './og.npy';
             const result = await synthesizer(text, { speaker_embeddings });
 
             // Create a Blob from the result and play it
