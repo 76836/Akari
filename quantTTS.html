@@ -40,7 +40,7 @@ console.log(waveform)
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
     // Create an AudioBuffer
-    const sampleRate = 44100; // Standard sample rate for audio files (you may need to adjust this)
+    const sampleRate = 16000; // Standard sample rate for audio files (you may need to adjust this)
     const audioBuffer = audioContext.createBuffer(1, tensor.size, sampleRate);
 
     // Copy tensor data to the AudioBuffer
@@ -72,9 +72,9 @@ console.log(waveform)
 </head>
 <body>
     <h1>Akari AI voice TTS. (quantized version)</h1>
-    <textarea style="width:100vw;" id="textInput" rows="4" cols="50" placeholder="Enter text here"></textarea>
+    <textarea style="width:90vw;" id="textInput" rows="4" cols="50" placeholder="Enter text here"></textarea>
     <br>
-    <button style="width:100vw; height:5vh;" onclick="generateSpeech()">Speak 🗣🗣🔥</button>
+    <button style="width:90vw; height:5vh;" onclick="generateSpeech()">Speak 🗣🗣🔥</button>
 <div id="audio-container"></div>
 </body>
 </html>
