@@ -59,6 +59,21 @@ iframe {
     border: none;
 }
 
+.speak-btn {
+    background-color: #4CAF50; /* Green */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+.speak-btn:hover {
+    background-color: #45a049; /* Darker green on hover */
+}
+
 .windowstyle {
     border: 4px solid #111111;
     background-color: transparent;
@@ -450,7 +465,8 @@ iframe {
 
         //integrated functions
         function bubble(text) {
-            var Outgoing = '<p class="responsetxt">' + text + '</p><br>';
+            var Outgoing = '<p class="responsetxt">' + text + '</p><br>' +
+               '<button class="speak-btn" onclick="speak(\'' + text + '\')">🔊</button><br>';
             var messages = document.getElementById('messages');
             messages.insertAdjacentHTML('beforebegin', Outgoing);
             window.scrollTo(0, document.body.scrollHeight);
