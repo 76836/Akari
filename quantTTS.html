@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>quantized speechT5 tts</title>
+    <script type="module">
+        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers';
+
+        // Define the generateSpeech function
+        async function generateSpeech() {
+            const text = document.getElementById('textInput').value;
+
+            // Create TTS pipeline
+            const synthesizer = await pipeline('text-to-speech', '/Xenova/speecht5_tts', { quantized: true });
+
+            // Generate speech from input text
+            //const speaker_embeddings = 'https://huggingface.co/datasets/Xenova/transformers.js-docs/resolve/main/speaker_embeddings.bin';
+            const speaker_embeddings = './new_embeddings.bin';
+            const result = await synthesizer(text, { speaker_embeddings });
+
+            // Create a Blob from the result and play it
+            console.log(result);
+
+             // Create an AudioContext
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+            // Create an AudioBuffer to store the audio data
+            const buffer = audioContext.createBuffer(1, result.audio.length, result.sampling_rate);
+            const channelData = buffer.getChannelData(0);
+
+            // Copy the audio data from Float32Array to the AudioBuffer
+            channelData.set(result.audio);
+
+            // Create a buffer source and play the buffer
+            const source = audioContext.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioContext.destination);
+            source.start();
+        }
+
+
+
+
+        // Expose the function to the global scope
+        window.generateSpeech = generateSpeech;
+    </script>
+</head>
+<body>
+    <h1>Akari AI voice TTS. (quantized version)</h1>
+    <textarea style="width:100vw;" id="textInput" rows="4" cols="50" placeholder="Enter text here"></textarea>
+    <br>
+    <button style="width:100vw; height:5vh;" onclick="generateSpeech()">Speak 🗣🗣🔥</button>
+</body>
+</html>
