@@ -36,24 +36,31 @@ const { input_ids } = tokenizer(text);
             const { waveform } = await model.generate_speech(input_ids, speaker_embeddings, { vocoder });
 console.log(waveform)
 
-            // Create a Blob from the result and play it
-            console.log(waveform);
+            async function playAudioFromTensor(tensor) {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-             // Create an AudioContext
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    // Create an AudioBuffer
+    const sampleRate = 44100; // Standard sample rate for audio files (you may need to adjust this)
+    const audioBuffer = audioContext.createBuffer(1, tensor.size, sampleRate);
 
-            // Create an AudioBuffer to store the audio data
-            const buffer = audioContext.createBuffer(1, result.audio.length, result.sampling_rate);
-            const channelData = buffer.getChannelData(0);
+    // Copy tensor data to the AudioBuffer
+    audioBuffer.copyToChannel(tensor.data, 0);
 
-            // Copy the audio data from Float32Array to the AudioBuffer
-            channelData.set(result.audio);
+    // Create a source node from the AudioBuffer
+    const source = audioContext.createBufferSource();
+    source.buffer = audioBuffer;
 
-            // Create a buffer source and play the buffer
-            const source = audioContext.createBufferSource();
-            source.buffer = buffer;
-            source.connect(audioContext.destination);
-            source.start();
+    // Connect the source node to the audio context's destination (speakers)
+    source.connect(audioContext.destination);
+
+    // Play the audio
+    source.start();
+
+    // Add a message to the HTML div
+    const audioContainer = document.getElementById('audio-container');
+    audioContainer.innerHTML = `<p>Playing audio of size: ${tensor.size} samples</p>`;
+  }
+            playAudioFromTensor(waveform);
         }
 
 
@@ -68,5 +75,6 @@ console.log(waveform)
     <textarea style="width:100vw;" id="textInput" rows="4" cols="50" placeholder="Enter text here"></textarea>
     <br>
     <button style="width:100vw; height:5vh;" onclick="generateSpeech()">Speak 🗣🗣🔥</button>
+<div id="audio-container"></div>
 </body>
 </html>
