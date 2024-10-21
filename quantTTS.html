@@ -5,22 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>quantized speechT5 tts</title>
     <script type="module">
-        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers';
+        import { AutoTokenizer, AutoProcessor, SpeechT5ForTextToSpeech, SpeechT5HifiGan, Tensor } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers';
 
         // Define the generateSpeech function
         async function generateSpeech() {
             const text = document.getElementById('textInput').value;
 
-            // Create TTS pipeline
-            const synthesizer = await pipeline('text-to-speech', '/Xenova/speecht5_tts', { quantized: true });
+           // Load the tokenizer and processor
+const tokenizer = await AutoTokenizer.from_pretrained('Xenova/speecht5_tts');
+const processor = await AutoProcessor.from_pretrained('Xenova/speecht5_tts');
 
-            // Generate speech from input text
-            //const speaker_embeddings = 'https://huggingface.co/datasets/Xenova/transformers.js-docs/resolve/main/speaker_embeddings.bin';
-            const speaker_embeddings = './new_embeddings.bin';
-            const result = await synthesizer(text, { speaker_embeddings });
+            // Load the models
+            const model = await SpeechT5ForTextToSpeech.from_pretrained('Xenova/speecht5_tts', { quantized: false });
+const vocoder = await SpeechT5HifiGan.from_pretrained('Xenova/speecht5_hifigan', { quantized: true });
+
+
+           // Load speaker embeddings from URL
+const speaker_embeddings_data = new Float32Array(
+    await (await fetch('./new_embeddings.bin')).arrayBuffer()
+);
+const speaker_embeddings = new Tensor(
+    'float32',
+    speaker_embeddings_data,
+    [1, speaker_embeddings_data.length]
+)
+            // Run tokenization
+const { input_ids } = tokenizer(text);
+
+            // Generate waveform
+            const { waveform } = await model.generate_speech(input_ids, speaker_embeddings, { vocoder });
+console.log(waveform)
 
             // Create a Blob from the result and play it
-            console.log(result);
+            console.log(waveform);
 
              // Create an AudioContext
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
