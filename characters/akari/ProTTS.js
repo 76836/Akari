@@ -1,4 +1,4 @@
-say('Akari ProTTS (speecht5) v0.1 active');
+say('Akari TTS (speecht5 running locally) v1.0 is active.');
 function loadt5s() {
   const script = document.createElement('script');
   script.type = 'module';
@@ -13,27 +13,15 @@ function loadt5s() {
       })();
 
       // Playback rate
-      let t5rate = 1.2;
+      let t5rate = 1.123;
       let stopFlag = false;
 
-      // Split text into utterances of up to 60 characters, prioritizing pauses
+      // Split text at punctuation marks and filter empty or non-alphanumeric utterances
       function splitText(text) {
-          const maxLength = 60;
-          const utterances = [];
-          let currentUtterance = '';
+          const utterances = text.split(/(?<=[.,!?])\\s+/); // Split at comma, period, exclamation mark, or question mark
 
-          text.split(/(?<=[.,!?])|\\s+/).forEach(word => {
-              if ((currentUtterance + word).length <= maxLength) {
-                  currentUtterance += (currentUtterance.length ? ' ' : '') + word;
-              } else {
-                  utterances.push(currentUtterance);
-                  currentUtterance = word;
-              }
-          });
-          if (currentUtterance) {
-              utterances.push(currentUtterance);
-          }
-          return utterances;
+          // Filter out empty or non-alphanumeric utterances
+          return utterances.filter(utterance => /[a-zA-Z0-9]/.test(utterance));
       }
 
       // Define the speak function with split utterances
@@ -50,9 +38,14 @@ function loadt5s() {
                   return; // Stop playing further
               }
 
+              const currentUtterance = utterances[i];
+
+              // Call the emote function before speaking the utterance
+              window.t5emote(currentUtterance);
+
               // Generate speech for the current utterance
               const speaker_embeddings = './new_embeddings.bin';
-              const result = await synthesizer(utterances[i], { speaker_embeddings });
+              const result = await synthesizer(currentUtterance, { speaker_embeddings });
 
               // Create an AudioContext if one does not already exist
               if (!window.audioContext) {
@@ -98,6 +91,8 @@ function loadt5s() {
 loadt5s();
 
 // Functions to use externally
+window.t5emote = emote;
+
 function speak(text) {
   window.speakt5(text);
 }
