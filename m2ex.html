@@ -1,7 +1,8 @@
 <!DOCTYPE HTML>
 <html id="html">
+
 <head>
-    <title>Akari Mobile (experimental)</title>
+    <title>Akari Mobile</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,247 +16,312 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
     <style>
-#overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: auto;
-    background-color: black;
-    opacity: 1;
-    transition: opacity 1s ease-out;
-    z-index: 29;
-    border: 0;
-}
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: auto;
+            background-color: black;
+            opacity: 1;
+            transition: opacity 1s ease-out;
+            z-index: 29;
+            border: 0;
+        }
 
 
-.console {
-    color: white;
-    font-size: large;
-}
+        .console {
+            color: white;
+            font-size: large;
+        }
 
-body {
-    background-color: black;
-    overflow-x: hidden;
-    color: white;
-    font-family: 'Orbitron', sans-serif;
-    word-wrap: break-word;
-    background-attachment: fixed;
-    background-repeat: no-repeat;
-    margin:0;
-}
+        body {
+            background-color: black;
+            overflow-x: hidden;
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+            word-wrap: break-word;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            margin: 0;
+        }
 
-.iframe-container {
-    position:fixed;
-    top:0;
-    left:0;
-    width: 100vw;
-    height: 100vh;
-    z-index: -100;
-    margin:0;
-}
+        .iframe-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -100;
+            margin: 0;
+        }
 
-iframe {
-    border: none;
-}
+        iframe {
+            border: none;
+        }
 
-.speak-btn {
-    background-color: #4CAF50; /* Green */
-    color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 5px 10px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.3s ease;
-}
+        .speak-btn {
+            background-color: #4CAF50;
+            /* Green */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
 
-.speak-btn:hover {
-    background-color: #45a049; /* Darker green on hover */
-}
+        .speak-btn:hover {
+            background-color: #45a049;
+            /* Darker green on hover */
+        }
 
-.windowstyle {
-    border: 4px solid #111111;
-    background-color: transparent;
-    margin: 0%;
-    margin-top: 7vh;
-    width: 86vw;
-    height: 80vh;
-    position: fixed;
-    top: 0;
-    left: 0;
-    margin-left: 7vw;
-    margin-right: 7vw;
-    z-index: 30;
-    border-radius: 2vh;
-}
+        .windowstyle {
+            border: 4px solid #111111;
+            background-color: transparent;
+            margin: 0%;
+            margin-top: 7vh;
+            width: 86vw;
+            height: 80vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            margin-left: 7vw;
+            margin-right: 7vw;
+            z-index: 30;
+            border-radius: 2vh;
+        }
 
-.buttonstyle {
-    border: 4px solid crimson;
-    margin: 0%;
-    width: 16vh;
-    height: 8vh;
-    background-color: darkred;
-    font-size: large;
-    color: white;
-    border-radius: 2vh;
-    z-index: 31;
-    margin-left: 7vw;
-    margin-right: 7vw;
-    position: fixed;
-    top: calc(83vh + 7px);
-    left: 0;
-    transition-duration: 0.3s;
-}
+        .buttonstyle {
+            border: 4px solid crimson;
+            margin: 0%;
+            width: 16vh;
+            height: 8vh;
+            background-color: darkred;
+            font-size: large;
+            color: white;
+            border-radius: 2vh;
+            z-index: 31;
+            margin-left: 7vw;
+            margin-right: 7vw;
+            position: fixed;
+            top: calc(83vh + 7px);
+            left: 0;
+            transition-duration: 0.3s;
+        }
 
-.typingnotifier {
-    padding: 5px 10px;
-    border-radius: 20px;
-    background-color: transparent;
-    background-image: linear-gradient(to right, #005050, transparent);
-    color: crimson;
-    font-weight: bold;
-    background-repeat: repeat-x;
-    background-size: auto 100%;
-    text-align: left;
-    line-height: 30px;
-    font-size: x-large;
-    position: fixed;
-    bottom: 54px;
-    left: 7px;
-    width: 45vw;
-    border: 0;
-    overflow: hidden;
-}
+        .typingnotifier {
+            padding: 5px 10px;
+            border-radius: 20px;
+            background-color: transparent;
+            background-image: linear-gradient(to right, #005050, transparent);
+            color: crimson;
+            font-weight: bold;
+            background-repeat: repeat-x;
+            background-size: auto 100%;
+            text-align: left;
+            line-height: 30px;
+            font-size: x-large;
+            position: fixed;
+            bottom: 54px;
+            left: 7px;
+            width: 45vw;
+            border: 0;
+            overflow: hidden;
+        }
 
-.responsetxt {
-    display: inline-block;
-    padding: 10px 15px;
-    border-radius: 0px 20px 20px 20px;
-    background-color: transparent;
-    background-image: linear-gradient(to right, rgba(255, 55, 55, 0.5), rgba(77, 255, 255, 0.4), rgba(128, 0, 128, 0.3), rgba(9, 9, 9, 0.2));
-    background-repeat: repeat-x;
-    background-size: auto 100%;
-    text-align: center;
-    line-height: 30px;
-    font-size: large;
-    border: 2px solid black;
-    margin-right: 150px;
-    width: 60vw;
-    z-index: 20;
-    margin-bottom: 55px;
-}
+        .responsetxt {
+            display: inline-block;
+            padding: 10px 15px;
+            border-radius: 0px 20px 20px 20px;
+            background-color: transparent;
+            background-image: linear-gradient(to right, rgba(255, 55, 55, 0.5), rgba(77, 255, 255, 0.4), rgba(128, 0, 128, 0.3), rgba(9, 9, 9, 0.2));
+            background-repeat: repeat-x;
+            background-size: auto 100%;
+            text-align: center;
+            line-height: 30px;
+            font-size: large;
+            border: 2px solid black;
+            margin-right: 150px;
+            width: 60vw;
+            z-index: 20;
+            margin-bottom: 55px;
+        }
 
-.command {
-    padding: 10px 15px;
-    border-radius: 20px 20px 0px 20px;
-    background-color: #111;
-    background-repeat: repeat-x;
-    background-size: auto 100%;
-    text-align: center;
-    line-height: 30px;
-    font-size: large;
-    float: right;
-    border: 2px solid black;
-    margin-left: 150px;
-    width: 60vw;
-    z-index: 20;
-    margin-bottom: 55px;
-}
+        .command {
+            padding: 10px 15px;
+            border-radius: 20px 20px 0px 20px;
+            background-color: #111;
+            background-repeat: repeat-x;
+            background-size: auto 100%;
+            text-align: center;
+            line-height: 30px;
+            font-size: large;
+            float: right;
+            border: 2px solid black;
+            margin-left: 150px;
+            width: 60vw;
+            z-index: 20;
+            margin-bottom: 55px;
+        }
 
-.box {
-    padding: 5px 10px;
-    border-radius: 20px;
-    background-color: transparent;
-    background-image: linear-gradient(to right, #111111, #003333, transparent);
-    color: white;
-    background-repeat: repeat-x;
-    background-size: auto 100%;
-    text-align: left;
-    line-height: 30px;
-    font-size: x-large;
-    position: fixed;
-    bottom: calc(7px + 5vh);
-    left: calc(10vw + 7px);
-    width: calc(80vw - 140px);
-    border: 0;
-    border: 2px solid black;
-    z-index: 21;
-}
+        .box {
+            padding: 5px 10px;
+            border-radius: 20px;
+            background-color: transparent;
+            background-image: linear-gradient(to right, #111111, #003333, transparent);
+            color: white;
+            background-repeat: repeat-x;
+            background-size: auto 100%;
+            text-align: left;
+            line-height: 30px;
+            font-size: x-large;
+            position: fixed;
+            bottom: calc(7px + 5vh);
+            left: calc(10vw + 7px);
+            width: calc(80vw - 140px);
+            border: 0;
+            border: 2px solid black;
+            z-index: 21;
+        }
 
-.button-menu {
-    padding: 10px 20px;
-    border-radius: 20px;
-    background-color: #003333;
-    color: cyan;
-    background-repeat: repeat-x;
-    background-size: auto 100%;
-    text-align: center;
-    line-height: 30px;
-    font-size: large;
-    position: fixed;
-    bottom: calc(7px + 35vh + 7px);
-    right: calc(5vw + 7px);
-    width: 50px;
-    border: 0;
-    overflow: hidden;
-    border: 0px solid black;
-    z-index: 1000;
-}
+        .button-menu {
+            padding: 10px 20px;
+            border-radius: 20px;
+            background-color: #003333;
+            color: cyan;
+            background-repeat: repeat-x;
+            background-size: auto 100%;
+            text-align: center;
+            line-height: 30px;
+            font-size: large;
+            position: fixed;
+            bottom: calc(7px + 35vh + 7px);
+            right: calc(5vw + 7px);
+            width: 50px;
+            border: 0;
+            overflow: hidden;
+            border: 0px solid black;
+            z-index: 1000;
+        }
 
-.mic-on {
-    padding: 5px 10px;
-    border-radius: 20px;
-    background-color: red;
-    color: white;
-    background-repeat: repeat-x;
-    background-size: auto 100%;
-    text-align: center;
-    line-height: 60px;
-    font-size: x-large;
-    position: fixed;
-    bottom: 7px;
-    left: 7px;
-    width: calc(100vw - 14px);
-    border: 0;
-    overflow: hidden;
-    border: 2px solid black;
-    z-index: 22;
-}
+        .button-phone {
+            padding: 10px 20px;
+            border-radius: 20px;
+            background-color: #003333;
+            color: cyan;
+            background-repeat: repeat-x;
+            background-size: auto 100%;
+            text-align: center;
+            line-height: 30px;
+            font-size: large;
+            position: fixed;
+            bottom: calc(7px + 35vh + 7px);
+            left: calc(5vw + 7px);
+            width: 150px;
+            border: 0;
+            overflow: hidden;
+            border: 0px solid black;
+            z-index: 1000;
+        }
 
-.uipanel{
-    position: fixed;
-    margin:0;
-    padding: 0;
-    width: 90vw;
-    left:5vw;
-    height: 30vh;
-    bottom:5vh;
-    background-color: #003333;
-    border-radius: 20px;
-    overflow:scroll;
-    z-index:19;
-}
+        .mic-on {
+            padding: 5px 10px;
+            border-radius: 20px;
+            background-color: red;
+            color: white;
+            background-repeat: repeat-x;
+            background-size: auto 100%;
+            text-align: center;
+            line-height: 60px;
+            font-size: x-large;
+            position: fixed;
+            bottom: 7px;
+            left: 7px;
+            width: calc(100vw - 14px);
+            border: 0;
+            overflow: hidden;
+            border: 2px solid black;
+            z-index: 22;
+        }
 
-.button-long {
-    padding: 5px 10px;
-    border-radius: 20px;
-    background-color: #111111;
-    color: cyan;
-    background-repeat: repeat-x;
-    background-size: auto 100%;
-    text-align: center;
-    line-height: 30px;
-    font-size: x-large;
-    position: fixed;
-    bottom: calc(5vh + 7px);
-    right: calc(10vw + 7px);
-    width: 100px;
-    border: 0;
-    overflow: hidden;
-    border: 2px solid black;
-    z-index: 21;
-}
+        .uipanel {
+            position: fixed;
+            margin: 0;
+            padding: 0;
+            width: 90vw;
+            left: 5vw;
+            height: 30vh;
+            bottom: 5vh;
+            background-color: #003333;
+            border-radius: 20px;
+            overflow: scroll;
+            z-index: 19;
+        }
+
+        .pttbutton {
+            position: fixed;
+            margin: 0;
+            padding: 0;
+            width: 90vw;
+            text-align: left;
+            font-size: x-large;
+            font-weight: bolder;
+            left: 5vw;
+            border: 0;
+            padding-left: 2.5vw;
+            height: 10vh;
+            bottom: 5vh;
+            background-color: #006666;
+            border-radius: 20px;
+            overflow: scroll;
+            z-index: 19;
+        }
+
+        .endbutton {
+            position: fixed;
+            margin: 0;
+            padding: 0;
+            width: 10vh;
+            right: 5vw;
+            text-align: center;
+            font-size: x-large;
+            border: 0;
+            height: 10vh;
+            bottom: 5vh;
+            background-color: red;
+            border-radius: 20px;
+            overflow: scroll;
+            z-index: 19;
+        }
+
+        .button-long {
+            padding: 5px 10px;
+            border-radius: 20px;
+            background-color: #111111;
+            color: cyan;
+            background-repeat: repeat-x;
+            background-size: auto 100%;
+            text-align: center;
+            line-height: 30px;
+            font-size: x-large;
+            position: fixed;
+            bottom: calc(5vh + 7px);
+            right: calc(10vw + 7px);
+            width: 100px;
+            border: 0;
+            overflow: hidden;
+            border: 2px solid black;
+            z-index: 21;
+        }
+
+        .hidden {
+            position: fixed;
+            top: 0;
+            z-index: -100;
+            visibility: hidden;
+        }
     </style>
 </head>
 
@@ -269,19 +335,22 @@ iframe {
             loadscreen("FrameWork 2.1b starting...");
         </script>
     </div>
-    
+
     <div id="avatar"></div>
     <div id="windowspot"></div>
     <div id="status-area"></div>
-
+    <button class="hidden" id="pttbutton" onpointerdown="startListening(); textOnly = 'voice';" onpointerup="stopListening(); textOnly = 'text';">PTT</button>
+    <button class="hidden" id="endbutton" onclick="endcall();">End.</button>
     <div id="uidiv" class="uipanel">
-    <div id="messages"></div>
-    <button class="button-menu" onclick="newwindow('./settings');">⁝</button>
-    <button class="button-long" id="micbutton" onclick="goakari();">voice</button>
-    <form><input type="text" id="box" class="box" placeholder="What's up?"
-            onclick="setTimeout(function () {document.getElementById('micbutton').innerText='send'; }, 100);"></input>
-    </form>
-</div>
+        <div id="messages"></div>
+        <button class="button-menu" onclick="newwindow('./settings');">⁝</button>
+        <button class="button-phone" onclick="startcall();">Call 📞</button>
+
+        <button class="button-long" id="micbutton" onclick="goakari();">voice</button>
+        <form><input type="text" id="box" class="box" placeholder="What's up?"
+                onclick="setTimeout(function () {document.getElementById('micbutton').innerText='send'; }, 100);"></input>
+        </form>
+    </div>
 
     <script>
         function clickoff() {
@@ -291,7 +360,7 @@ iframe {
         };
         function goakari() {
             if (document.getElementById('box').value) {
-                textOnly = 'voice';
+                textOnly = 'text';
                 enter(document.getElementById('box').value);
                 document.getElementById('box').value = '';
                 setTimeout(function () { document.getElementById('micbutton').innerText = 'sent'; }, 10);
@@ -419,16 +488,16 @@ iframe {
         if (AIScript == null || AIScript == "") {
             AIScript = null;
         };
-        
+
         if (ReflexScript == null || ReflexScript == "") {
             ReflexScript = "./characters/akari/response.js";
             loadscreen("[ok] Using Akari (default) reflex module.");
         };
-    
+
         if (VoiceScript == null || VoiceScript == "") {
             VoiceScript = null;
         };
-       
+
         if (VoiceScript) {
             var ExJS1 = document.createElement("script");
             ExJS1.src = VoiceScript;
@@ -453,7 +522,7 @@ iframe {
             console.log('AvatarScript =' + AvatarScript);
             loadscreen("[ok] Avatar initialized.");
         };
-        
+
         if (ReflexScript) {
             var ExJS5 = document.createElement("script");
             ExJS5.src = ReflexScript;
@@ -465,8 +534,7 @@ iframe {
 
         //integrated functions
         function bubble(text) {
-            var Outgoing = '<p class="responsetxt">' + text + '</p><br>' +
-               '<button class="speak-btn" onclick="speak(\'' + text + '\')">🔊</button><br>';
+            var Outgoing = '<p class="responsetxt">' + '<button class="speak-btn" onclick="speak(\'' + text + '\')">🔊</button><br>' + text + '</p><br>';
             var messages = document.getElementById('messages');
             messages.insertAdjacentHTML('beforebegin', Outgoing);
             window.scrollTo(0, document.body.scrollHeight);
@@ -499,6 +567,20 @@ iframe {
             respond(input);
         };
 
+        function startcall() {
+            const hideUI = document.getElementById('uidiv');
+            hideUI.className = 'hidden';
+            const showUI = document.getElementById('pttbutton');
+            showUI.className = 'pttbutton';
+            const showUI2 = document.getElementById('endbutton');
+            showUI2.className = 'endbutton';
+        }
+
+        function endcall() {
+            const hideUI = document.getElementById('uidiv');
+            hideUI.className = 'uipanel';
+        }
+
         function newwindow(weblocation) {
             var windowcode = '<iframe src="' + weblocation + '" class="windowstyle"></iframe><button class="buttonstyle" onclick="closewindow();">Close window.</button>';
             var spot = document.getElementById('windowspot');
@@ -510,7 +592,7 @@ iframe {
         };
 
         function typing(subject) {
-           loadscreen(subject + " is typing...");
+            loadscreen(subject + " is typing...");
         };
 
         function clearstatus() {
@@ -544,6 +626,16 @@ iframe {
             document.getElementById('micbutton').className = 'mic-on';
             document.getElementById('micbutton').innerText = 'Speech-to-text listening...';
         };
+
+        function startListening() {
+            recognition.start();
+            document.getElementById('button').classList.add('on');
+        };
+
+        function stopListening() {
+            recognition.stop();
+            document.getElementById('button').classList.remove('on');
+        };
     </script>
 
     <div id="AI_Components">
@@ -565,4 +657,5 @@ iframe {
     </div>
 
 </body>
+
 </html>
