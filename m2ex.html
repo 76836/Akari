@@ -273,7 +273,7 @@
             padding-left: 2.5vw;
             height: 10vh;
             bottom: 5vh;
-            background-color: #006666;
+            background-image: linear-gradient(to right, rgba(81, 112, 255, 1), rgba(255, 102, 196, 1));
             border-radius: 20px;
             overflow: scroll;
             z-index: 19;
@@ -332,14 +332,14 @@
             async function loadscreen(message) {
                 document.getElementById('output').innerHTML = message;
             };
-            loadscreen("FrameWork 2.1b starting...");
+            loadscreen("Akari 2.2 starting...");
         </script>
     </div>
 
     <div id="avatar"></div>
     <div id="windowspot"></div>
     <div id="status-area"></div>
-    <button class="hidden" id="pttbutton" onpointerdown="startListening(); textOnly = 'voice';" onpointerup="stopListening(); textOnly = 'text';">PTT</button>
+    <button class="hidden" id="pttbutton" onpointerdown="textOnly = 'voice'; startListening();" onpointerup="stopListening();">PTT</button>
     <button class="hidden" id="endbutton" onclick="endcall();">End.</button>
     <div id="uidiv" class="uipanel">
         <div id="messages"></div>
@@ -574,11 +574,17 @@
             showUI.className = 'pttbutton';
             const showUI2 = document.getElementById('endbutton');
             showUI2.className = 'endbutton';
+            document.documentElement.requestFullscreen();
         }
 
         function endcall() {
             const hideUI = document.getElementById('uidiv');
             hideUI.className = 'uipanel';
+            const showUI = document.getElementById('pttbutton');
+            showUI.className = 'hidden';
+            const showUI2 = document.getElementById('endbutton');
+            showUI2.className = 'hidden';
+            document.exitFullscreen();
         }
 
         function newwindow(weblocation) {
@@ -629,12 +635,10 @@
 
         function startListening() {
             recognition.start();
-            document.getElementById('button').classList.add('on');
         };
 
         function stopListening() {
             recognition.stop();
-            document.getElementById('button').classList.remove('on');
         };
     </script>
 
