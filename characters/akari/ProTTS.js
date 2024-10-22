@@ -1,4 +1,4 @@
-say('Akari speecht5 v0.1 active');
+say('Akari ProTTS (speecht5) v0.1 active');
 function loadt5s() {
   const script = document.createElement('script');
   script.type = 'module';
