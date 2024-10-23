@@ -1,4 +1,4 @@
-say('Akari TTS (speecht5 running locally) v1.0 is active.');
+say('Akari TTS (speecht5 running locally) v1.1 is active.');
 function loadt5s() {
   const script = document.createElement('script');
   script.type = 'module';
@@ -10,19 +10,29 @@ function loadt5s() {
       let synthesizer;
       (async function initializeSynthesizer() {
           synthesizer = await pipeline('text-to-speech', '/Xenova/speecht5_tts', { quantized: false });
+          window.t5loadmsg('TTS pipeline initalized.');
       })();
 
       // Playback rate
       let t5rate = 1.123;
       let stopFlag = false;
 
-      // Split text at punctuation marks and filter empty or non-alphanumeric utterances
+      // Split text at punctuation marks and filter empty or non-alphanumeric utterances, also lmit utterance length to 50 characters to speed it up
       function splitText(text) {
-          const utterances = text.split(/(?<=[.,!?])\\s+/); // Split at comma, period, exclamation mark, or question mark
+  const utterances = text.split(/(?<=[.,!?])\s+/); // Split at comma, period, exclamation mark, or question mark
 
-          // Filter out empty or non-alphanumeric utterances
-          return utterances.filter(utterance => /[a-zA-Z0-9]/.test(utterance));
-      }
+  const splitUtterances = utterances.map(utterance => {
+    if (utterance.length > 50) {
+      const splitIndex = utterance.slice(0, 50).lastIndexOf(' ');
+      return [utterance.slice(0, splitIndex), utterance.slice(splitIndex + 1)];
+    } else {
+      return [utterance];
+    }
+  }).flat();
+
+  // Filter out empty or non-alphanumeric utterances
+  return splitUtterances.filter(utterance => /[a-zA-Z0-9]/.test(utterance));
+}
 
       // Define the speak function with split utterances
       async function speak(text) {
@@ -31,6 +41,7 @@ function loadt5s() {
               return;
           }
           const utterances = splitText(text);
+          window.t5loadmsg('Started talking...');
 
           for (let i = 0; i < utterances.length; i++) {
               if (stopFlag) {
@@ -70,7 +81,7 @@ function loadt5s() {
               await new Promise(resolve => source.onended = resolve);
           }
       }
-
+      window.t5loadmsg('Finished talking');
       // Stop speech generation and playback
       function interrupt() {
           if (window.audioContext) {
@@ -92,6 +103,8 @@ loadt5s();
 
 // Functions to use externally
 window.t5emote = emote;
+
+window.t5loadmsg = loadscreen;
 
 function speak(text) {
   window.speakt5(text);
