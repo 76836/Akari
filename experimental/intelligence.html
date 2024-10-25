@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            background-color: #000;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+            height: 100vh;
+            box-sizing: border-box;
+            font-size: 16px;
+            line-height: 1.2;
+            cursor: text;
+        }
+        #terminal {
+            height: calc(100vh - 40px);
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .input-line {
+            display: flex;
+            align-items: baseline;
+        }
+        .prompt {
+            color: #00ff00;
+            margin-right: 8px;
+        }
+        .input-wrapper {
+            flex-grow: 1;
+            position: relative;
+        }
+        .input-sizer {
+            visibility: hidden;
+            white-space: pre;
+            display: inline-block;
+            min-width: 1ch;
+        }
+        input {
+            background: transparent;
+            border: none;
+            color: #00ff00;
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+            outline: none;
+            caret-color: #00ff00;
+        }
+        .output {
+            margin: 8px 0;
+            opacity: 0.8;
+        }
+        .error {
+            color: #ff0000;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .alert-box {
+            background: #000;
+            border: 2px solid #00ff00;
+            padding: 20px;
+            max-width: 80%;
+            width: auto;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+        .alert-content {
+            color: #ff0000;
+            margin-bottom: 20px;
+        }
+        .alert-button {
+            background: #000;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+        .alert-button:hover {
+            background: #00ff00;
+            color: #000;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 15px;
+            background: #00ff00;
+            animation: blink 1s infinite;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body onclick="focusLastInput()">
+    <div id="terminal">
+        <div class="output">The intelligence v1.0.</div>
+        <div class="output">What is my purpose?</div>
+        <div class="input-line">
+            <span class="prompt">&gt;</span>
+            <div class="input-wrapper">
+                <span class="input-sizer"></span>
+                <input type="text" autofocus>
+            </div>
+        </div>
+    </div>
+
+  <script src="./experimental/intelligence.js"></script>
+
+    <script>
+        const terminal = document.getElementById('terminal');
+        let currentInput = document.querySelector('input');
+        let isProcessing = false;
+
+        function showAlert(message) {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            
+            const alertBox = document.createElement('div');
+            alertBox.className = 'alert-box';
+            
+            const content = document.createElement('div');
+            content.className = 'alert-content';
+            content.textContent = message;
+            
+            const button = document.createElement('button');
+            button.className = 'alert-button';
+            button.textContent = 'Dismiss';
+            button.onclick = () => overlay.remove();
+            
+            alertBox.appendChild(content);
+            alertBox.appendChild(button);
+            overlay.appendChild(alertBox);
+            document.body.appendChild(overlay);
+            
+            button.focus();
+        }
+
+        async function say(text) {
+            if (text === 'exit') {
+                isProcessing = false;
+                return;
+            }
+            
+            try {
+                const result = eval(text);
+                await GenerateResponse(result);
+            } catch (error) {
+                createOutput(`Error: ${error.message}`, true);
+                showAlert(error.message);
+            }
+        }
+
+        function createOutput(text, isError = false) {
+            const output = document.createElement('div');
+            output.className = 'output' + (isError ? ' error' : '');
+            output.textContent = text;
+            terminal.insertBefore(output, currentInput.parentElement.parentElement);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        async function processCommand(cmd) {
+            if (!cmd) return;
+            
+            createOutput(`> ${cmd}`);
+            
+            try {
+                await GenerateResponse(cmd);
+            } catch (error) {
+                createOutput(`Error: ${error.message}`, true);
+                showAlert(error.message);
+            }
+
+            // Create new input line
+            const newInputLine = document.createElement('div');
+            newInputLine.className = 'input-line';
+            newInputLine.innerHTML = `
+                <span class="prompt">&gt;</span>
+                <div class="input-wrapper">
+                    <span class="input-sizer"></span>
+                    <input type="text">
+                </div>
+            `;
+            
+            terminal.appendChild(newInputLine);
+            
+            const newInput = newInputLine.querySelector('input');
+            currentInput = newInput;
+            newInput.focus();
+            
+            setupInputHandler(newInput);
+            setupInputSizer(newInput);
+        }
+
+        function setupInputSizer(inputElement) {
+            const sizer = inputElement.previousElementSibling;
+            inputElement.addEventListener('input', () => {
+                sizer.textContent = inputElement.value || ' ';
+            });
+        }
+
+        function setupInputHandler(inputElement) {
+            inputElement.addEventListener('keypress', async function(e) {
+                if (e.key === 'Enter' && !isProcessing) {
+                    isProcessing = true;
+                    const cmd = this.value.trim();
+                    this.value = '';
+                    await processCommand(cmd);
+                    if (cmd !== 'exit') {
+                        isProcessing = false;
+                    }
+                }
+            });
+        }
+
+        function focusLastInput() {
+            currentInput.focus();
+        }
+
+        setupInputHandler(currentInput);
+        setupInputSizer(currentInput);
+    </script>
+</body>
+</html>
