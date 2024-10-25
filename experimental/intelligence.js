@@ -1,4 +1,4 @@
-localStorage.removeItem('intelligence46923);
+localStorage.removeItem('intelligence46923');
 function postMessages(messages) {
     messages.forEach(message => {
         if (message.role === "user") {
@@ -12,8 +12,7 @@ let chatHistory = JSON.parse(localStorage.getItem('intelligence46923')) || [];
 
 // change the chat history key here too
 
-postMessages(chatHistory);
-loadscreen('restored chat history');
+showAlert('wait for the intelligence to load...');
 var CloudAI = true;
 (function () {
 
@@ -45,7 +44,7 @@ function done(obj) {
             console.log(initProgress);
             loadscreen(initProgress[0]);
             if (done(initProgress)) {
-            say('SYSTEM: Llama 3.2 finished loading.');
+            showAlert('SYSTEM: Llama 3.2 finished loading.');
             };
         }
         const selectedModel = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
