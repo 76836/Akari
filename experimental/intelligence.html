@@ -293,7 +293,6 @@ function done(obj) {
         // Callback function to update model loading progress
         const initProgressCallback = (initProgress) => {
             console.log(initProgress);
-            loadscreen(initProgress[0]);
             if (done(initProgress)) {
             showAlert('SYSTEM: Llama 3.2 finished loading.');
             };
