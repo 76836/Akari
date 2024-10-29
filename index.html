@@ -151,6 +151,7 @@ iframe {
             recognition.stop();
         };
         function goakari() {
+            textOnly = 'voice';
             if (document.getElementById('box').value) {
                 textOnly = 'text';
                 enter(document.getElementById('box').value);
@@ -162,8 +163,9 @@ iframe {
                     setTimeout(function () { document.getElementById('micbutton').innerText = 'no'; }, 10);
                     return;
                 };
-textOnly = 'voice';
+                textOnly = 'voice';
                 voicerecognitionstart();
+                textOnly = 'voice';
             };
         };
 
@@ -418,6 +420,7 @@ bubble(text);
             var speechinput = event.results[0][0].transcript;
             document.getElementById('micbutton').className = 'button-long';
             document.getElementById('micbutton').innerText = 'voice';
+            textOnly = 'voice';
             enter(speechinput);
         };
 
