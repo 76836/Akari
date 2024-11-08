@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whisper Speech Recognition</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        button {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            cursor: pointer;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+        }
+        button:disabled {
+            background: #93c5fd;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            background: #f3f4f6;
+        }
+        #transcription {
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            min-height: 100px;
+        }
+        #volumeMeter {
+            width: 100%;
+            height: 20px;
+            background-color: #f3f4f6;
+            border-radius: 0.375rem;
+            overflow: hidden;
+        }
+        #volumeBar {
+            height: 100%;
+            width: 0%;
+            background-color: #2563eb;
+            transition: width 0.1s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Whisper Speech Recognition test</h1>
+        <p>Click the button below to start recording. Recording will automatically stop after 2 seconds of silence.</p>
+        
+        <button id="recordButton">Start Recording</button>
+        <div id="volumeMeter">
+            <div id="volumeBar"></div>
+        </div>
+        <div id="status">Status: Ready</div>
+        <div id="transcription"></div>
+    </div>
+
+    <script type="module">
+        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers';
+
+        let mediaRecorder;
+        let audioChunks = [];
+        let whisperPipeline;
+        let isRecording = false;
+        let audioContext;
+        let analyser;
+        let silenceTimer;
+        let silenceStart = null;
+        const SILENCE_THRESHOLD = -50; // dB
+        const SILENCE_DURATION = 2000; // ms
+        const TARGET_SAMPLE_RATE = 16000; // Whisper expects 16kHz audio
+        
+        const recordButton = document.getElementById('recordButton');
+        const statusDiv = document.getElementById('status');
+        const transcriptionDiv = document.getElementById('transcription');
+        const volumeBar = document.getElementById('volumeBar');
+
+        // Initialize the pipeline
+        async function initPipeline() {
+            statusDiv.textContent = 'Status: Loading Whisper model...';
+            try {
+                whisperPipeline = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny');
+                statusDiv.textContent = 'Status: Model loaded!';
+                recordButton.disabled = false;
+            } catch (error) {
+                console.error('Error loading model:', error);
+                statusDiv.textContent = 'Status: Error loading model';
+            }
+        }
+
+        async function convertBlobToAudioData(blob) {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const arrayBuffer = await blob.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            
+            // Resample to 16kHz if necessary
+            let audioData;
+            if (audioBuffer.sampleRate !== TARGET_SAMPLE_RATE) {
+                const offlineContext = new OfflineAudioContext(
+                    1,
+                    audioBuffer.duration * TARGET_SAMPLE_RATE,
+                    TARGET_SAMPLE_RATE
+                );
+                const source = offlineContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(offlineContext.destination);
+                source.start();
+                const resampled = await offlineContext.startRendering();
+                audioData = resampled.getChannelData(0);
+            } else {
+                audioData = audioBuffer.getChannelData(0);
+            }
+
+            return audioData;
+        }
+
+        function detectSilence(analyser) {
+            const dataArray = new Float32Array(analyser.frequencyBinCount);
+            analyser.getFloatTimeDomainData(dataArray);
+            
+            // Calculate RMS value
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i] * dataArray[i];
+            }
+            const rms = Math.sqrt(sum / dataArray.length);
+            const db = 20 * Math.log10(rms);
+
+            // Update volume meter
+            const volumePercent = Math.max(0, Math.min(100, (db + 90) * 2));
+            volumeBar.style.width = `${volumePercent}%`;
+
+            // Check for silence
+            if (db < SILENCE_THRESHOLD) {
+                if (!silenceStart) {
+                    silenceStart = Date.now();
+                } else if (Date.now() - silenceStart > SILENCE_DURATION) {
+                    stopRecording();
+                    return;
+                }
+            } else {
+                silenceStart = null;
+            }
+
+            if (isRecording) {
+                requestAnimationFrame(() => detectSilence(analyser));
+            }
+        }
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        sampleRate: TARGET_SAMPLE_RATE,
+                        channelCount: 1
+                    } 
+                });
+                
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                // Set up audio analysis
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                source.connect(analyser);
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    await transcribeAudio(audioBlob);
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                recordButton.textContent = 'Stop Recording';
+                statusDiv.textContent = 'Status: Recording...';
+                silenceStart = null;
+                detectSilence(analyser);
+            } catch (error) {
+                console.error('Error accessing microphone:', error);
+                statusDiv.textContent = 'Status: Error accessing microphone';
+            }
+        }
+
+        function stopRecording() {
+            if (!isRecording) return;
+            
+            mediaRecorder.stop();
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            isRecording = false;
+            recordButton.textContent = 'Start Recording';
+            statusDiv.textContent = 'Status: Processing audio...';
+            volumeBar.style.width = '0%';
+            
+            if (audioContext) {
+                audioContext.close();
+            }
+        }
+
+        async function transcribeAudio(audioBlob) {
+            try {
+                const audioData = await convertBlobToAudioData(audioBlob);
+                const result = await whisperPipeline(audioData);
+                transcriptionDiv.textContent = result.text;
+                statusDiv.textContent = 'Status: Transcription complete!';
+            } catch (error) {
+                console.error('Transcription error:', error);
+                statusDiv.textContent = 'Status: Error during transcription';
+            }
+        }
+
+        recordButton.addEventListener('click', () => {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+
+        // Disable button until model is loaded
+        recordButton.disabled = true;
+
+        // Initialize the pipeline when the page loads
+        initPipeline().catch(console.error);
+    </script>
+</body>
+</html>
