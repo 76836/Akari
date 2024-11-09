@@ -23,7 +23,7 @@
 
     .notification-container {
       position: fixed;
-      top: 5vh;
+      top: 100px;
       right: calc(-100vw + 352px);
       margin: 0;
       padding: 16px;
@@ -333,7 +333,7 @@ iframe {
             
             async function loadscreen(message) {
                 document.getElementById('output').innerHTML += message + '<br>';
-                showNotification('System status updated:', message, {borderColors: ['cyan', 'green', 'lightblue', 'white'] });
+                showNotification('System status updated:', message, {borderColors: ['#00FFFF', '#00FF00', '#0000FF', '#FFFFFF'] });
             };
             loadscreen("Akari 2.3 starting...");
         </script>
