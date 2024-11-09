@@ -11,13 +11,16 @@
 
 
 
-Akari Voice Assistant v2.2.
+Akari Voice Assistant v2.3.
 Full support on chrome-based browsers.
 Use at: https://76836.github.io/Akari
 Support for safari is not tested and features on firefox may be limited.
 Integrate Akari into your iPhone with the Shortcuts app by entering commands into the url: `https://76836.github.io/Akari?q=Your%20Input%20Here` Make sure to url encode the input.
 
-Note: Version 2.2 is being gradually released along with many UI improvements, some features may not appear yet.
+Version 2.3: <br>
+New local speech synthesis with speechT5.
+New notification function and styling.
+Voice settings menu with configuration options for upcoming local transcription. 
 
 Version 2.2: <br>
 New mobile UI.
