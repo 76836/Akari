@@ -1,3 +1,4 @@
+loadscreen("Using Web Speech API for TTS");
 let speechSynthesisInstance = window.speechSynthesis;
 let utterance = new SpeechSynthesisUtterance();
 utterance.voice = null;  // Placeholder for female voice selection
