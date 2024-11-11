@@ -59,7 +59,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Whisper Speech Recognition test</h1>
+        <h1>Whisper Speech Recognition test (english)</h1>
         <p>Click the button below to start recording. Recording will automatically stop after 2 seconds of silence.</p>
         
         <button id="recordButton">Start Recording</button>
@@ -94,7 +94,7 @@
         async function initPipeline() {
             statusDiv.textContent = 'Status: Loading Whisper model...';
             try {
-                whisperPipeline = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny');
+                whisperPipeline = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en');
                 statusDiv.textContent = 'Status: Model loaded!';
                 recordButton.disabled = false;
             } catch (error) {
