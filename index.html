@@ -424,6 +424,7 @@ iframe {
 
         var VoiceScript = localStorage.getItem('selectedVoiceScript');
         var AvatarScript = localStorage.getItem('selectedAvatarScript');
+        var WhisperScript = localStorage.getItem('selectedWhisperScript');
         var AIScript = localStorage.getItem('selectedAIScript');
         var ReflexScript = localStorage.getItem('selectedReflexScript');
         var WakeScript = localStorage.getItem('selectedWakeScript');
@@ -503,6 +504,9 @@ iframe {
         if (WakeScript == null || WakeScript == "") {
             WakeScript = "./characters/akari/wake.js";
         };
+        if (WhisperScript == null || WhisperScript == "") {
+            WhisperScript = "./engine/web-speech-recognition.js";
+        };
         if (ReflexScript == null || ReflexScript == "") {
             ReflexScript = "./characters/akari/response.js";
             loadscreen("[ok] Using Akari (default) reflex module.");
@@ -560,7 +564,15 @@ iframe {
             console.log('ReflexScript =' + ReflexScript);
             loadscreen("[ok] Reflex module loaded.");
         };
-
+        if (WhisperScript) {
+            var ExJS6 = document.createElement("script");
+            ExJS6.src = WhisperScript;
+            head = document.getElementsByName("head")[0];
+            document.head.appendChild(ExJS6);
+            console.log('WhisperScript =' + WhisperScript);
+            loadscreen("[ok] Speech recognition script loaded.");
+        };
+        
         //integrated functions
         function bubble(text) {
             var Outgoing = '<p class="responsetxt">' + text + '</p><br>';
@@ -623,16 +635,8 @@ bubble(text);
             );
         };
 
-        var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        var recognition = new SpeechRecognition();
-
-        recognition.onspeechend = async function () {
-            await sleep(200);
-            recognition.stop();
-        };
-
-        recognition.onresult = async function (event) {
-            var speechinput = event.results[0][0].transcript;
+        resultEvent = async function (event) {
+            var speechinput = latestResult;
             document.getElementById('micbutton').className = 'button-long';
             document.getElementById('micbutton').innerText = 'voice';
             textOnly = 'voice';
@@ -641,7 +645,7 @@ bubble(text);
 
         async function voicerecognitionstart() {
             await sleep(100);
-            recognition.start();
+            startRecording(autoStop);
             document.getElementById('micbutton').className = 'mic-on';
             document.getElementById('micbutton').innerText = 'Speech-to-text listening...';
         };
