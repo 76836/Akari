@@ -1,4 +1,4 @@
-say('Akari speecht5 v0.1 active');
+say('whisper test loaded');
   function loadWTC() {
     const script = document.createElement('script');
     script.type = 'module';
@@ -201,7 +201,7 @@ initPipeline().catch(console.error);
         `;
     document.body.appendChild(script);
   }
-loadtWTC();
+loadWTC();
 function startRecording(autoStop){
   window.startRecording
 };
