@@ -635,17 +635,20 @@ bubble(text);
             );
         };
 
-        resultEvent = async function (event) {
-            var speechinput = latestResult;
+
+
+document.addEventListener('transcriptionComplete', (event) => {
+  console.log('Transcription:', event.detail.text);
+  var speechinput = event.detail.text;
             document.getElementById('micbutton').className = 'button-long';
             document.getElementById('micbutton').innerText = 'voice';
             textOnly = 'voice';
             enter(speechinput);
-        };
+});
 
         async function voicerecognitionstart() {
             await sleep(100);
-            startRecording(autoStop);
+            whisperTranscriber.start(true);
             document.getElementById('micbutton').className = 'mic-on';
             document.getElementById('micbutton').innerText = 'Speech-to-text listening...';
         };
