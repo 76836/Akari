@@ -19,18 +19,20 @@
     <p class="title" style="color:darkcyan;">Voice input and synthesis.</p>
 
     <p class="smallertext">Voice input (speech recognition) script:</p>
-    <input class="box" id="voiceinputurl" placeholder="./engine/whisper-tiny-cpu.js" type=text>
-    <button class="setbutton" onclick="setvoiceinput()">(currently disabled) Save Changes</button>
+    <button class="setbutton" onclick="document.getElementById('whisperurl').value = './engine/web-speech-recognition.js';">Browser built-in (Web speech API)</button>
+    <button class="setbutton" onclick="document.getElementById('whisperurl').value = './engine/whisper-tiny-cpu.js';">OpenAI Whisper Tiny English (local download under 500MB)</button>
+    <input class="box" id="whisperurl" placeholder="./engine/whisper-tiny-cpu.js" type=text>
+    <button class="setbutton" onclick="setwhisper()">Save Changes</button>
 
     <p class="smallertext">Voice output (speech synthesis) script:</p>
-    <button class="setbutton" onclick="document.getElementById('voiceurl').value = './engine/web-speech-synthesis.js';">(currently disabled) Browser built-in (Web speech API)</button>
+    <button class="setbutton" onclick="document.getElementById('voiceurl').value = './engine/web-speech-synthesis.js';">Browser built-in (Web speech API)</button>
     <button class="setbutton" onclick="document.getElementById('voiceurl').value = './characters/akari/ProTTS.js';">Akari (SpeechT5 local download) (under 500MB)</button>
     <button class="setbutton" onclick="document.getElementById('voiceurl').value = '';">Disable this feature.</button>
     <input class="box" id="voiceurl" placeholder="~disabled~" type=text>
     <button class="setbutton" onclick="setvoice()">Save Changes</button>
 
     <br><br><br><br>
-    <p class="smallertext">Voice cfg panel v1.0</p>
+    <p class="smallertext">Voice cfg panel v1.1</p>
 
 </body>
 
@@ -120,9 +122,17 @@
     var VoiceScript = localStorage.getItem('selectedVoiceScript');
     document.getElementById('voiceurl').value = VoiceScript;
 
+    var WhisperScript = localStorage.getItem('selectedWhisperScript');
+    document.getElementById('whisperurl').value = WhisperScript;
+
     function setvoice() {
         var Url = document.getElementById('voiceurl').value;
         localStorage.setItem('selectedVoiceScript', Url);
+    };
+
+    function setwhisper() {
+        var Url = document.getElementById('whisperurl').value;
+        localStorage.setItem('selectedWhisperScript', Url);
     };
 
 
