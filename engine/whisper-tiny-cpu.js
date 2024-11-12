@@ -1,3 +1,9 @@
+say('Akari speecht5 v0.1 active');
+  function loadWTC() {
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.textContent = `
+
 import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers';
 
 let mediaRecorder;
@@ -183,3 +189,36 @@ document.addEventListener('transcriptionComplete', () => {
 
 // Initialize the model pipeline on load
 initPipeline().catch(console.error);
+
+
+        // Expose the functions to the global scope
+        window.startRecording = startRecording;
+        window.stopRecording = stopRecording;
+        window.startAutoRecording = startAutoRecording;
+        window.startLiveMode = startLiveMode;
+        window.stopLiveMode = stopLiveMode;
+            
+        `;
+    document.body.appendChild(script);
+  }
+loadtWTC();
+function startRecording(autoStop){
+  window.startRecording
+};
+
+function stopRecording(){
+  window.stopRecording()
+};
+
+function startAutoRecording(){
+  window.startAutoRecording
+};
+
+function startLiveMode(){
+  window.startLiveMode
+};
+
+function stopLiveMode(){
+  window.stopLiveMode
+};
+
