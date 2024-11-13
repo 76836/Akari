@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>speechT5 tts</title>
+    <script type="module">
+        import { AutoTokenizer, AutoProcessor, SpeechT5ForTextToSpeech, SpeechT5HifiGan, Tensor } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers';
+
+        // Define the generateSpeech function
+        async function generateSpeech() {
+            const text = document.getElementById('textInput').value;
+
+           // Load the tokenizer and processor
+const tokenizer = await AutoTokenizer.from_pretrained('Xenova/speecht5_tts/onnx/encoder_model.onnx');
+const processor = await AutoProcessor.from_pretrained('Xenova/speecht5_tts/onnx/decoder_model_merged.onnx');
+
+            // Load the models
+            const model = await SpeechT5ForTextToSpeech.from_pretrained('Xenova/speecht5_tts', { quantized: false });
+const vocoder = await SpeechT5HifiGan.from_pretrained('Xenova/speecht5_hifigan/onnx/model.onnx', { quantized: true });
+
+
+           // Load speaker embeddings from URL
+const speaker_embeddings_data = new Float32Array(
+    await (await fetch('./new_embeddings.bin')).arrayBuffer()
+);
+const speaker_embeddings = new Tensor(
+    'float32',
+    speaker_embeddings_data,
+    [1, speaker_embeddings_data.length]
+)
+            // Run tokenization
+const { input_ids } = tokenizer(text);
+
+            // Generate waveform
+            const { waveform } = await model.generate_speech(input_ids, speaker_embeddings, { vocoder });
+console.log(waveform)
+
+            async function playAudioFromTensor(tensor) {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Create an AudioBuffer
+    const sampleRate = 16000; // Standard sample rate for audio files (you may need to adjust this)
+    const audioBuffer = audioContext.createBuffer(1, tensor.size, sampleRate);
+
+    // Copy tensor data to the AudioBuffer
+    audioBuffer.copyToChannel(tensor.data, 0);
+
+    // Create a source node from the AudioBuffer
+    const source = audioContext.createBufferSource();
+    source.buffer = audioBuffer;
+
+    // Connect the source node to the audio context's destination (speakers)
+    source.connect(audioContext.destination);
+
+    // Play the audio
+    source.start();
+
+    // Add a message to the HTML div
+    const audioContainer = document.getElementById('audio-container');
+    audioContainer.innerHTML = `<p>Playing audio of size: ${tensor.size} samples</p>`;
+  }
+            playAudioFromTensor(waveform);
+        }
+
+
+
+
+        // Expose the function to the global scope
+        window.generateSpeech = generateSpeech;
+    </script>
+</head>
+<body>
+    <h1>Akari AI voice TTS. Debug version.</h1>
+    <textarea style="width:90vw;" id="textInput" rows="4" cols="50" placeholder="Enter text here"></textarea>
+    <br>
+    <button style="width:90vw; height:5vh;" onclick="generateSpeech()">Speak 🗣🗣🔥</button>
+<div id="audio-container"></div>
+</body>
+</html>
