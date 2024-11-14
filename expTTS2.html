@@ -13,11 +13,17 @@
 
            // Load the tokenizer and processor
 const tokenizer = await AutoTokenizer.from_pretrained('Xenova/speecht5_tts/onnx/encoder_model.onnx');
-const processor = await AutoProcessor.from_pretrained('Xenova/speecht5_tts/onnx/decoder_model_merged.onnx');
+const processor = await AutoProcessor.from_pretrained('Xenova/speecht5_tts/onnx/decoder_model_merged.onnx', {
+            from_auto_class: 'AutoTokenizer'
+        });
 
             // Load the models
-            const model = await SpeechT5ForTextToSpeech.from_pretrained('Xenova/speecht5_tts', { quantized: false });
-const vocoder = await SpeechT5HifiGan.from_pretrained('Xenova/speecht5_hifigan/onnx/model.onnx', { quantized: true });
+            const model = await SpeechT5ForTextToSpeech.from_pretrained('Xenova/speecht5_tts', { quantized: false }, {
+            from_auto_class: 'AutoTokenizer'
+        });
+const vocoder = await SpeechT5HifiGan.from_pretrained('Xenova/speecht5_hifigan/onnx/model.onnx', { quantized: true }, {
+            from_auto_class: 'AutoTokenizer'
+        });
 
 
            // Load speaker embeddings from URL
