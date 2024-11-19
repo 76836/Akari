@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WearAkari v1.3</title>
+    <title>WearAkari v1.3b</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -61,7 +61,7 @@
             margin: 0px;
             padding-top: 26vh;
             /* Ensure the first messages are not cropped off */
-            padding-bottom: calc(10px + 42.5vw);
+            padding-bottom: calc(10px + 44.5vw);
         }
 
         .message {
@@ -97,7 +97,7 @@
             justify-content: center;
             align-items: center;
             position: absolute;
-            bottom: 15vh;
+            bottom: 17vh;
             /* Fixed position at the bottom */
         }
 
@@ -181,6 +181,7 @@
         const userInput = document.getElementById('userInput');
         const sendButton = document.getElementById('sendButton');
         const inputContainer = document.getElementById('inputContainer');
+        
 
         function handleInput() {
             if (userInput.value.trim()) {
@@ -233,6 +234,10 @@
             chatContainer.appendChild(messageElement);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
+
+        function bubble_incoming(outcome) {
+            addMessage(outcome, 'user-message');
+        };
 
         var AIScript = localStorage.getItem('selectedAIScript');
         var ReflexScript = localStorage.getItem('selectedReflexScript');
