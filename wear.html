@@ -239,6 +239,10 @@
             addMessage(outcome, 'user-message');
         };
 
+        function bubble(outcome) {
+            say(outcome);
+        };
+
         var AIScript = localStorage.getItem('selectedAIScript');
         var ReflexScript = localStorage.getItem('selectedReflexScript');
         if (AIScript == null || AIScript == "") {
