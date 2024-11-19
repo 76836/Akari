@@ -1,4 +1,4 @@
-say('<em>SmolLM2-135M-Instruct-GGUF on WLlama (adapter v1.0b)<em>');
+say('<em>SmolLM2-135M-Instruct-GGUF on WLlama (adapter v1.0c)<em>');
 function postMessages(messages) {
     messages.forEach(message => {
         if (message.role === "user") {
@@ -34,7 +34,7 @@ var CloudAI = true;
 
 
         let wllama = null;
-        
+        // you have to set a really aggressive prompt for smaller models lol
         // Load chat history from localStorage
         let chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
         if (!chatHistory.length) {
@@ -54,9 +54,9 @@ var CloudAI = true;
                     return \`<|im_start|>user\n\${msg.content}<|im_end|>\n\`;
                 } else if (msg.role === 'assistant') {
                     return \`<|im_start|>assistant\n\${msg.content}<|im_end|>\n\`;
-                }
+                };
                 return '';
-            }).join('') + '<|im_start|>assistant\n';
+            }).join('') + \`<|im_start|>assistant\n\`;
         }
 
         // Initialize Wllama and load model
