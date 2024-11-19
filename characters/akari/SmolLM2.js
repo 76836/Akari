@@ -1,4 +1,4 @@
-say('<em>SmolLM2-135M-Instruct-GGUF on WLlama (adapter v1.0c)<em>');
+say('<em>SmolLM2-135M-Instruct-GGUF on WLlama (adapter v1.0d)<em>');
 function postMessages(messages) {
     messages.forEach(message => {
         if (message.role === "user") {
@@ -60,7 +60,7 @@ var CloudAI = true;
         }
 
         // Initialize Wllama and load model
-        body.onload = async () => {
+        document.body.onload = async () => {
             console.log(\`Loading \${MODEL_SIZE} model...\`);
             
             try {
