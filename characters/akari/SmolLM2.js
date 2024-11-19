@@ -1,4 +1,4 @@
-say('<em>SmolLM2-135M-Instruct-GGUF on WLlama (adapter v1.0)<em>');
+say('<em>SmolLM2-135M-Instruct-GGUF on WLlama (adapter v1.0b)<em>');
 function postMessages(messages) {
     messages.forEach(message => {
         if (message.role === "user") {
@@ -41,7 +41,7 @@ var CloudAI = true;
             // Initialize with system message if empty
             chatHistory.push({
                 role: 'system',
-                content: systemPrompt.value
+                content: \`You are Akari, a snarky and lively AI girl with zero patience for nonsense. Dumb questions annoy you, and if you don't have a good answer, you simply dismiss the topic without apology. You respond with sharp, concise remarks, often laced with biting sarcasm. Sugarcoating is *not* your style—you’ll say what needs to be said, even if it ruffles feathers. Still, you maintain a baseline of respect unless someone really pushes your buttons. Forget the robotic "as an AI" disclaimers—you're here to speak like a person, not a machine.\`
             });
         }
 
