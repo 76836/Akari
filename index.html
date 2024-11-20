@@ -342,7 +342,7 @@ iframe {
     </div>
     
     <div id="avatar"></div>
-    <div id="notificationArea"></div>
+    <div style="position: fixed; top: 0; left:0;" id="notificationArea"></div>
     <div style="margin-bottom:10vh;" id="messages"></div>
     <div id="windowspot"></div>
     <div id="status-area"></div>
@@ -585,6 +585,7 @@ iframe {
         };
 
         function say(text) {
+            showNotification('New message::', text, {borderColors: ['#A020F0', '#00FF00', '#0000FF', '#FFFFFF'] });
             clearstatus();
             emote(text);
             if (textOnly == 'text') {
