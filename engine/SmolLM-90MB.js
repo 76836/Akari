@@ -3,11 +3,13 @@
         const script = document.createElement('script');
         script.type = 'module';
         script.textContent = `
-        // Configuration
+        // Configuration - matching the official example exactly
         const CONFIG_PATHS = {
+            'single-thread/wllama.js': '../Mukumi/esm/single-thread/wllama.js',
+            'single-thread/wllama.wasm': '../Mukumi/esm/single-thread/wllama.wasm',
             'multi-thread/wllama.js': '../Mukumi/esm/multi-thread/wllama.js',
             'multi-thread/wllama.wasm': '../Mukumi/esm/multi-thread/wllama.wasm',
-            'multi-thread/wllama.worker.js': '../Mukumi/esm/multi-thread/wllama.worker.js'
+            'multi-thread/wllama.worker.mjs': '../Mukumi/esm/multi-thread/wllama.worker.mjs'
         };
         
         const MODEL_URL = 'https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF/resolve/main/SmolLM2-135M-Instruct-IQ3_M.gguf';
@@ -35,20 +37,22 @@
             }).join('') + \`<|im_start|>assistant\n\`;
         }
 
-        // Initialize Wllama with multi-threading
+        // Initialize Wllama with proper configuration
         document.body.onload = async () => {
             console.log(\`Loading \${MODEL_SIZE} model...\`);
             
             try {
                 const { Wllama } = await import('../Mukumi/esm/index.js');
-                wllama = new Wllama(CONFIG_PATHS, {
-                    numThreads: navigator.hardwareConcurrency || 4, // Use available CPU cores
-                    useWorker: true, // Enable Web Worker for background processing
-                    batchSize: 512, // Adjust based on your needs
-                    contextSize: 2048 // Adjust based on your needs
+                // Initialize with both single and multi-thread configurations
+                wllama = new Wllama(CONFIG_PATHS);
+                
+                // Load the model with specific options
+                await wllama.loadModelFromUrl(MODEL_URL, {
+                    numThreads: navigator.hardwareConcurrency || 4,
+                    batchSize: 512,
+                    contextSize: 2048
                 });
                 
-                await wllama.loadModelFromUrl(MODEL_URL);
                 say(\`Model loaded (\${MODEL_SIZE}) with \${navigator.hardwareConcurrency || 4} threads\`);
             } catch (error) {
                 console.error('Error loading model:', error);
@@ -90,8 +94,6 @@
                     onNewToken: (token, piece, currentText) => {
                         fullResponse = currentText;
                     },
-                    parallelRequests: 2, // Enable parallel processing
-                    batchProcessing: true // Enable batch processing
                 });
 
                 chatHistory.push({ role: 'assistant', content: fullResponse });
