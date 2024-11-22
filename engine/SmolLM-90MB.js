@@ -1,51 +1,27 @@
-say('SmolLM2-135M-Instruct-IQ3_M.gguf on WLlama (adapter v1.0)');
-function postMessages(messages) {
-    messages.forEach(message => {
-        if (message.role === "user") {
-            bubble_incoming(message.content);
-        } else if (message.role === "assistant") {
-            bubble(message.content);
-        }
-    });
-};
-let chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
-
-// change the chat history key here too
-
-postMessages(chatHistory);
-//loadscreen('restored chat history');
-var CloudAI = true;
 (function () {
-
     function loadGenerativeAI(apiKey) {
         const script = document.createElement('script');
         script.type = 'module';
         script.textContent = `
-
         // Configuration
         const CONFIG_PATHS = {
-            'single-thread/wllama.js': '../Mukumi/esm/single-thread/wllama.js',
-            'single-thread/wllama.wasm': '../Mukumi/esm/single-thread/wllama.wasm'
+            'multi-thread/wllama.js': '../Mukumi/esm/multi-thread/wllama.js',
+            'multi-thread/wllama.wasm': '../Mukumi/esm/multi-thread/wllama.wasm',
+            'multi-thread/wllama.worker.js': '../Mukumi/esm/multi-thread/wllama.worker.js'
         };
-        
         
         const MODEL_URL = 'https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF/resolve/main/SmolLM2-135M-Instruct-IQ3_M.gguf';
         const MODEL_SIZE = '90MB';
 
-
         let wllama = null;
-        // you have to set a really aggressive prompt for smaller models lol
-        // Load chat history from localStorage
         let chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
         if (!chatHistory.length) {
-            // Initialize with system message if empty
             chatHistory.push({
                 role: 'system',
                 content: \`You are Akari\`
             });
         }
 
-        // Format chat history for the model
         function formatChatPrompt(messages) {
             return messages.map(msg => {
                 if (msg.role === 'system') {
@@ -54,57 +30,54 @@ var CloudAI = true;
                     return \`<|im_start|>user\n\${msg.content}<|im_end|>\n\`;
                 } else if (msg.role === 'assistant') {
                     return \`<|im_start|>assistant\n\${msg.content}<|im_end|>\n\`;
-                };
+                }
                 return '';
             }).join('') + \`<|im_start|>assistant\n\`;
         }
 
-        // Initialize Wllama and load model
+        // Initialize Wllama with multi-threading
         document.body.onload = async () => {
             console.log(\`Loading \${MODEL_SIZE} model...\`);
             
             try {
                 const { Wllama } = await import('../Mukumi/esm/index.js');
-                wllama = new Wllama(CONFIG_PATHS);
-                await wllama.loadModelFromUrl(MODEL_URL);
+                wllama = new Wllama(CONFIG_PATHS, {
+                    numThreads: navigator.hardwareConcurrency || 4, // Use available CPU cores
+                    useWorker: true, // Enable Web Worker for background processing
+                    batchSize: 512, // Adjust based on your needs
+                    contextSize: 2048 // Adjust based on your needs
+                });
                 
-                say(\`Model loaded (\${MODEL_SIZE})\`);
+                await wllama.loadModelFromUrl(MODEL_URL);
+                say(\`Model loaded (\${MODEL_SIZE}) with \${navigator.hardwareConcurrency || 4} threads\`);
             } catch (error) {
                 console.error('Error loading model:', error);
             }
         };
 
-
-
         globalThis.GenerateResponse = async function (hinp) {
             const chatHistoryKey = 'chatHistory';
-            const maxCharacters = 1000; // Set your desired character limit here
+            const maxCharacters = 1000;
         
-            // Retrieve chat history from localStorage
             let chatHistory = JSON.parse(localStorage.getItem(chatHistoryKey)) || [];
         
-            // Ensure chat history does not exceed maxCharacters
             let totalCharacters = chatHistory.reduce((acc, message) => acc + message.content.length, 0);
             while (totalCharacters > maxCharacters) {
                 const removedMessage = chatHistory.shift();
                 totalCharacters -= removedMessage.content.length;
             }
         
-            // Save updated chat history back to localStorage
             localStorage.setItem(chatHistoryKey, JSON.stringify(chatHistory));
 
             const message = hinp;
             if (!message || !wllama) return;
 
-            // Add user message
             chatHistory.push({ role: 'user', content: message });
 
             try {
-                // Format the entire conversation history
                 const prompt = formatChatPrompt(chatHistory);
-                console.log('Formatted prompt:', prompt); // For debugging
+                console.log('Formatted prompt:', prompt);
 
-                // Get AI response with streaming
                 let fullResponse = '';
                 await wllama.createCompletion(prompt, {
                     nPredict: 512,
@@ -116,15 +89,14 @@ var CloudAI = true;
                     stopPrompts: ['<|im_end|>', '<|im_start|>'],
                     onNewToken: (token, piece, currentText) => {
                         fullResponse = currentText;
-                        
                     },
+                    parallelRequests: 2, // Enable parallel processing
+                    batchProcessing: true // Enable batch processing
                 });
 
-                // Save the complete response
                 chatHistory.push({ role: 'assistant', content: fullResponse });
                 localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
                 console.log(fullResponse);
-                const { content } = fullResponse;
                 say(fullResponse);
                 return fullResponse;
             } catch (error) {
@@ -132,20 +104,11 @@ var CloudAI = true;
                 say('Error generating response');
             }
         }
-
-
-
-
-
-
         `;
         document.body.appendChild(script);
     }
 
-    // Main execution block
     (function initialize() {
-
         loadGenerativeAI();
-
     })();
 })();
