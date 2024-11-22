@@ -1,4 +1,4 @@
-say('<em>SmolLM2-135M-Instruct-GGUF on WLlama (adapter v1.0d)<em>');
+say('SmolLM2-135M-Instruct on WLlama (adapter v1.1)');
 function postMessages(messages) {
     messages.forEach(message => {
         if (message.role === "user") {
@@ -25,7 +25,10 @@ var CloudAI = true;
         // Configuration
         const CONFIG_PATHS = {
             'single-thread/wllama.js': '../Mukumi/esm/single-thread/wllama.js',
-            'single-thread/wllama.wasm': '../Mukumi/esm/single-thread/wllama.wasm'
+            'single-thread/wllama.wasm': '../Mukumi/esm/single-thread/wllama.wasm',
+            'multi-thread/wllama.js'        : '../Mukumi/esm/multi-thread/wllama.js',
+            'multi-thread/wllama.wasm'      : '../Mukumi/esm/multi-thread/wllama.wasm',
+            'multi-thread/wllama.worker.mjs': '../Mukumi/esm/multi-thread/wllama.worker.mjs'
         };
         
         
