@@ -1,4 +1,4 @@
-say('SmolLM2-135M-Instruct on WLlama (adapter v1.1)');
+say('SmolLM2-135M-Instruct on WLlama (adapter v1.1b)');
 function postMessages(messages) {
     messages.forEach(message => {
         if (message.role === "user") {
@@ -24,11 +24,11 @@ var CloudAI = true;
 
         // Configuration
         const CONFIG_PATHS = {
-            'single-thread/wllama.js': '../Mukumi/esm/single-thread/wllama.js',
-            'single-thread/wllama.wasm': '../Mukumi/esm/single-thread/wllama.wasm',
-            'multi-thread/wllama.js'        : '../Mukumi/esm/multi-thread/wllama.js',
-            'multi-thread/wllama.wasm'      : '../Mukumi/esm/multi-thread/wllama.wasm',
-            'multi-thread/wllama.worker.mjs': '../Mukumi/esm/multi-thread/wllama.worker.mjs'
+            'single-thread/wllama.js': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@1.17.1/esm/single-thread/wllama.js',
+            'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@1.17.1/esm/single-thread/wllama.wasm',
+            'multi-thread/wllama.js'        : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@1.17.1/esm/multi-thread/wllama.js',
+            'multi-thread/wllama.wasm'      : 'https://cdn.jsdelivr.net/npm/@wllama/wllama@1.17.1/esm/multi-thread/wllama.wasm',
+            'multi-thread/wllama.worker.mjs': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@1.17.1/esm/multi-thread/wllama.worker.mjs'
         };
         
         
@@ -67,7 +67,7 @@ var CloudAI = true;
             console.log(\`Loading \${MODEL_SIZE} model...\`);
             
             try {
-                const { Wllama } = await import('../Mukumi/esm/index.js');
+                const { Wllama } = await import('https://cdn.jsdelivr.net/npm/@wllama/wllama@1.17.1/esm/index.js');
                 wllama = new Wllama(CONFIG_PATHS);
                 await wllama.loadModelFromUrl(MODEL_URL);
                 
