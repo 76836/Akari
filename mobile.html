@@ -1,0 +1,907 @@
+<!DOCTYPE HTML>
+<html id="html">
+
+<head>
+    <title>Akari 2.3</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="./app.webmanifest">
+    <meta charset="utf-8" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+    <link rel="shortcut icon" href="./favicon.ico">
+    <meta name="msapplication-TileColor" content="#603cba">
+    <meta name="theme-color" content="#000000">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+    <style>
+:root {
+      --notification-bg: rgba(32, 33, 36, 0.65);
+      --notification-text: #fff;
+      --notification-subtext: rgba(205, 205, 255, 0.8);
+    }
+
+    .notification-container {
+      position: fixed;
+      top: 100px;
+      right: calc(-100vw + 352px);
+      margin: 0;
+      padding: 16px;
+      background: var(--notification-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom-left-radius: 12px;
+      border-top-left-radius: 12px;
+      width: 320px;
+      transform: translateX(100%);
+      opacity: 0;
+      transition: transform 0.4s cubic-bezier(0.2, 0, 0, 1),
+                  opacity 0.3s ease-in-out;
+      z-index: 28;
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      color: var(--notification-text);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .notification-container.show {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    .notification-container.animated-border {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .notification-container.animated-border::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 3px solid transparent;
+      border-right: none;
+      border-top-right-radius: 0;
+      border-top-left-radius: 12px;
+      border-bottom-left-radius: 12px;
+      background: linear-gradient(var(--notification-bg), var(--notification-bg)) padding-box,
+                  repeating-linear-gradient(var(--angle, 0deg), var(--border-colors)) border-box;
+      -webkit-mask: linear-gradient(#fff 0 0) padding-box,
+                   linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) padding-box,
+            linear-gradient(#fff 0 0);
+      -webkit-mask-composite: destination-out;
+      mask-composite: exclude;
+      animation: rotate 4s linear infinite,
+                 glow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes rotate {
+      0% {
+        --angle: 0deg;
+      }
+      100% {
+        --angle: 360deg;
+      }
+    }
+
+    @keyframes glow {
+      0% {
+        filter: drop-shadow(0 0 15px rgba(var(--glow-color), 1))
+               drop-shadow(0 0 30px rgba(var(--glow-color), 0.8))
+               drop-shadow(0 0 45px rgba(var(--glow-color), 0.6));
+      }
+      100% {
+        filter: drop-shadow(0 0 25px rgba(var(--glow-color), 1))
+               drop-shadow(0 0 50px rgba(var(--glow-color), 0.8))
+               drop-shadow(0 0 75px rgba(var(--glow-color), 0.6));
+      }
+    }
+
+    @property --angle {
+      syntax: '<angle>';
+      initial-value: 0deg;
+      inherits: false;
+    }
+
+    .notification-image {
+      width: 48px;
+      height: 48px;
+      object-fit: cover;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .notification-content {
+      flex-grow: 1;
+      margin-right: 24px;
+    }
+
+    .notification-title {
+      font-weight: bold;
+      margin-bottom: 4px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .notification-body {
+      color: var(--notification-subtext);
+    }
+
+    .notification-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 20px;
+      height: 20px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .notification-close:hover {
+      opacity: 1;
+    }
+
+    .notification-close::before,
+    .notification-close::after {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 2px;
+      background: var(--notification-text);
+      transform: rotate(45deg);
+    }
+
+    .notification-close::after {
+      transform: rotate(-45deg);
+    }
+     
+        
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: auto;
+            background-color: black;
+            opacity: 1;
+            transition: opacity 1s ease-out;
+            z-index: 29;
+            border: 0;
+        }
+
+
+        .console {
+            color: white;
+            font-size: large;
+        }
+
+        body {
+            background-color: black;
+            overflow-x: hidden;
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+            word-wrap: break-word;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            margin: 0;
+        }
+
+        .iframe-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -100;
+            margin: 0;
+        }
+
+        iframe {
+            border: none;
+        }
+
+        .speak-btn {
+            background-color: #4CAF50;
+            /* Green */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+
+        .speak-btn:hover {
+            background-color: #45a049;
+            /* Darker green on hover */
+        }
+
+        .windowstyle {
+            border: 4px solid #111111;
+            background-color: transparent;
+            margin: 0%;
+            margin-top: calc(5vh - 5px);
+            width: 90vw;
+            height: 90vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            margin-left: calc(5vw - 5px);
+            margin-right: 5vw;
+            z-index: 30;
+            border-radius: 2vh;
+        }
+
+        .buttonstyle {
+            border: 4px solid crimson;
+            margin: 0%;
+            width: 8vh;
+            height: 8vh;
+            background-color: darkred;
+            font-size: x-large;
+            color: white;
+            border-radius: 2vh;
+            z-index: 31;
+            position: fixed;
+            bottom: calc(5vh + 25px);
+            right: calc(5vw + 25px);
+            transition-duration: 0.3s;
+        }
+
+        .typingnotifier {
+            padding: 5px 10px;
+            border-radius: 20px;
+            background-color: transparent;
+            background-image: linear-gradient(to right, #005050, transparent);
+            color: crimson;
+            font-weight: bold;
+            background-repeat: repeat-x;
+            background-size: auto 100%;
+            text-align: left;
+            line-height: 30px;
+            font-size: x-large;
+            position: fixed;
+            bottom: 54px;
+            left: 7px;
+            width: 45vw;
+            border: 0;
+            overflow: hidden;
+        }
+
+        .responsetxt {
+            display: inline-block;
+            padding: 10px 15px;
+            border-radius: 0px 20px 20px 20px;
+            background-color: transparent;
+            background-image: linear-gradient(to right, rgba(255, 55, 55, 0.5), rgba(77, 255, 255, 0.4), rgba(128, 0, 128, 0.3), rgba(9, 9, 9, 0.2));
+            background-repeat: repeat-x;
+            background-size: auto 100%;
+            text-align: center;
+            line-height: 30px;
+            font-size: large;
+            border: 2px solid black;
+            margin-right: 150px;
+            width: 60vw;
+            z-index: 20;
+            margin-bottom: 55px;
+        }
+
+        .command {
+            padding: 10px 15px;
+            border-radius: 20px 20px 0px 20px;
+            background-color: #111;
+            background-repeat: repeat-x;
+            background-size: auto 100%;
+            text-align: center;
+            line-height: 30px;
+            font-size: large;
+            float: right;
+            border: 2px solid black;
+            margin-left: 150px;
+            width: 60vw;
+            z-index: 20;
+            margin-bottom: 55px;
+        }
+
+        .box {
+            padding: 5px 10px;
+            border-radius: 20px;
+            background-color: transparent;
+            background-image: linear-gradient(to right, #111111, #003333, transparent);
+            color: white;
+            background-repeat: repeat-x;
+            background-size: auto 100%;
+            text-align: left;
+            line-height: 30px;
+            font-size: x-large;
+            position: fixed;
+            bottom: calc(7px + 5vh);
+            left: calc(10vw + 7px);
+            width: calc(80vw - 140px);
+            border: 0;
+            border: 2px solid black;
+            z-index: 21;
+        }
+
+        .button-menu {
+            padding: 10px 20px;
+            border-radius: 20px;
+            background-color: #003333;
+            color: cyan;
+            background-repeat: repeat-x;
+            background-size: auto 100%;
+            text-align: center;
+            line-height: 30px;
+            font-size: large;
+            position: fixed;
+            bottom: calc(7px + 35vh + 7px);
+            right: calc(5vw + 7px);
+            width: 50px;
+            border: 0;
+            overflow: hidden;
+            border: 0px solid black;
+            z-index: 1000;
+        }
+
+        .button-expand {
+            padding: 10px 10px;
+            border-radius: 20px;
+            background-color: #003333;
+            color: cyan;
+            background-repeat: repeat-x;
+            background-size: auto 100%;
+            text-align: center;
+            line-height: 30px;
+            font-size: large;
+            position: fixed;
+            bottom: calc(7px + 35vh + 7px);
+            right: calc(5vw + 64px);
+            width: 50px;
+            border: 0;
+            overflow: hidden;
+            border: 0px solid black;
+            z-index: 1000;
+        }
+
+        .button-phone {
+            padding: 10px 20px;
+            border-radius: 20px;
+            background-color: #003333;
+            color: cyan;
+            background-repeat: repeat-x;
+            background-size: auto 100%;
+            text-align: center;
+            line-height: 30px;
+            font-size: large;
+            position: fixed;
+            bottom: calc(7px + 35vh + 7px);
+            left: calc(5vw + 7px);
+            width: 75px;
+            border: 0;
+            overflow: hidden;
+            border: 0px solid black;
+            z-index: 1000;
+        }
+
+        .mic-on {
+            padding: 5px 10px;
+            border-radius: 20px;
+            background-color: red;
+            color: white;
+            background-repeat: repeat-x;
+            background-size: auto 100%;
+            text-align: center;
+            line-height: 60px;
+            font-size: x-large;
+            position: fixed;
+            bottom: 7px;
+            left: 7px;
+            width: calc(100vw - 14px);
+            border: 0;
+            overflow: hidden;
+            border: 2px solid black;
+            z-index: 22;
+        }
+
+        .uipanel {
+            position: fixed;
+            margin: 0;
+            padding: 0;
+            width: 90vw;
+            left: 5vw;
+            height: 30vh;
+            bottom: 5vh;
+            background-color: #003333;
+            border-radius: 20px;
+            overflow: scroll;
+            z-index: 19;
+        }
+
+        .pttbutton {
+            position: fixed;
+            margin: 0;
+            padding: 0;
+            width: 90vw;
+            text-align: left;
+            font-size: x-large;
+            font-weight: bolder;
+            left: 5vw;
+            border: 0;
+            padding-left: 2.5vw;
+            height: 10vh;
+            bottom: 5vh;
+            background-image: linear-gradient(to right, rgba(81, 112, 255, 1), rgba(255, 102, 196, 1));
+            border-radius: 20px;
+            overflow: scroll;
+            z-index: 19;
+        }
+
+        .endbutton {
+            position: fixed;
+            margin: 0;
+            padding: 0;
+            width: 10vh;
+            right: 5vw;
+            text-align: center;
+            font-size: x-large;
+            border: 0;
+            height: 10vh;
+            bottom: 5vh;
+            background-color: red;
+            border-radius: 20px;
+            overflow: scroll;
+            z-index: 19;
+        }
+
+        .button-long {
+            padding: 5px 10px;
+            border-radius: 20px;
+            background-color: #111111;
+            color: cyan;
+            background-repeat: repeat-x;
+            background-size: auto 100%;
+            text-align: center;
+            line-height: 30px;
+            font-size: x-large;
+            position: fixed;
+            bottom: calc(5vh + 7px);
+            right: calc(10vw + 7px);
+            width: 100px;
+            border: 0;
+            overflow: hidden;
+            border: 2px solid black;
+            z-index: 21;
+        }
+
+        .hidden {
+            position: fixed;
+            top: 0;
+            z-index: -100;
+            visibility: hidden;
+        }
+    </style>
+</head>
+
+<body onclick="clickoff();">
+    <div id="overlay">
+        <div class="console" id="output"></div>
+        <script>
+ function showNotification(title, message, options = {}) {
+      const {
+        duration = 5000,
+        borderColor,
+        borderColors,
+        image
+      } = options;
+
+      // Remove existing notification if present
+      const existingNotification = document.querySelector('.notification-container');
+      if (existingNotification) {
+        existingNotification.remove();
+      }
+
+      // Create notification elements
+      const notification = document.createElement('div');
+      notification.className = 'notification-container';
+      
+      // Handle border styling
+      if (borderColors && borderColors.length > 1) {
+        notification.classList.add('animated-border');
+        notification.style.setProperty('--border-colors', borderColors.join(', '));
+        const glowColor = borderColors[0].match(/\d+/g).join(',');
+        notification.style.setProperty('--glow-color', glowColor);
+      } else if (borderColor) {
+        notification.classList.add('animated-border');
+        notification.style.setProperty('--border-colors', `${borderColor}, ${borderColor}`);
+        const glowColor = borderColor.match(/\d+/g).join(',');
+        notification.style.setProperty('--glow-color', glowColor);
+      }
+
+      // Create HTML content
+      const imageHtml = image ? `<img src="${image}" class="notification-image" alt="Notification image">` : '';
+      
+      notification.innerHTML = `
+        ${imageHtml}
+        <div class="notification-content">
+          <div class="notification-title">${title}</div>
+          <div class="notification-body">${message}</div>
+        </div>
+        <button class="notification-close" aria-label="Close notification"></button>
+      `;
+
+      // Add to DOM
+      //document.body.appendChild(notification);
+      var element = document.getElementById("notificationArea");
+      element.prepend(notification);
+
+      // Trigger sliding animation
+      requestAnimationFrame(() => notification.classList.add('show'));
+
+      // Setup close button
+      const closeButton = notification.querySelector('.notification-close');
+      closeButton.addEventListener('click', () => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 400);
+      });
+
+      // Auto-dismiss after duration
+      if (duration) {
+        setTimeout(() => {
+          if (notification.parentElement) {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 400);
+          }
+        }, duration);
+      }
+    }
+            
+            
+            async function loadscreen(message) {
+                document.getElementById('output').innerHTML = message;
+                showNotification('System status updated:', message, {borderColors: ['#00FFFF', '#00FF00', '#0000FF', '#FFFFFF'] });
+            };
+            loadscreen("Akari 2.3 starting...");
+        </script>
+    </div>
+
+    <div id="avatar"></div>
+    <div style="position: fixed; top: 0; left:0;" id="notificationArea"></div>
+    <div id="windowspot"></div>
+    <div id="status-area"></div>
+    <button class="hidden" id="pttbutton" onpointerdown="textOnly = 'voice'; startListening();" onpointerup="stopListening();">PTT</button>
+    <button class="hidden" id="endbutton" onclick="endcall();">End.</button>
+    <div id="uidiv" class="uipanel">
+        <div id="messages"></div>
+        <button class="button-expand" onclick="document.documentElement.requestFullscreen();">⛶</button>
+        <button class="button-menu" onclick="newwindow('./settings');">⁝</button>
+        <button class="button-phone" onclick="startcall();">၊|၊|။</button>
+
+        <button class="button-long" id="micbutton" onclick="goakari();">voice</button>
+        <form><input type="text" id="box" class="box" placeholder="What's up?"
+                onclick="setTimeout(function () {document.getElementById('micbutton').innerText='send'; }, 100);"></input>
+        </form>
+    </div>
+
+    <script>
+        function clickoff() {
+            document.getElementById('micbutton').className = 'button-long';
+            document.getElementById('micbutton').innerText = 'voice';
+            recognition.stop();
+        };
+        function goakari() {
+            if (document.getElementById('box').value) {
+                textOnly = 'text';
+                enter(document.getElementById('box').value);
+                document.getElementById('box').value = '';
+                setTimeout(function () { document.getElementById('micbutton').innerText = 'sent'; }, 10);
+                setTimeout(function () { document.getElementById('micbutton').innerText = 'voice'; }, 1500);
+            } else {
+                if (document.getElementById('micbutton').innerText == 'send') {
+                    setTimeout(function () { document.getElementById('micbutton').innerText = 'no'; }, 10);
+                    return;
+                };
+                voicerecognitionstart();
+            };
+        };
+
+        async function processquery() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('q');
+            if (query !== null) {
+                console.log('Query string found.');
+                loadscreen("[ok] ✅ Processing url query.");
+                bubble_incoming(query);
+                bubble("⚠️ Responding to URL query. <br><button onclick='newwindow(`data:text/html,<style>body{background-color:black; color:white;}</style><h1>URL queries</h1> <br> <h2>You can send a message to Akari instantly upon loading by adding ?q=your message here to Akaris url.<br> When this feature is used Akari system will detect it and warn you.<h2>`);'>?</button>");
+                respond(query);
+            } else {
+                console.log('No query string found.');
+            };
+        };
+
+        // Add the fade-out class after 3 seconds
+        document.addEventListener("DOMContentLoaded", function () {
+            setTimeout(function () {
+                document.getElementById('overlay').classList.add('fade-out');
+                console.log('UI loaded.');
+                processquery();
+                loadscreen("[ok] Interface ready.");
+                say(getGreetingByTime());
+            }, 1000);
+            setTimeout(function () {
+                document.getElementById('overlay').classList.add('noindex');
+            }, 1500);
+        });
+
+        document.getElementById('box').onkeydown = function (event) {
+            var e = event || window.event;
+            if (e.keyCode == 13) {
+                textOnly = 'text';
+                enter(document.getElementById('box').value);
+                document.getElementById('box').value = '';
+                return false;
+            }
+        };
+
+        var VoiceScript = localStorage.getItem('selectedVoiceScript');
+        var AvatarScript = localStorage.getItem('selectedAvatarScript');
+        var WhisperScript = localStorage.getItem('selectedWhisperScript');
+        var AIScript = localStorage.getItem('selectedAIScript');
+        var ReflexScript = localStorage.getItem('selectedReflexScript');
+        var BKGURL = localStorage.getItem('selectedBKGURL');
+        var AI_is_enabled = localStorage.getItem('selectedAISetting');
+        // added reflex and wake scripts
+        // custom css now too 
+
+        var textOnly = 'text';
+        var serverStatus = "disconnected";
+        // Should I move AI server connection to a seperate script? I think I will.
+
+        if (AI_is_enabled == null || AI_is_enabled == "") {
+            AI_is_enabled = "No";
+        };
+        if (AI_is_enabled == "Yes") {
+            var socket = new WebSocket("ws://localhost:8765");
+
+            socket.onmessage = function (event) {
+                console.log("[OK]Received from server:", event.data);
+                say(event.data);
+            };
+
+            socket.onopen = function (event) {
+                console.log("[OK]Connected to WebSocket server.");
+                loadscreen("[ok] A.I. services are connected.");
+                serverStatus = "connected";
+                // Send a message to the server
+                socket.send("test");
+            };
+        } else {
+            console.log('[ok] AI services are disabled');
+            loadscreen("[ok] A.I. services are disabled.");
+        };
+
+        if (BKGURL == null || BKGURL == "") {
+            BKGURL = "../squares";
+        };
+
+        var url = BKGURL;
+        // Function to check if the URL is an image
+        function isImage(url) {
+            return (url.match(/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i) != null);
+        }
+
+        // Function to set the background as an image
+        function setBackgroundImage(url) {
+            document.body.style.backgroundImage = `url('${url}')`;
+            document.body.style.backgroundSize = 'cover';
+            document.body.style.backgroundPosition = 'center';
+        }
+
+        // Function to set the background as an iframe
+        function setIframe(url) {
+            const iframe = document.createElement('iframe');
+            iframe.src = url;
+            iframe.classList.add('iframe-container');
+            document.body.appendChild(iframe);
+        }
+
+        // Determine if the URL is an image or a webpage and set the background accordingly
+        if (isImage(url)) {
+            setBackgroundImage(url);
+        } else {
+            setIframe(url);
+        }
+        loadscreen("[ok] Background loaded.");
+        console.log('Background image loaded from persistent settings: ' + BKGURL);
+
+        if (AvatarScript == null || AvatarScript == "") {
+            AvatarScript = null;
+        };
+        if (AIScript == null || AIScript == "") {
+            AIScript = null;
+        };
+
+        if (WhisperScript == null || WhisperScript == "") {
+            WhisperScript = "./engine/web-speech-recognition.js";
+        };
+
+        if (ReflexScript == null || ReflexScript == "") {
+            ReflexScript = "./characters/akari/response.js";
+            loadscreen("[ok] Using Akari (default) reflex module.");
+        };
+
+        if (VoiceScript == null || VoiceScript == "") {
+            VoiceScript = null;
+        };
+
+        if (VoiceScript) {
+            var ExJS1 = document.createElement("script");
+            ExJS1.src = VoiceScript;
+            var head = document.getElementsByName("head")[0];
+            document.head.appendChild(ExJS1);
+            console.log('VoiceScript =' + VoiceScript);
+            loadscreen("[ok] Speech synthesis module loaded.");
+        };
+        if (AIScript) {
+            var ExJS2 = document.createElement("script");
+            ExJS2.src = AIScript;
+            head = document.getElementsByName("head")[0];
+            document.head.appendChild(ExJS2);
+            console.log('AIScript =' + AIScript);
+            loadscreen("[ok] AI script loaded.");
+        };
+        if (AvatarScript) {
+            var ExJS3 = document.createElement("script");
+            ExJS3.src = AvatarScript;
+            head = document.getElementsByName("head")[0];
+            document.head.appendChild(ExJS3);
+            console.log('AvatarScript =' + AvatarScript);
+            loadscreen("[ok] Avatar initialized.");
+        };
+
+        if (ReflexScript) {
+            var ExJS5 = document.createElement("script");
+            ExJS5.src = ReflexScript;
+            head = document.getElementsByName("head")[0];
+            document.head.appendChild(ExJS5);
+            console.log('ReflexScript =' + ReflexScript);
+            loadscreen("[ok] Reflex module loaded.");
+        };
+
+        if (WhisperScript) {
+            var ExJS6 = document.createElement("script");
+            ExJS6.src = WhisperScript;
+            head = document.getElementsByName("head")[0];
+            document.head.appendChild(ExJS6);
+            console.log('WhisperScript =' + WhisperScript);
+            loadscreen("[ok] Speech recognition script loaded.");
+        };
+
+        //integrated functions
+        function bubble(text) {
+            var Outgoing = '<p class="responsetxt">' + '<button class="speak-btn" onclick="speak(\'' + text + '\')">🔊</button><br>' + text + '</p><br>';
+            var messages = document.getElementById('messages');
+            messages.insertAdjacentHTML('beforebegin', Outgoing);
+            window.scrollTo(0, document.body.scrollHeight);
+        };
+
+        function say(text) {
+            showNotification('New message::', text, {borderColors: ['#A020F0', '#00FF00', '#0000FF', '#FFFFFF'] });
+            clearstatus();
+            emote(text);
+            if (textOnly == 'text') {
+                bubble(text);
+            } else {
+                bubble(text);
+                speak(text);
+            }
+        };
+
+        function emote(text) {
+            localStorage.setItem("emote", text);
+        };
+
+        function bubble_incoming(outcome) {
+            var incoming = '<p class="command">' + outcome + '</p><br><br><br>';
+            var messages = document.getElementById('messages');
+            messages.insertAdjacentHTML('beforebegin', incoming);
+            var objDiv = document.getElementById("uidiv");
+            objDiv.scrollTop = objDiv.scrollHeight;
+        };
+
+        function enter(input) {
+            bubble_incoming(input);
+            respond(input);
+        };
+
+        function startcall() {
+            const hideUI = document.getElementById('uidiv');
+            hideUI.className = 'hidden';
+            const showUI = document.getElementById('pttbutton');
+            showUI.className = 'pttbutton';
+            const showUI2 = document.getElementById('endbutton');
+            showUI2.className = 'endbutton';
+            document.documentElement.requestFullscreen();
+        }
+
+        function endcall() {
+            const hideUI = document.getElementById('uidiv');
+            hideUI.className = 'uipanel';
+            const showUI = document.getElementById('pttbutton');
+            showUI.className = 'hidden';
+            const showUI2 = document.getElementById('endbutton');
+            showUI2.className = 'hidden';
+            document.exitFullscreen();
+        }
+
+        function newwindow(weblocation) {
+            var windowcode = '<iframe src="' + weblocation + '" class="windowstyle"></iframe><button class="buttonstyle" onclick="closewindow();">X</button>';
+            var spot = document.getElementById('windowspot');
+            spot.innerHTML = windowcode;
+        };
+        function closewindow() {
+            var spot = document.getElementById('windowspot');
+            spot.innerHTML = '';
+        };
+
+        function typing(subject) {
+            loadscreen(subject + " is typing...");
+        };
+
+        function clearstatus() {
+            console.log('finished typing');
+        };
+
+        function sleep(ms) {
+            return new Promise(
+                resolve => setTimeout(resolve, ms)
+            );
+        };
+
+        
+document.addEventListener('transcriptionComplete', (event) => {
+  console.log('Transcription:', event.detail.text);
+  var speechinput = event.detail.text;
+            document.getElementById('micbutton').className = 'button-long';
+            document.getElementById('micbutton').innerText = 'voice';
+            textOnly = 'voice';
+            enter(speechinput);
+});
+
+        async function voicerecognitionstart() {
+            await sleep(100);
+            whisperTranscriber.start(true);
+            document.getElementById('micbutton').className = 'mic-on';
+            document.getElementById('micbutton').innerText = 'Speech-to-text listening...';
+        };
+    </script>
+
+    <div id="AI_Components">
+        <script>
+            async function SCheck() {
+                await sleep(1000);
+                if (serverStatus == "connected") {
+                    console.log('Akari AI Components are active.');
+                    loadscreen("[ok] A.I. services are active.");
+                } else {
+                    loadscreen("<b>[error] Failed to connect to the server.</b>");
+                    var strikezone = document.getElementById('AI_Components');
+                    strikezone.innerHTML = '';
+                };
+            };
+
+            SCheck();
+        </script>
+    </div>
+
+</body>
+
+</html>
