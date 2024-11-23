@@ -3,69 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Choose your preffered UI.</title>
+    <title>Choose your preferred UI</title>
     <style>
-        body{
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
             background-color: black;
-            color:white;
-            font-family: sans-serif;
+            color: white;
+            font-family: system-ui, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
-        .assistant-button {
-            display: inline-block;
-            margin: 10px;
-            width: calc(100vw - 60px);
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: xx-large;
+
+        #bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #141e30, #243b55);
+            opacity: 0;
+            transition: opacity 0.8s ease;
+            z-index: -1;
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .animate-bg {
+            opacity: 1 !important;
+            animation: gradientMove 15s ease infinite;
+            background-size: 400% 400%;
+        }
+
+        #content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .show-content {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            margin-bottom: 2rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            transition: transform 0.2s, opacity 0.2s;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
-        .h1{
-            margin-left:10px;
+
+        .card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .card img {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+
+        .card-content {
+            flex: 1;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-badge {
+            margin-top: .75rem;
+            display: inline-block;
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 768px) {
+            #content {
+                padding: 1rem;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            .grid {
+                gap: 1rem;
+            }
+            .card {
+                padding: 1rem;
+            }
         }
     </style>
 </head>
 <body>
-    <h1 class="h1">Choose Your Default Assistant</h1>
+<script>
+(function() {
+    const defaultAssistant = localStorage.getItem('defaultAssistant');
+    if (defaultAssistant) {
+        window.location.href = defaultAssistant;
+        return;
+    }
 
-    <div id="assistant-options"></div>
-
-    <h2 class="h1">You can change this later.</h2>
-
-    <script>
-
-        // Check if a default assistant is already set
-        const defaultAssistant = localStorage.getItem('defaultAssistant');
-        if (defaultAssistant) {
-            window.location.href = defaultAssistant;
-        } else {
-
+    // Only create UI if no default is set
+    window.addEventListener('DOMContentLoaded', () => {
         const assistants = [
-            { url: './', name: 'Akari Framework (reccomended)' },
-            { url: './mobile', name: 'Akari Mobile (reccomended for phones)' },
-            { url: './wear', name: 'WearAkari (for smartwatches / small displays)' },
-            { url: './m2ex', name: 'experimental mobile version' },
-            { url: './mini', name: 'Quick assistant' }
+            {
+                url: './',
+                name: 'Akari Framework',
+                description: 'Fully-featured UI optimized for desktop and laptop computers.',
+                badge: 'PC/Mac/Chromebook',
+                image: './framework.png' // Custom image path
+            },
+            {
+                url: './mobile',
+                name: 'Akari Mobile',
+                description: 'UI optimized for mobile touchscreen devices.',
+                badge: 'Android/iPhone',
+                image: './mobile.png'
+            },
+            {
+                url: './wear',
+                name: 'WearAkari',
+                description: 'Hyperoptimized UI for smartwatches and small displays.',
+                badge: 'WearOS/Tizen/KaiOS',
+                image: './wear.png'
+            },
+            {
+                url: './m2ex',
+                name: 'Experimental Mobile',
+                description: 'Unsatble release of Akari Mobile, expect big bad bugs.',
+                badge: 'Beta',
+                image: './experimental.png'
+            },
+            {
+                url: './mini',
+                name: 'Quick Assistant',
+                description: 'Lightweight and fast (depreciated)',
+                badge: 'Requires Web speech API',
+                image: './mini.png'
+            }
         ];
+
+        // Create and append background
+        const bg = document.createElement('div');
+        bg.id = 'bg-animation';
+        document.body.appendChild(bg);
+
+        // Create and append content container
+        const content = document.createElement('div');
+        content.id = 'content';
+        content.innerHTML = `
+            <h1>Choose your preferred UI</h1>
+            <h2>You can change this later, just type or say "open settings", or click on the kebeb icon (vertical elipses) to open settings.</h2>
+            <div class="grid"></div>
+        `;
+        document.body.appendChild(content);
 
         function chooseAssistant(url) {
             localStorage.setItem('defaultAssistant', url);
-
-            window.location.href = url;
+            // Fade out animation
+            document.getElementById('bg-animation').style.opacity = '0';
+            document.getElementById('content').style.opacity = '0';
+            setTimeout(() => {
+                window.location.href = url;
+            }, 800);
         }
 
-        const optionsContainer = document.getElementById('assistant-options');
-        assistants.forEach((assistant) => {
-            const button = document.createElement('div');
-            button.className = 'assistant-button';
-            button.innerHTML = `
-                <img src="${assistant.url}/favicon.ico">
-                ${assistant.name}
+        // Populate grid with assistant cards
+        const grid = content.querySelector('.grid');
+        assistants.forEach(assistant => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <img src="${assistant.image}">
+                <div class="card-content">
+                    <div class="card-title">${assistant.name}</div>
+                    <div>${assistant.description}</div>
+                    ${assistant.badge ? `<span class="card-badge">${assistant.badge}</span>` : ''}
+                </div>
             `;
-            button.onclick = () => chooseAssistant(assistant.url);
-            optionsContainer.appendChild(button);
+            card.onclick = () => chooseAssistant(assistant.url);
+            grid.appendChild(card);
         });
-        };
-    </script>
+
+        // Trigger fade-in animations
+        requestAnimationFrame(() => {
+            bg.classList.add('animate-bg');
+            content.classList.add('show-content');
+        });
+    });
+})();
+</script>
 </body>
 </html>
