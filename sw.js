@@ -30,47 +30,59 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+
 self.addEventListener('fetch', (event) => {
   event.respondWith((async () => {
     try {
-      const url = new URL(event.request.url);
-
-      // Apply custom headers only for non Akari settings files
-      // I hope this is the last patch I need to make
-      // echo above statement
-      // echo above statement
-      if (url.origin === self.location.origin && (url.pathname.startsWith('/Akari/settings/') == false)) {
+      // First, try fetching with custom headers
+      const response = await fetchWithCustomHeaders(event.request);
+      await cacheResponse(event.request, response.clone());
+      return response;
+    } catch (error) {
+      console.warn('Custom headers fetch failed, retrying without custom headers:', error);
+      try {
+        // Retry with normal headers
         const response = await fetch(event.request);
-
-        // Create a new Headers object and add the custom headers
-        const newHeaders = new Headers(response.headers);
-        newHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
-        newHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
-
-        return new Response(response.body, {
-          status: response.status,
-          statusText: response.statusText,
-          headers: newHeaders,
+        await cacheResponse(event.request, response.clone());
+        return response;
+      } catch (finalError) {
+        console.warn('Fetch failed completely, attempting cache fallback:', finalError);
+        // Fallback to cached response
+        const cachedResponse = await caches.match(event.request);
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        return new Response('Offline and no cached data available.', {
+          status: 404,
+          statusText: 'Not Found',
         });
       }
-
-      // For all other requests, fetch as usual
-      return await fetch(event.request);
-    } catch (error) {
-      console.error('Fetch failed:', error);
-
-      // Fallback to cache or show an error response
-      const cachedResponse = await caches.match(event.request);
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return new Response('An error occurred.', {
-        status: 500,
-        statusText: 'Internal Server Error',
-      });
     }
   })());
 });
+
+// Fetch with custom headers
+async function fetchWithCustomHeaders(request) {
+  const response = await fetch(request);
+
+  // Clone response headers and add custom ones
+  const newHeaders = new Headers(response.headers);
+  newHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
+  newHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+
+  // Return a new Response object with the modified headers
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: newHeaders,
+  });
+}
+
+// Cache the response for future offline use
+async function cacheResponse(request, response) {
+  const cache = await caches.open(CACHE_NAME);
+  await cache.put(request, response);
+}
 
 
 
