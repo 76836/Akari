@@ -35,8 +35,8 @@ self.addEventListener('fetch', (event) => {
     try {
       const url = new URL(event.request.url);
 
-      // Apply custom headers only for files in the /Mukumi/esm/ directory
-      if (url.origin === self.location.origin && url.pathname.startsWith('/Mukumi/esm/')) {
+      // Apply custom headers only for my own files
+      if (url.origin === self.location.origin) {
         const response = await fetch(event.request);
 
         // Create a new Headers object and add the custom headers
