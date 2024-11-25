@@ -35,8 +35,9 @@ self.addEventListener('fetch', (event) => {
     try {
       const url = new URL(event.request.url);
 
-      // Apply custom headers only for my own files
-      if (url.origin === self.location.origin) {
+      // Apply custom headers only for Mukumi AI files
+      // I hope this is the last patch I need to make
+      if (url.origin === self.location.origin && url.pathname.startsWith('/Mukumi/')) {
         const response = await fetch(event.request);
 
         // Create a new Headers object and add the custom headers
