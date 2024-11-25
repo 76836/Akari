@@ -35,10 +35,11 @@ self.addEventListener('fetch', (event) => {
     try {
       const url = new URL(event.request.url);
 
-      // Apply custom headers only for non Akari files
+      // Apply custom headers only for non Akari settings files
       // I hope this is the last patch I need to make
       // echo above statement
-      if (url.origin === self.location.origin && (url.pathname.startsWith('/Akari') == false)) {
+      // echo above statement
+      if (url.origin === self.location.origin && (url.pathname.startsWith('/Akari/settings/') == false)) {
         const response = await fetch(event.request);
 
         // Create a new Headers object and add the custom headers
