@@ -33,38 +33,42 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   event.respondWith((async () => {
     try {
-      const response = await fetch(event.request);
+      const url = new URL(event.request.url);
 
-      // Create a new Headers object and copy existing headers
-      const newHeaders = new Headers(response.headers);
-      newHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
-      newHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+      // Apply custom headers only for files in the /Mukumi/esm/ directory
+      if (url.origin === self.location.origin && url.pathname.startsWith('/Mukumi/esm/')) {
+        const response = await fetch(event.request);
 
-      return new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: newHeaders,
-      });
+        // Create a new Headers object and add the custom headers
+        const newHeaders = new Headers(response.headers);
+        newHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
+        newHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: newHeaders,
+        });
+      }
+
+      // For all other requests, fetch as usual
+      return await fetch(event.request);
     } catch (error) {
-      console.error('Fetch failed; falling back to cache:', error);
+      console.error('Fetch failed:', error);
 
-      // Fallback to cache or fetch the request
+      // Fallback to cache or show an error response
       const cachedResponse = await caches.match(event.request);
       if (cachedResponse) {
         return cachedResponse;
-      } else {
-        console.warn('No cached response found, attempting network fetch...');
-        return fetch(event.request).catch((fetchError) => {
-          console.error('Network fetch failed:', fetchError);
-          return new Response('An error occurred.', {
-            status: 500,
-            statusText: 'Internal Server Error',
-          });
-        });
       }
+      return new Response('An error occurred.', {
+        status: 500,
+        statusText: 'Internal Server Error',
+      });
     }
   })());
 });
+
 
 
 // Update event - refresh every file
