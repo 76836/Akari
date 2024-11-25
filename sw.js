@@ -33,35 +33,46 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   event.respondWith((async () => {
+    const url = new URL(event.request.url);
+
     try {
-      // First, try fetching with custom headers
-      const response = await fetchWithCustomHeaders(event.request);
+      if (url.origin === self.location.origin) {
+        // Internal request: Try with custom headers first
+        try {
+          const response = await fetchWithCustomHeaders(event.request);
+          await cacheResponse(event.request, response.clone());
+          return response;
+        } catch (customHeadersError) {
+          console.warn('Custom headers fetch failed, retrying with normal headers:', customHeadersError);
+          const response = await fetch(event.request);
+          await cacheResponse(event.request, response.clone());
+          return response;
+        }
+      }
+
+      // External request: Fetch normally
+      const response = await fetch(event.request);
       await cacheResponse(event.request, response.clone());
       return response;
     } catch (error) {
-      console.warn('Custom headers fetch failed, retrying without custom headers:', error);
-      try {
-        // Retry with normal headers
-        const response = await fetch(event.request);
-        await cacheResponse(event.request, response.clone());
-        return response;
-      } catch (finalError) {
-        console.warn('Fetch failed completely, attempting cache fallback:', finalError);
-        // Fallback to cached response
-        const cachedResponse = await caches.match(event.request);
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        return new Response('Offline and no cached data available.', {
-          status: 404,
-          statusText: 'Not Found',
-        });
+      console.warn('Fetch failed, attempting cache fallback:', error);
+
+      // Cache fallback for all requests
+      const cachedResponse = await caches.match(event.request);
+      if (cachedResponse) {
+        return cachedResponse;
       }
+
+      // Fallback response for uncached requests
+      return new Response('Offline and no cached data available.', {
+        status: 404,
+        statusText: 'Not Found',
+      });
     }
   })());
 });
 
-// Fetch with custom headers
+// Fetch with custom headers for internal requests
 async function fetchWithCustomHeaders(request) {
   const response = await fetch(request);
 
