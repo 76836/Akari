@@ -26,6 +26,7 @@
                 document.getElementById('output').innerHTML += message + '<br>';
             };
             loadscreen("Project Loading...");
+            loadscreen("This experimental version of Akari is currently unsupported for most actions besides testing, find more versions on the Akari Github.");
         </script>
     </div>
     <div id="avatar"></div>
@@ -72,6 +73,7 @@
             };
             // As arguments, you can pass non-default path to pocketsphinx.js and pocketsphinx.wasm:
             // recognizer.postMessage({'pocketsphinx.wasm': '/path/to/pocketsphinx.wasm', 'pocketsphinx.js': '/path/to/pocketsphinx.js'});
+            recognizer.postMessage({'pocketsphinx.wasm': 'Akari/experimental/js/pocketsphinx.wasm'});
             recognizer.postMessage({});
           };
     
