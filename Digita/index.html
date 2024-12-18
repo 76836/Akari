@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Akari Digita v0.2</title>
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="manifest" href="./app.webmanifest">
+        <meta charset="utf-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+        <link rel="shortcut icon" href="./favicon.ico">
+        <meta name="msapplication-TileColor" content="#603cba">
+        <meta name="theme-color" content="#000000">
+    <style>
+        :root {
+            --bg-dark: #1a1a1a;
+            --bg-darker: #000;
+            --accent: darkcyan;
+            --text: #e0e0e0;
+            --border: #333;
+            --sidebar-width: 0px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 220px;
+            left:-220px;
+            background: var(--bg-darker);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem 0;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                height: 100vh;
+                transform: translateX(calc(-1 * var(--sidebar-width)));
+            }
+
+            .panel.active {
+                width: 100vw;
+            }
+
+            .sidebar.show {
+                left:0;
+            }
+
+            .menu-toggle {
+                display: flex !important;
+            }
+
+            .main-content {
+                width: 100vw !important;
+                margin-left: 0 !important;
+            }
+        }
+
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            width: 40px;
+            height: 40px;
+            background: var(--accent);
+            border: none;
+            border-radius: 8px;
+            color: var(--text);
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 101;
+            font-weight: bold;
+        }
+
+        .tab-button {
+            width: 200px;
+            height: auto;
+            padding: 0.75rem 0.5rem;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            cursor: pointer;
+            margin: 0.5rem 0;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: large;
+        }
+
+        .tab-button:hover {
+            background: rgba(74, 158, 255, 0.2);
+        }
+
+        .tab-button.active {
+            background: var(--accent);
+            font-weight: bold;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            transition: margin-left 0.3s ease;
+            width: calc(100vw - var(--sidebar-width));
+            margin-left: var(--sidebar-width);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding-top: 4rem;
+            }
+        }
+
+        .status-card {
+            margin: 0 auto;
+            background: rgba(26, 26, 26, 0.8);
+            backdrop-filter: blur(10px);
+            border: 0px solid rgba(74, 158, 255, 0.2);
+            padding: 0;
+            border-radius: 12px;
+            position: fixed;
+            overflow: hidden;
+            right:0;
+            height: 100vh;
+            width:100vw;
+        }
+
+        .panel {
+            opacity: 0;
+            transform: translateX(20px);
+            transition: all 0.3s ease-out;
+            position: absolute;
+            
+            width: calc(100vw - 220px);
+            height: 100vw;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            display: block;
+            justify-content: center;
+            align-items: center;
+            padding: 0rem;
+        }
+
+        .panel.active {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: all;
+        }
+
+        .panel iframe {
+            width: 100%;
+            height: 100vh;
+            margin: 0 auto;
+            border-radius: 12px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+        }
+    </style>
+</head>
+
+<body>
+
+    <button class="menu-toggle">
+        ☰
+    </button>
+
+    <div class="sidebar">
+        <button class="tab-button active" data-tab="server">
+            Akari Digita v0.2
+          </button>
+      
+          <button class="tab-button" data-tab="chat">
+            Integrated UI
+          </button>
+      
+          <button class="tab-button" data-tab="voice-input">
+            Transcription
+          </button>
+
+          <button class="tab-button" data-tab="llm">
+            Intellegence
+          </button>
+
+          <button class="tab-button" data-tab="voice-output">
+            Voice
+          </button>
+      
+          <button class="tab-button" data-tab="settings">
+            Server Settings
+          </button>
+    </div>
+
+    <div class="main-content">
+        <div class="panel active" id="server">
+            <div class="status-card">
+                <canvas class="matrix-bg" id="matrixCanvas"></canvas>
+            </div>
+        </div>
+
+        <div class="panel" id="chat">
+            <iframe data-src="../" frameborder="0"></iframe>
+        </div>
+
+        <div class="panel" id="voice-input">
+            <iframe data-src="../settings/voice" frameborder="0"></iframe>
+        </div>
+
+        <div class="panel" id="voice-output">
+            <iframe data-src="../settings/voice" frameborder="0"></iframe>
+        </div>
+
+        <div class="panel" id="llm">
+            <iframe data-src="../settings/AI" frameborder="0"></iframe>
+        </div>
+
+        <div class="panel" id="settings">
+            <iframe data-src="../settings" frameborder="0"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // Mobile menu toggle
+        const menuToggle = document.querySelector('.menu-toggle');
+        const sidebar = document.querySelector('.sidebar');
+
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('show');
+            menuToggle.classList.toggle('active');
+        });
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 &&
+                !sidebar.contains(e.target) &&
+                !menuToggle.contains(e.target)) {
+                sidebar.classList.remove('show');
+                menuToggle.classList.remove('active');
+            }
+        });
+
+        // Tab management
+        class TabManager {
+            constructor() {
+                this.tabs = {};
+                this.activeTab = null;
+                this.init();
+            }
+
+            init() {
+                document.querySelectorAll('.tab-button').forEach(button => {
+                    const tabId = button.dataset.tab;
+                    const panel = document.getElementById(tabId);
+
+                    this.tabs[tabId] = {
+                        button,
+                        panel,
+                        loaded: tabId === 'server' // Server tab is not an iframe
+                    };
+
+                    button.addEventListener('click', () => this.switchTab(tabId));
+                });
+
+                // Initialize with server tab
+                this.switchTab('server');
+            }
+
+            async switchTab(tabId) {
+                if (this.activeTab === tabId) return;
+
+                // Deactivate current tab
+                if (this.activeTab) {
+                    this.tabs[this.activeTab].button.classList.remove('active');
+                    this.tabs[this.activeTab].panel.classList.remove('active');
+                }
+
+                // Activate new tab
+                this.tabs[tabId].button.classList.add('active');
+                this.tabs[tabId].panel.classList.add('active');
+
+                // Load iframe content if not already loaded
+                if (!this.tabs[tabId].loaded) {
+                    const iframe = this.tabs[tabId].panel.querySelector('iframe');
+                    if (iframe) {
+                        const src = iframe.getAttribute('data-src');
+                        iframe.src = src;
+                    }
+                    this.tabs[tabId].loaded = true;
+                }
+
+                this.activeTab = tabId;
+            }
+        }
+
+        // Initialize tab manager
+        const tabManager = new TabManager();
+
+        // Matrix animation settings
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const matrixSettings = {
+            opacity: 0.2,
+            color: '#4a9eff',
+            speed: 2,
+            fontSize: 16
+        };
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.offsetWidth;
+            canvas.height = canvas.parentElement.offsetHeight;
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const chars = '0 1 2 3 4 5 6 7 8 9 A B C D E F';
+        const drops = [];
+        const columns = canvas.width / matrixSettings.fontSize;
+
+        for (let i = 0; i < columns; i++) {
+            drops[i] = 1;
+        }
+
+        function drawMatrix() {
+            ctx.fillStyle = `rgba(0, 0, 0, ${0.05 * matrixSettings.speed})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = matrixSettings.color;
+            ctx.font = `${matrixSettings.fontSize}px monospace`;
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars[Math.floor(Math.random() * chars.length)];
+                ctx.fillText(text, i * matrixSettings.fontSize, drops[i] * matrixSettings.fontSize);
+
+                if (drops[i] * matrixSettings.fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+
+                if (Math.random() > (1 - 32 / 100)) {
+                    drops[i]++;
+                }
+            }
+        }
+
+        setInterval(drawMatrix, 33);
+    </script>
+</body>
+
+</html>
