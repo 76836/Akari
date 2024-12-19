@@ -1,0 +1,234 @@
+<html><head><base href="." />
+<meta charset="UTF-8">
+<title>VITS Web Text-to-Speech</title>
+
+<script>
+// Initialize opfs interface to store models
+const initOPFS = async () => {
+  try {
+    await navigator.storage.getDirectory();
+    return true;
+  } catch (e) {
+    console.error("OPFS not available:", e);
+    return false;
+  }
+};
+
+// Initialize models directory
+const initModelsDir = async () => {
+  try {
+    const root = await navigator.storage.getDirectory();
+    return await root.getDirectoryHandle('models', { create: true });
+  } catch (e) {
+    console.error("Failed to initialize models directory:", e); 
+    return null;
+  }
+};
+</script>
+
+<style>
+:root {
+  --primary: #2196F3;
+  --primary-dark: #1976D2;
+  --success: #4CAF50;
+  --error: #f44336;
+  --text: #212121;
+  --text-secondary: #757575;
+  --background: #fafafa;
+  --surface: #ffffff;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 2rem;
+  background: var(--background);
+  color: var(--text);
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+select, textarea {
+  padding: 0.75rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+button {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background: var(--primary-dark);
+}
+
+button:disabled {
+  background: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+.status {
+  text-align: center;
+  margin: 1rem 0;
+  color: var(--text-secondary);
+}
+
+.progress {
+  width: 100%;
+  height: 4px;
+  background: #e0e0e0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--primary);
+  width: 0%;
+  transition: width 0.2s;
+}
+
+#audioPlayer {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid #ffffff3d;
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s linear infinite;
+  margin-right: 0.5rem;
+}
+</style>
+</head>
+<body>
+
+    <h1>VITS Web Text-to-Speech Test</h1>
+  </div>
+
+  <div class="card">
+    <div class="controls">
+      <select id="voiceSelect">
+        <option value="en_US-hfc_female-medium">English US - Female (Medium)</option>
+        <option value="en_US-hfc_male-medium">English US - Male (Medium)</option>
+      </select>
+
+      <textarea id="textInput" placeholder="Enter text to synthesize...">Text to speech in the browser is amazing!</textarea>
+
+      <div class="progress">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+
+      <button id="synthesizeBtn" onclick="synthesize()">
+        Synthesize Speech
+      </button>
+
+      <div id="status" class="status">Ready</div>
+
+      <audio id="audioPlayer" controls></audio>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import * as tts from 'https://cdn.jsdelivr.net/npm/@diffusionstudio/vits-web/+esm';
+
+let initialized = false;
+
+async function init() {
+  if (initialized) return;
+  
+  const hasOPFS = await initOPFS();
+  if (!hasOPFS) {
+    document.getElementById('status').textContent = 'Error: Storage API not available';
+    return;
+  }
+
+  const modelsDir = await initModelsDir();
+  if (!modelsDir) {
+    document.getElementById('status').textContent = 'Error: Could not initialize models directory';
+    return;
+  }
+
+  initialized = true;
+}
+
+window.synthesize = async function() {
+  if (!initialized) await init();
+  
+  const text = document.getElementById('textInput').value;
+  const voiceId = document.getElementById('voiceSelect').value;
+  const btn = document.getElementById('synthesizeBtn');
+  const status = document.getElementById('status');
+  const progressBar = document.getElementById('progressBar');
+  
+  btn.disabled = true;
+  status.innerHTML = '<span class="loading"></span>Synthesizing...';
+
+  try {
+    const wav = await tts.predict({
+      text: text,
+      voiceId: voiceId,
+    }, (progress) => {
+      if (progress.total) {
+        const percent = Math.round(progress.loaded * 100 / progress.total);
+        progressBar.style.width = `${percent}%`;
+      }
+    });
+
+    const audio = document.getElementById('audioPlayer');
+    audio.src = URL.createObjectURL(wav);
+    status.textContent = 'Done!';
+    progressBar.style.width = '100%';
+
+  } catch (error) {
+    console.error('Synthesis failed:', error);
+    status.textContent = 'Error: Synthesis failed';
+    progressBar.style.width = '0%';
+  }
+
+  btn.disabled = false;
+}
+
+// Initialize on load
+init().catch(console.error);
+</script>
+
+</body></html>
