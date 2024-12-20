@@ -35,9 +35,8 @@ self.addEventListener('fetch', (event) => {
     try {
       const url = new URL(event.request.url);
 
-      // Apply custom headers only for esm and first level UI
-      // remind me to update this if I release a new UI
-      if (url.origin === self.location.origin && (url.pathname.startsWith('/Mukumi/esm') || url.pathname === '/Akari/index' || url.pathname === '/Akari/mobile' || url.pathname === '/Akari/wear')) {
+      // Apply custom headers only for Akari Digita to enable multi threading on WASM 
+      if (url.origin === self.location.origin && (url.pathname.startsWith('/Akari/Digita'))) {
         const response = await fetch(event.request);
 
         // Create a new Headers object and add the custom headers
@@ -62,7 +61,7 @@ self.addEventListener('fetch', (event) => {
       if (cachedResponse) {
         return cachedResponse;
       }
-      return new Response('An error occurred.', {
+      return new Response('Akari sw.js v3, internal error, your device was unable to emulate the requested response after the server connection failed. Please connect to the Internet to allow the service worker to cache the response content, if the content is also missing on the server, create a GitHub issue report explaining the problem. The system cannot recover from this error without a stable internet connection, the system may also encounter problems caching responses if your device is low on storage. In the future this message is planned to be replaced by an automatic recovery utility.', {
         status: 500,
         statusText: 'Internal Server Error',
       });
