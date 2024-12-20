@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html id="html" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+    <link rel="shortcut icon" href="../favicon.ico">
+    <meta name="msapplication-TileColor" content="#603cba">
+    <meta name="theme-color" content="#00ffff">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <p class="title" style="color:darkcyan;">SETTINGS</p>
+    <button class="updatebutton" onclick="installupdates();">Check for and install updates.</button>
+<!--
+    <p class="smallertext">Background image:</p>
+    <button class="setbutton" onclick="document.getElementById('bkgurl').value = './wallpapers/luna.png';">Luna</button>
+    <button class="setbutton" onclick="document.getElementById('bkgurl').value = './wallpapers/colors.jpg';">Colors</button>
+    <button class="setbutton" onclick="document.getElementById('bkgurl').value = './wallpapers/backdrop.png';">Backdrop</button>
+    <button class="setbutton" onclick="document.getElementById('bkgurl').value = '../bubbles';">Bubbles (live)</button>
+    <button class="setbutton" onclick="document.getElementById('bkgurl').value = './wallpapers/Foreshadowing.jpg';">Foreshadowing</button>
+    <input class="box" id="bkgurl" placeholder="./wallpapers/horizon.jpg" type=text>
+    <button class="setbutton" onclick="setBKG()">Set wallpaper</button>
+    
+    <br><br>
+    <p class="smallertext">Voice settings:</p>
+    <button class="setbutton" onclick="window.location.href = './voice';">Open voice configuration panel.</button>
+    
+    <p class="smallertext">AI settings:</p>
+    <button class="setbutton" onclick="window.location.href = './AI';">Open IQ configuration panel.</button>
+
+
+    <p class="smallertext">Avatar script:</p>
+    <input class="box" id="avatarurl" placeholder="./avatar/hiyori.js" type=text>
+    <button class="setbutton" onclick="setavatar()">Save Changes</button>
+
+
+    <p class="smallertext">Wake word/summoning script:</p>
+    <input class="box" id="wakeurl" placeholder="./WakeOnCamera.js" type=text>
+    <button class="setbutton" onclick="setwake()">Save Changes</button>
+-->
+    <br><br>
+    <button class="setbutton" onclick="localStorage.removeItem('defaultAssistant');">Reset default assistant in PWA.</button>
+    <button class="setbutton" onclick="localStorage.removeItem('chatHistory');">Delete local chat history.</button>
+    
+    <!--
+    <br><br>
+    <p class="title">Select preconfigured Character:</p>
+    <button class="setbutton" onclick="CharacterAkari();">Akari (76836) (default)</button>
+    <button class="setbutton" onclick="CharacterAkariPickaxe();">Akari on Pickaxe Project (76836 and Pickaxe)</button>
+    <button class="setbutton" onclick="alert('coming soon');">Luna (76836)</button>
+    <button class="setbutton" onclick="alert('coming soon');">Gemini (Google)</button>
+    <button class="setbutton" onclick="CharacterHiyori();">Hiyori Momose (Live2D)</button>
+-->
+    <br><br><br><br>
+    <p class="smallertext">Settings 1.0</p>
+
+</body>
+
+
+<style>
+    .title {
+        font-size: 2rem;
+        padding-left: 75px;
+        width: 100vw;
+        margin-right: 0;
+        text-align: left;
+        font-family: 'Orbitron', sans-serif;
+        word-wrap: break-word;
+        background-color: transparent;
+        color: darkcyan;
+        border-radius: 10px;
+        padding-bottom: 10px;
+        padding-top: 10px;
+    }
+
+    .box,
+    .setbutton,
+    .smallertext {
+        font-size: 1.2rem;
+        width: calc(100vw - 50px);
+        max-width: 100vw;
+        text-align: center;
+        margin: 5px;
+        margin-left: 25px;
+        background-color: #344;
+        border: 0;
+        color: white;
+        border-radius: 30px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        transition-duration: 0.2s;
+        line-height: 30px;
+    }
+
+
+
+    .updatebutton {
+        font-size: 0.8rem;
+        width: calc(100vw - 50px);
+        max-width: 100vw;
+        text-align: center;
+        margin: 5px;
+        margin-left: 25px;
+        border: 0;
+        color: white;
+        border-radius: 30px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        transition-duration: 0.2s;
+        line-height: 30px;
+        background-color: transparent;
+        background-image: linear-gradient(to right, rgba(55, 255, 55, 0.5), rgba(255, 55, 55, 0.5), rgba(77, 255, 255, 0.4), rgba(128, 0, 128, 0.3), rgba(9, 9, 9, 0.2));
+        background-repeat: repeat-x;
+        background-size: auto 100%;
+    }
+    
+    .setbutton:hover {
+        background-color: #544;
+    }
+
+    .box{
+        width: calc(100vw - 103px);
+        background-color: rgba(3, 3, 3, 0.2);
+        text-align: left;
+        padding-left: 50px;
+    }
+
+    .box:hover {
+        max-width: 100vw;
+        margin: 5px;
+        margin-left: 25px;
+        background-color: #333;
+        border: 0;
+        color: white;
+        border-radius: 10px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        transition-duration: 0.2s;
+    }
+
+    .smallertext {
+        border-radius: 10px;
+        background-color: #252525;
+    }
+
+    .smallertext:hover {
+        color:#9ff;
+        transition-duration: 0.2s;
+        background-color: #272727;
+    }
+
+    body {
+        font-family: 'Orbitron', sans-serif;
+        background-color: black;
+        color: white;
+        margin: 0;
+        overflow-x: hidden;
+    }
+</style>
+
+
+<script>
+    var VoiceScript = localStorage.getItem('selectedVoiceScript');
+    document.getElementById('voiceurl').value = VoiceScript;
+
+    var AIScript = localStorage.getItem('selectedAIScript');
+    document.getElementById('AIurl').value = AIScript;
+
+    var ReflexScript = localStorage.getItem('selectedReflexScript');
+    document.getElementById('reflexurl').value = ReflexScript;
+
+    var AvatarScript = localStorage.getItem('selectedAvatarScript');
+    document.getElementById('avatarurl').value = AvatarScript;
+
+    var WakeScript = localStorage.getItem('selectedWakeScript');
+    document.getElementById('wakeurl').value = WakeScript;
+
+    var BKGURL = localStorage.getItem('selectedBKGURL');
+    document.getElementById('bkgurl').value = BKGURL;
+
+
+    function setvoice() {
+        var Url = document.getElementById('voiceurl').value;
+        localStorage.setItem('selectedVoiceScript', Url);
+    };
+
+    function setBKG() {
+        var Url = document.getElementById('bkgurl').value;
+        localStorage.setItem('selectedBKGURL', Url);
+    };
+
+    function setAI() {
+        var Url = document.getElementById('AIurl').value;
+        localStorage.setItem('selectedAIScript', Url);
+    };
+
+    function setreflex() {
+        var Url = document.getElementById('reflexurl').value;
+        localStorage.setItem('selectedReflexScript', Url);
+    };
+
+    function setavatar() {
+        var Url = document.getElementById('avatarurl').value;
+        localStorage.setItem('selectedAvatarScript', Url);
+    };
+
+    function setwake() {
+        var Url = document.getElementById('wakeurl').value;
+        localStorage.setItem('selectedWakeScript', Url);
+    };
+
+function installupdates() {          
+if (navigator.onLine) {
+    alert('System: Sent update command, reload to apply update.');
+    if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then((registration) => {
+    registration.active.postMessage({ action: 'updateCache' });
+  });
+};
+} else {
+    alert('System: Internet is required to download updates.');
+};
+};
+    
+function CharacterAkari() {
+    
+        localStorage.setItem('selectedCSSURL', '');
+    
+        localStorage.setItem('selectedVoiceScript', '');
+  
+        localStorage.setItem('selectedBKGURL', '');
+
+        localStorage.setItem('selectedReflexScript', './characters/akari/response.js');
+
+        localStorage.setItem('selectedAIScript', '');
+
+        localStorage.setItem('selectedAvatarScript', './characters/akari/avatar.js');
+
+        localStorage.setItem('selectedWakeScript', './characters/akari/wake.js');
+};
+
+function CharacterAkariPickaxe() {
+        
+        localStorage.setItem('selectedVoiceScript', '');
+  
+        localStorage.setItem('selectedBKGURL', '');
+
+        localStorage.setItem('selectedReflexScript', './characters/PickaxeProjectAkari/reflex.js');
+
+        localStorage.setItem('selectedCSSURL', './characters/PickaxeProjectAkari/style.css');
+
+        localStorage.setItem('selectedAIScript', '');
+
+        localStorage.setItem('selectedAvatarScript', '');
+
+        localStorage.setItem('selectedWakeScript', './characters/PickaxeProjectAkari/wake.js');
+};
+    
+function CharacterHiyori() {
+    
+        localStorage.setItem('selectedCSSURL', '');
+    
+        localStorage.setItem('selectedVoiceScript', '');
+    
+        localStorage.setItem('selectedBKGURL', "./wallpapers/backdrop.png");
+  
+        localStorage.setItem('selectedReflexScript', './characters/hiyori/response.js');
+
+        localStorage.setItem('selectedAIScript', './characters/hiyori/Gemini.js');
+
+        localStorage.setItem('selectedAvatarScript', './characters/hiyori/avatar.js');
+
+        localStorage.setItem('selectedWakeScript', '');
+};
+
+</script>
