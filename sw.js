@@ -58,7 +58,8 @@ const RECOVERY_HTML = `
             box-shadow: inset -1px -1px #000, inset 1px 1px #fff;
             max-width: 500px;
             width: 95%;
-            word-break: break-all
+            word-break: break-all;
+            background: gray;
         }
         .t {
             background: #000080;
@@ -119,7 +120,7 @@ const RECOVERY_HTML = `
                 <button onclick="forceCache()">Force Cache</button>
                 <button onclick="upgradeSW()">Upgrade SW</button>
                 <button onclick="toggleTerm()">Terminal</button>
-                <button onclick="location.href='./settings'">Settings</button>
+                <button onclick="location.href='Akari/settings'">Settings</button>
                 <button onclick="location.reload()">Restart</button>
             </div>
             <div id="term">
@@ -276,7 +277,8 @@ const NOT_FOUND_HTML = `
             border: 2px solid #000;
             box-shadow: inset -1px -1px #000, inset 1px 1px #fff;
             max-width: 500px;
-            width: 95%
+            width: 95%;
+            background: red;
         }
         .t {
             background: #000080;
@@ -303,8 +305,8 @@ const NOT_FOUND_HTML = `
             <p>The requested resource could not be found on the server:</p>
             <code id="url" style="word-break:break-all"></code>
             <div class="b">
-                <button onclick="location.href='/'">Home</button>
-                <button onclick="location.href='/recovery.html?url='+encodeURIComponent(document.getElementById('url').textContent)">Recovery</button>
+                <button onclick="location.href='/'">76836 Home</button>
+                <button onclick="location.href='Akari/recovery?url='+encodeURIComponent(document.getElementById('url').textContent)">Akari Recovery</button>
             </div>
         </div>
     </div>
@@ -322,42 +324,43 @@ self.addEventListener('fetch', (event) => {
       const url = new URL(event.request.url);
 
       // Handle recovery page requests
-      if (url.pathname === '/recovery.html') {
+      if (url.pathname === 'Akari/recovery') {
         return new Response(RECOVERY_HTML, {
           headers: { 'Content-Type': 'text/html' }
         });
       }
+            
+// Handle Akari Digita requests with special headers
+if (url.origin === self.location.origin && url.pathname.startsWith('/Akari/Digita')) {
+  // First normalize the path to handle directory requests
+  let pathToTry = url.pathname;
+  if (pathToTry.endsWith('/') || !pathToTry.includes('.')) {
+    // If path ends with / or has no file extension, append index.html
+    pathToTry = pathToTry.replace(/\/?$/, '/index.html');
+  }
 
-      // Handle Akari Digita requests with special headers
-      if (url.origin === self.location.origin && url.pathname.startsWith('/Akari/Digita')) {
-        // Add index.html to directory paths
-        let pathToTry = url.pathname;
-        if (pathToTry.endsWith('/')) {
-          pathToTry += 'index.html';
-        } else if (!pathToTry.includes('.')) {
-          pathToTry += '/index.html';
-        }
+  try {
+    // Create a new request with the modified path
+    const modifiedRequest = new Request(new URL(pathToTry, url.origin), {
+      ...event.request,
+      url: new URL(pathToTry, url.origin).href
+    });
 
-        try {
-          const modifiedRequest = new Request(new URL(pathToTry, url.origin), event.request);
-          const response = await fetch(modifiedRequest);
-          
-          if (response.ok) {
-            const newHeaders = new Headers(response.headers);
-            newHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
-            newHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
-            return new Response(response.body, {
-              status: response.status,
-              statusText: response.statusText,
-              headers: newHeaders,
-            });
-          }
-          throw new Error('Response not OK');
-        } catch (error) {
-          // Fall through to cache/recovery handling
-          throw error;
-        }
-      }
+    const response = await fetch(modifiedRequest);
+    const newHeaders = new Headers(response.headers);
+    newHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
+    newHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+    
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: newHeaders,
+    });
+  } catch (error) {
+    // Fall through to cache/recovery handling
+    throw error;
+  }
+}
 
       // For all other requests, try network first
       const response = await fetch(event.request);
@@ -382,7 +385,7 @@ self.addEventListener('fetch', (event) => {
 
       // Always fall back to recovery page as last resort
       return Response.redirect(
-        `${self.registration.scope}recovery.html?url=${encodeURIComponent(event.request.url)}`,
+        `/Akari/recovery?url=${encodeURIComponent(event.request.url)}`,
         302
       );
     }
