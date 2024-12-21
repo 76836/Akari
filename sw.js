@@ -132,7 +132,7 @@ function toggleTerm(){
 
 async function handleCommand(cmd){
     if(!cmd) return;
-    log(`> \${cmd}`);
+    log(\`> \${cmd}\`);
     
     switch(cmd.toLowerCase()){
         case 'help':
