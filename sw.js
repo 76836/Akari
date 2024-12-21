@@ -45,7 +45,7 @@ const RECOVERY_HTML = `
     <style>
         * { margin: 0; box-sizing: border-box }
         body {
-            background: #c0c0c0;
+            background: black;
             font: 14px sans-serif;
             padding: 10px;
             min-height: 100vh;
@@ -138,7 +138,7 @@ const RECOVERY_HTML = `
 
         function log(msg) {
             if(!output) output = document.getElementById('output');
-            output.textContent += `${msg}\n`;
+            output.textContent += msg + '\n';
             output.scrollIntoView(false);
         }
 
@@ -264,7 +264,7 @@ const NOT_FOUND_HTML = `
     <style>
         * { margin: 0; box-sizing: border-box }
         body {
-            background: #c0c0c0;
+            background: black;
             font: 14px sans-serif;
             padding: 10px;
             min-height: 100vh;
@@ -300,7 +300,7 @@ const NOT_FOUND_HTML = `
     <div class="w">
         <div class="t">404 - Not Found</div>
         <div class="c">
-            <p>The requested resource could not be found:</p>
+            <p>The requested resource could not be found on the server:</p>
             <code id="url" style="word-break:break-all"></code>
             <div class="b">
                 <button onclick="location.href='/'">Home</button>
