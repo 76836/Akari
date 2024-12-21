@@ -324,7 +324,7 @@ self.addEventListener('fetch', (event) => {
       const url = new URL(event.request.url);
 
       // Handle recovery page requests
-      if (url.pathname === 'Akari/recovery') {
+      if (url.origin === self.location.origin && url.pathname.startsWith('/Akari/recovery')) {
         return new Response(RECOVERY_HTML, {
           headers: { 'Content-Type': 'text/html' }
         });
@@ -350,6 +350,7 @@ if (url.origin === self.location.origin && url.pathname.startsWith('/Akari/Digit
     const newHeaders = new Headers(response.headers);
     newHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
     newHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+    newHeaders.set('Cross-Origin-Resource-Policy', 'same-origin');
     
     return new Response(response.body, {
       status: response.status,
@@ -384,10 +385,12 @@ if (url.origin === self.location.origin && url.pathname.startsWith('/Akari/Digit
       }
 
       // Always fall back to recovery page as last resort
-      return Response.redirect(
-        `/Akari/recovery?url=${encodeURIComponent(event.request.url)}`,
-        302
-      );
+      return new Response(RECOVERY_HTML, {
+          headers: { 
+          'Content-Type': 'text/html',
+          'Location': 'recovery?url=${encodeURIComponent(event.request.url)'
+         }
+        });
     }
   })());
 });
