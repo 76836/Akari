@@ -30,44 +30,83 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+
+
+
+
+
+
+// Recovery page HTML template
+const RECOVERY_HTML = `<!DOCTYPE html><html><head><title>Recovery</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{margin:0;box-sizing:border-box}body{background:#c0c0c0;font:14px sans-serif;padding:10px;min-height:100vh;display:flex;align-items:center;justify-content:center}.w{border:2px solid #000;box-shadow:inset -1px -1px #000,inset 1px 1px #fff;max-width:500px;width:95%;word-break:break-all}.t{background:#000080;color:#fff;padding:2px 4px}.c{padding:10px}.b{display:grid;gap:5px;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));margin-top:10px}button{background:#c0c0c0;border:2px solid #000;padding:4px;min-height:30px}button:active{box-shadow:inset 1px 1px #000}#term{display:none;height:200px;background:#000;color:#0f0;font:12px monospace;padding:5px;margin-top:10px;overflow:auto;position:relative}#output{white-space:pre-wrap;margin-bottom:20px}#input{position:absolute;bottom:0;left:0;right:0;background:#000;border:0;color:#0f0;font:12px monospace;padding:5px;width:100%;outline:none}.prompt{color:#0f0;margin-right:5px}</style></head><body><div class="w"><div class="t">Service Worker Error</div><div class="c"><p>Failed to load:</p><code id="url"></code><div class="b"><button onclick="retry()">Retry</button><button onclick="skipCache()">Skip Cache</button><button onclick="forceCache()">Force Cache</button><button onclick="upgradeSW()">Upgrade SW</button><button onclick="toggleTerm()">Terminal</button><button onclick="location.reload()">Restart</button></div><div id="term"><div id="output"></div><div style="display:flex"><span class="prompt">&gt;</span><input id="input" type="text" autocomplete="off" spellcheck="false"></div></div></div></div><script>let term,output,input;const url=new URLSearchParams(location.search).get('url');document.getElementById('url').textContent=url;function log(msg){if(!output)output=document.getElementById('output');output.textContent+=\`\${msg}\n\`;output.scrollIntoView(false)}async function retry(){location.href=url}async function skipCache(){try{const cache=await caches.open('sw-cache');await cache.delete(url);log('Cache cleared');location.href=url}catch(e){log('Skip cache failed: '+e)}}async function forceCache(){try{const cache=await caches.open('sw-cache');const res=await fetch(url);await cache.put(url,res.clone());log('Cached successfully');location.href=url}catch(e){log('Force cache failed: '+e)}}async function upgradeSW(){try{const reg=await navigator.serviceWorker.getRegistration();await reg.update();log('SW updated');location.reload()}catch(e){log('SW update failed: '+e)}}function toggleTerm(){term.style.display=term.style.display?'':'block';if(term.style.display){input.focus()}}async function handleCommand(cmd){if(!cmd)return;log(\`> \${cmd}\`);switch(cmd.toLowerCase()){case'help':log('Available commands:\\nhelp - Show commands\\nclear - Clear terminal\\ncache - List cache\\ndelete - Clear cache\\ninfo - SW info\\ncls - Clear screen\\nversion - Show version');break;case'clear':case'cls':output.textContent='';break;case'cache':const cache=await caches.open('sw-cache');const keys=await cache.keys();log('Cached URLs:\\n'+keys.map(k=>k.url).join('\\n'));break;case'delete':await caches.delete('sw-cache');log('Cache cleared');break;case'info':const reg=await navigator.serviceWorker.getRegistration();log(\`State: \${reg.active.state}\\nScope: \${reg.scope}\\nUpdate: \${reg.updateViaCache}\`);break;case'version':log('Recovery Page v1.1\\nService Worker Recovery System');break;default:try{log(await eval(cmd))}catch(e){log('Error: '+e)}}}term=document.getElementById('term');input=document.getElementById('input');output=document.getElementById('output');let history=[];let historyIndex=-1;input.addEventListener('keydown',async(e)=>{if(e.key==='Enter'){const cmd=input.value.trim();input.value='';historyIndex=-1;if(cmd){history.unshift(cmd);await handleCommand(cmd)}}else if(e.key==='ArrowUp'){e.preventDefault();if(historyIndex<history.length-1){historyIndex++;input.value=history[historyIndex]}}else if(e.key==='ArrowDown'){e.preventDefault();if(historyIndex>0){historyIndex--;input.value=history[historyIndex]}else{historyIndex=-1;input.value=''}}});log('Type "help" for available commands');</script></body></html>`;
+
+// 404 page HTML template
+const NOT_FOUND_HTML = `<!DOCTYPE html><html><head><title>404 - Not Found</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{margin:0;box-sizing:border-box}body{background:#c0c0c0;font:14px sans-serif;padding:10px;min-height:100vh;display:flex;align-items:center;justify-content:center}.w{border:2px solid #000;box-shadow:inset -1px -1px #000,inset 1px 1px #fff;max-width:500px;width:95%}.t{background:#000080;color:#fff;padding:2px 4px}.c{padding:10px;text-align:center}.b{margin-top:20px}button{background:#c0c0c0;border:2px solid #000;padding:4px 15px;margin:0 5px}</style></head><body><div class="w"><div class="t">404 - Not Found</div><div class="c"><p>The requested resource could not be found:</p><code id="url" style="word-break:break-all"></code><div class="b"><button onclick="location.href='/'">Home</button><button onclick="location.href='/recovery.html?url='+encodeURIComponent(document.getElementById('url').textContent)">Recovery</button></div></div></div><script>document.getElementById('url').textContent=location.pathname;</script></body></html>`;
+
+// Service Worker fetch event handler
 self.addEventListener('fetch', (event) => {
   event.respondWith((async () => {
     try {
       const url = new URL(event.request.url);
 
-      // Apply custom headers only for Akari Digita to enable multi threading on WASM 
-      if (url.origin === self.location.origin && (url.pathname.startsWith('/Akari/Digita'))) {
-        const response = await fetch(event.request);
-
-        // Create a new Headers object and add the custom headers
-        const newHeaders = new Headers(response.headers);
-        newHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
-        newHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
-
-        return new Response(response.body, {
-          status: response.status,
-          statusText: response.statusText,
-          headers: newHeaders,
+      // Handle recovery page requests
+      if (url.pathname === '/recovery.html') {
+        return new Response(RECOVERY_HTML, {
+          headers: { 'Content-Type': 'text/html' }
         });
       }
 
-      // For all other requests, fetch as usual
-      return await fetch(event.request);
+      // Handle Akari Digita requests with special headers
+      if (url.origin === self.location.origin && url.pathname.startsWith('/Akari/Digita')) {
+        try {
+          const response = await fetch(event.request);
+          const newHeaders = new Headers(response.headers);
+          newHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
+          newHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+          return new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: newHeaders,
+          });
+        } catch (error) {
+          // Fall through to cache/recovery handling
+          throw error;
+        }
+      }
+
+      // For all other requests, try network first
+      try {
+        const response = await fetch(event.request);
+        if (response.status === 404) {
+          return new Response(NOT_FOUND_HTML.replace('location.pathname', `'${url.pathname}'`), {
+            status: 404,
+            headers: { 'Content-Type': 'text/html' }
+          });
+        }
+        return response;
+      } catch (error) {
+        // Network failed, try cache
+        const cachedResponse = await caches.match(event.request);
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        // Cache failed, show recovery page
+        return Response.redirect(`${self.registration.scope}recovery.html?url=${encodeURIComponent(event.request.url)}`, 302);
+      }
     } catch (error) {
       console.error('Fetch failed:', error);
-
-      // Fallback to cache or show an error response
-      const cachedResponse = await caches.match(event.request);
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return new Response('Akari sw.js v3, internal error, your device was unable to emulate the requested response after the server connection failed. Please connect to the Internet to allow the service worker to cache the response content, if the content is also missing on the server, create a GitHub issue report explaining the problem. The system cannot recover from this error without a stable internet connection, the system may also encounter problems caching responses if your device is low on storage. In the future this message is planned to be replaced by an automatic recovery utility.', {
+      // Final fallback if everything else fails
+      return new Response('Akari sw.js v4, critical error', {
         status: 500,
         statusText: 'Internal Server Error',
       });
     }
   })());
 });
+
+
+
+
+
 
 
 
