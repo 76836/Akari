@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Akari Digita v0.3</title>
+        <title>Akari Digita v0.5</title>
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -176,7 +176,7 @@
             width: 100%;
             height: 100vh;
             margin: 0 auto;
-            border-radius: 12px;
+            border-radius: 0px;
             background: var(--bg-dark);
             border: 1px solid var(--border);
         }
@@ -191,7 +191,7 @@
 
     <div class="sidebar">
         <button class="tab-button active" data-tab="server">
-            Akari Digita v0.2
+            Akari Digita v0.5
           </button>
       
           <button class="tab-button" data-tab="chat">
@@ -213,6 +213,10 @@
           <button class="tab-button" data-tab="settings">
             Server Settings
           </button>
+
+        <button class="tab-button" data-tab="recoverymenu">
+            Recovery menu
+          </button>
     </div>
 
     <div class="main-content">
@@ -223,7 +227,7 @@
         </div>
 
         <div class="panel" id="chat">
-            <iframe data-src="../" frameborder="0"></iframe>
+            <iframe data-src="./miniUI" frameborder="0"></iframe>
         </div>
 
         <div class="panel" id="voice-input">
@@ -235,11 +239,15 @@
         </div>
 
         <div class="panel" id="llm">
-            <iframe data-src="../settings/AI" frameborder="0"></iframe>
+            <iframe data-src="./llama" frameborder="0"></iframe>
         </div>
 
         <div class="panel" id="settings">
             <iframe data-src="./settings" frameborder="0"></iframe>
+        </div>
+
+        <div class="panel" id="recoverymenu">
+            <iframe data-src="/Akari/recovery" frameborder="0"></iframe>
         </div>
     </div>
 
