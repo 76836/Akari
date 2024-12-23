@@ -70,6 +70,7 @@ button:active{box-shadow:inset 1px 1px #000}
 <button onclick="upgradeSW()">Upgrade SW</button>
 <button onclick="toggleTerm()">Terminal</button>
 <button onclick="location.reload()">Restart</button>
+<button onclick="location.href='/Akari/settings'">Akari settings</button>
 </div>
 <div id="term">
 <div id="output"></div>
@@ -136,7 +137,7 @@ async function handleCommand(cmd){
     
     switch(cmd.toLowerCase()){
         case 'help':
-            log('Available commands:\nhelp - Show commands\nclear - Clear terminal\ncache - List cache\ndelete - Clear cache\ninfo - SW info\ncls - Clear screen\nversion - Show version');
+            log(\`Available commands:\nhelp - Show commands\nclear - Clear terminal\ncache - List cache\ndelete - Clear cache\ninfo - SW info\ncls - Clear screen\nversion - Show version\`);
             break;
         case 'clear':
         case 'cls':
@@ -145,7 +146,7 @@ async function handleCommand(cmd){
         case 'cache':
             const cache=await caches.open('sw-cache');
             const keys=await cache.keys();
-            log('Cached URLs:\n'+keys.map(k=>k.url).join('\n'));
+            log(\`Cached URLs:\n\`+keys.map(k=>k.url).join(\`\n\`));
             break;
         case 'delete':
             await caches.delete('sw-cache');
@@ -156,7 +157,7 @@ async function handleCommand(cmd){
             log(\`State: \${reg.active.state}\nScope: \${reg.scope}\nUpdate: \${reg.updateViaCache}\`);
             break;
         case 'version':
-            log('Recovery Page v5\nService Worker Recovery System');
+            log(\`Recovery Page v5\nService Worker Recovery System\`);
             break;
         default:
             try{
@@ -257,7 +258,7 @@ const NOT_FOUND_HTML = `
             <code id="url" style="word-break:break-all"></code>
             <div class="b">
                 <button onclick="location.href='/'">76836 Home</button>
-                <button onclick="location.href='Akari/recovery?url='+encodeURIComponent(document.getElementById('url').textContent)">Akari Recovery</button>
+                <button onclick="location.href='/Akari/recovery?url='+encodeURIComponent(document.getElementById('url').textContent)">Akari Recovery</button>
             </div>
         </div>
     </div>
@@ -281,7 +282,8 @@ self.addEventListener('fetch', (event) => {
         });
       }
             
-// Handle Akari Digita requests with special headers
+
+/*            // Handle Akari Digita requests with special headers
 if (url.origin === self.location.origin && url.pathname.startsWith('/Akari/Digita')) {
   // First normalize the path to handle directory requests
   let pathToTry = url.pathname;
@@ -318,7 +320,26 @@ if (url.origin === self.location.origin && url.pathname.startsWith('/Akari/Digit
   } catch (error) {
     throw error;
   }
-}
+}*/
+
+  // Apply custom headers only for Akari Digita to enable multi threading on WASM 
+      if (url.origin === self.location.origin && (url.pathname.startsWith('/Akari/Digita'))) {
+        const response = await fetch(event.request);
+
+        // Create a new Headers object and add the custom headers
+        const newHeaders = new Headers(response.headers);
+        newHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
+        newHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: newHeaders,
+        });
+      }
+
+
+            
 
       // For all other requests, try network first
       const response = await fetch(event.request);
