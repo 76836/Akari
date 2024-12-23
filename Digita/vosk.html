@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digita STT (via Vosk-Browser)</title>
+    <title>Digita STT (via Vosk-Browser) v2</title>
     <script src="https://cdn.jsdelivr.net/npm/vosk-browser@0.0.3/dist/vosk.js"></script>
     <style>
         * {
@@ -315,7 +315,7 @@
                     <i data-lucide="mic" style="width: 14px; height: 14px"></i>
                     Wake Word
                 </h3>
-                <input type="text" class="wake-word-input" value="listen" id="wakeWord">
+                <input type="text" class="wake-word-input" value="hi" id="wakeWord">
             </div>
 
             <div class="setting-card">
@@ -362,135 +362,145 @@
     </div>
 
     <script>
-      
-        // Global state
-        const state = {
-            wakeWord: 'Hey Akari',
-            isListening: false,
-            isPaused: false,
-            isPrivacyEnabled: true,
-            isWakeWordActivated: false,
-            model: null,
-            recognizer: null,
-            audioContext: null,
-            mediaStream: null
+
+// Global state
+const state = {
+    wakeWord: 'hi',
+    isListening: false,
+    isPaused: false,
+    isPrivacyEnabled: true,
+    isWakeWordActivated: false,
+    model: null,
+    recognizer: null,
+    audioContext: null,
+    mediaStream: null,
+    lastTranscriptionTime: 0,
+    transcriptionTimeout: null,
+    lastConsoleClean: Date.now()
+};
+
+// Create visualizer bars
+const visualizer = document.getElementById('visualizer');
+for (let i = 0; i < 20; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    visualizer.appendChild(bar);
+}
+
+// Initialize Vosk
+async function initializeVosk() {
+    try {
+        updateStatus('Loading model...');
+         state.model = await Vosk.createModel('https://huggingface.co/ambind/vosk-model-small-en-us-0.15/resolve/main/vosk-model-small-en-us-0.15_c_.zip');
+    
+        state.recognizer = new state.model.KaldiRecognizer();
+        setupRecognizer();
+        updateStatus('Ready');
+        startRecognition();
+    } catch (error) {
+        console.error('Failed to initialize Vosk:', error);
+        updateStatus('Error loading model');
+    }
+}
+
+// Setup recognizer events
+function setupRecognizer() {
+    state.recognizer.on("result", (message) => {
+        handleRecognitionResult(message.result.text);
+    });
+}
+
+// Handle recognition results
+function handleRecognitionResult(text) {
+    if (state.isPaused || !text.trim()) return;
+
+    // Clean console every 30 seconds
+    if (Date.now() - state.lastConsoleClean > 30000) {
+        console.clear();
+        state.lastConsoleClean = Date.now();
+    }
+
+    const shouldLog = !state.isPrivacyEnabled || state.isWakeWordActivated;
+    
+    if (text.toLowerCase().includes(state.wakeWord.toLowerCase())) {
+        state.isWakeWordActivated = true;
+        clearTimeout(state.transcriptionTimeout);
+        addToLog('Wake word detected!', true);
+        addToLog(text, true);
+        startTranscriptionTimeout();
+    } else if (shouldLog) {
+        addToLog(text, true);
+    }
+}
+
+// Start transcription timeout
+function startTranscriptionTimeout() {
+    clearTimeout(state.transcriptionTimeout);
+    state.transcriptionTimeout = setTimeout(() => {
+        if (state.isWakeWordActivated) {
+            state.isWakeWordActivated = false;
+            addToLog('Listening ended - waiting for wake word', false);
+        }
+    }, 5000); // End transcription after 5 seconds of silence
+}
+
+// Start audio recognition
+async function startRecognition() {
+    try {
+        state.mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: false,
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                channelCount: 1,
+                sampleRate: 16000
+            },
+        });
+
+        state.audioContext = new AudioContext();
+        const source = state.audioContext.createMediaStreamSource(state.mediaStream);
+        const recognizerNode = state.audioContext.createScriptProcessor(4096, 1, 1);
+
+        recognizerNode.onaudioprocess = (event) => {
+            if (!state.isPaused) {
+                try {
+                    state.recognizer.acceptWaveform(event.inputBuffer);
+                } catch (error) {
+                    // Silently handle error
+                }
+            }
         };
 
-        // Create visualizer bars
-        const visualizer = document.getElementById('visualizer');
-        for (let i = 0; i < 20; i++) {
-            const bar = document.createElement('div');
-            bar.className = 'bar';
-            visualizer.appendChild(bar);
-        }
+        source.connect(recognizerNode);
+        recognizerNode.connect(state.audioContext.destination);
+        state.isListening = true;
+        updateStatus('Listening');
+    } catch (error) {
+        console.error('Failed to start recognition:', error);
+        updateStatus('Error starting recognition');
+    }
+}
 
-        // Initialize Vosk
-        async function initializeVosk() {
-            try {
-                updateStatus('Loading model...');
-                state.model = await Vosk.createModel('./models/vosk-model-small-en-us-0.15.tar.gz');
-                state.recognizer = new state.model.KaldiRecognizer();
-                setupRecognizer();
-                updateStatus('Ready');
-                startRecognition();
-            } catch (error) {
-                console.error('Failed to initialize Vosk:', error);
-                updateStatus('Error loading model');
-            }
-        }
-
-        // Setup recognizer events
-        function setupRecognizer() {
-            state.recognizer.on("result", (message) => {
-                handleRecognitionResult(message.result.text);
-            });
-
-            state.recognizer.on("partialresult", (message) => {
-                if (!state.isPrivacyEnabled || state.isWakeWordActivated) {
-                    handlePartialResult(message.result.partial);
+// Animate visualizer with reduced frame rate
+let lastAnimationTime = 0;
+function animateVisualizer(timestamp) {
+    // Only update every 100ms (10 fps) instead of every frame
+    if (timestamp - lastAnimationTime >= 100) {
+        const bars = document.querySelectorAll('.bar');
+        bars.forEach(bar => {
+            if (state.isPaused) {
+                bar.classList.add('paused');
+                bar.style.height = '20%';
+            } else {
+                bar.classList.remove('paused');
+                if (state.isListening) {
+                    const height = Math.random() * 80 + 10;
+                    bar.style.height = `${height}%`;
                 }
-            });
-        }
-
-        // Handle recognition results
-        function handleRecognitionResult(text) {
-            if (state.isPaused) return;
-
-            if (!state.isPrivacyEnabled || state.isWakeWordActivated) {
-                if (text.toLowerCase().includes(state.wakeWord.toLowerCase())) {
-                    state.isWakeWordActivated = true;
-                    addToLog('Wake word detected!');
-                }
-                addToLog(text);
-            } else if (text.toLowerCase().includes(state.wakeWord.toLowerCase())) {
-                state.isWakeWordActivated = true;
-                addToLog('Wake word detected!');
-                addToLog(text);
             }
-        }
-
-        function handlePartialResult(text) {
-            if (state.isPaused) return;
-            
-            if (!state.isPrivacyEnabled) {
-                addToLog(`(Partial) ${text}`);
-            } else if (state.isWakeWordActivated) {
-                addToLog(`(Partial) ${text}`);
-            }
-        }
-
-        // Start audio recognition
-        async function startRecognition() {
-            try {
-                state.mediaStream = await navigator.mediaDevices.getUserMedia({
-                    video: false,
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        channelCount: 1,
-                        sampleRate: 16000
-                    },
-                });
-
-                state.audioContext = new AudioContext();
-                const source = state.audioContext.createMediaStreamSource(state.mediaStream);
-                const recognizerNode = state.audioContext.createScriptProcessor(4096, 1, 1);
-
-                recognizerNode.onaudioprocess = (event) => {
-                    if (!state.isPaused) {
-                        try {
-                            state.recognizer.acceptWaveform(event.inputBuffer);
-                        } catch (error) {
-                            console.error('acceptWaveform failed:', error);
-                        }
-                    }
-                };
-
-                source.connect(recognizerNode);
-                recognizerNode.connect(state.audioContext.destination);
-                state.isListening = true;
-                updateStatus('Listening');
-            } catch (error) {
-                console.error('Failed to start recognition:', error);
-                updateStatus('Error starting recognition');
-            }
-        }
-
-      // Animate visualizer
-function animateVisualizer() {
-    const bars = document.querySelectorAll('.bar');
-    bars.forEach(bar => {
-        if (state.isPaused) {
-            bar.classList.add('paused');
-            bar.style.height = '20%';
-        } else {
-            bar.classList.remove('paused');
-            if (state.isListening) {
-                const height = Math.random() * 80 + 10;
-                bar.style.height = `${height}%`;
-            }
-        }
-    });
+        });
+        lastAnimationTime = timestamp;
+    }
     requestAnimationFrame(animateVisualizer);
 }
 
@@ -507,8 +517,14 @@ function updateStatus(text) {
     }
 }
 
+// Clear log content
+function clearLog() {
+    const logContent = document.getElementById('logContent');
+    logContent.innerHTML = '';
+}
+
 // Add log entry
-function addToLog(message) {
+function addToLog(message, isTranscription = false) {
     const time = new Date().toLocaleTimeString('en-US', { 
         hour12: false,
         hour: '2-digit',
@@ -518,7 +534,16 @@ function addToLog(message) {
     
     const logEntry = document.createElement('div');
     logEntry.className = 'log-entry';
-    logEntry.innerHTML = `<span class="timestamp">[${time}]</span> ${message}`;
+    
+    // Add different colors based on privacy mode
+    const messageColor = state.isPrivacyEnabled ? 
+        (isTranscription ? 'color: #00ff00;' : '') : // Green for secure transcriptions
+        'color: #ff9900;'; // Orange for non-private mode
+    
+    logEntry.innerHTML = `
+        <span class="timestamp">[${time}]</span> 
+        <span style="${messageColor}">${message}</span>
+    `;
     
     const logContent = document.getElementById('logContent');
     logContent.insertBefore(logEntry, logContent.firstChild);
@@ -532,30 +557,35 @@ document.getElementById('wakeWord').addEventListener('change', (e) => {
 
 document.getElementById('privacyToggle').addEventListener('change', (e) => {
     state.isPrivacyEnabled = e.target.checked;
-    addToLog(`Privacy mode ${state.isPrivacyEnabled ? 'enabled' : 'disabled'}`);
+    clearLog();
+    addToLog(`Privacy mode ${state.isPrivacyEnabled ? 'enabled - only showing wake word triggered transcriptions' : 'disabled - showing all transcriptions'}`);
 });
 
 document.getElementById('listenBtn').addEventListener('click', () => {
     state.isWakeWordActivated = true;
-    addToLog('Manual listening activated');
+    clearTimeout(state.transcriptionTimeout);
+    addToLog('Manual listening activated', true);
+    startTranscriptionTimeout();
 });
 
 document.getElementById('pauseBtn').addEventListener('click', () => {
     state.isPaused = !state.isPaused;
     state.isWakeWordActivated = false;
+    clearTimeout(state.transcriptionTimeout);
     
     const pauseBtn = document.getElementById('pauseBtn');
     if (state.isPaused) {
-        pauseBtn.innerHTML = '<i data-lucide="play" style="width: 16px; height: 16px"></i> Resume Recognition';
+        pauseBtn.innerHTML = '<i style="width: 16px; height: 16px"></i> Resume Recognition';
         updateStatus('Paused');
     } else {
-        pauseBtn.innerHTML = '<i data-lucide="pause" style="width: 16px; height: 16px"></i> Pause Recognition';
+        pauseBtn.innerHTML = '<i style="width: 16px; height: 16px"></i> Pause Recognition';
         updateStatus('Listening');
     }
     lucide.createIcons();
 });
 
 // Start visualization and initialize Vosk
-animateVisualizer();
+requestAnimationFrame(animateVisualizer);
 initializeVosk();
+ 
 </script>
