@@ -1,11 +1,8 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Akari Digita v0.5</title>
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="mobile-web-app-capable" content="yes">
+        <title>Akari Digita v0.6</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="manifest" href="./app.webmanifest">
         <meta charset="utf-8" />
         <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
         <link rel="shortcut icon" href="./favicon.ico">
@@ -13,13 +10,158 @@
         <meta name="theme-color" content="#000000">
     <style>
         :root {
-            --bg-dark: #1a1a1a;
+            --bg-dark: #000;
             --bg-darker: #000;
             --accent: darkcyan;
             --text: #e0e0e0;
             --border: #333;
             --sidebar-width: 0px;
-        }
+            --notification-bg: rgba(32, 33, 36, 0.65);
+            --notification-text: #fff;
+            --notification-subtext: rgba(205, 205, 255, 0.8);
+    }
+
+    .notification-container {
+      position: fixed;
+      top: 100px;
+      right: calc(-100vw + 312px);
+      margin: 0;
+      padding: 16px;
+      background: var(--notification-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom-left-radius: 12px;
+      border-top-left-radius: 12px;
+      width: 320px;
+      transform: translateX(100%);
+      opacity: 0;
+      transition: transform 0.4s cubic-bezier(0.2, 0, 0, 1),
+                  opacity 0.3s ease-in-out;
+      z-index: 28;
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      color: var(--notification-text);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .notification-container.show {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    .notification-container.animated-border {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .notification-container.animated-border::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 3px solid transparent;
+      border-right: none;
+      border-top-right-radius: 0;
+      border-top-left-radius: 12px;
+      border-bottom-left-radius: 12px;
+      background: linear-gradient(var(--notification-bg), var(--notification-bg)) padding-box,
+                  repeating-linear-gradient(var(--angle, 0deg), var(--border-colors)) border-box;
+      -webkit-mask: linear-gradient(#fff 0 0) padding-box,
+                   linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) padding-box,
+            linear-gradient(#fff 0 0);
+      -webkit-mask-composite: destination-out;
+      mask-composite: exclude;
+      animation: rotate 4s linear infinite,
+                 glow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes rotate {
+      0% {
+        --angle: 0deg;
+      }
+      100% {
+        --angle: 360deg;
+      }
+    }
+
+    @keyframes glow {
+      0% {
+        filter: drop-shadow(0 0 15px rgba(var(--glow-color), 1))
+               drop-shadow(0 0 30px rgba(var(--glow-color), 0.8))
+               drop-shadow(0 0 45px rgba(var(--glow-color), 0.6));
+      }
+      100% {
+        filter: drop-shadow(0 0 25px rgba(var(--glow-color), 1))
+               drop-shadow(0 0 50px rgba(var(--glow-color), 0.8))
+               drop-shadow(0 0 75px rgba(var(--glow-color), 0.6));
+      }
+    }
+
+    @property --angle {
+      syntax: '<angle>';
+      initial-value: 0deg;
+      inherits: false;
+    }
+
+    .notification-image {
+      width: 48px;
+      height: 48px;
+      object-fit: cover;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .notification-content {
+      flex-grow: 1;
+      margin-right: 24px;
+    }
+
+    .notification-title {
+      font-weight: bold;
+      margin-bottom: 4px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .notification-body {
+      color: var(--notification-subtext);
+    }
+
+    .notification-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 20px;
+      height: 20px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .notification-close:hover {
+      opacity: 1;
+    }
+
+    .notification-close::before,
+    .notification-close::after {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 2px;
+      background: var(--notification-text);
+      transform: rotate(45deg);
+    }
+
+    .notification-close::after {
+      transform: rotate(-45deg);
+    }
+        
 
         * {
             margin: 0;
@@ -39,7 +181,7 @@
             width: 220px;
             left:-220px;
             background: var(--bg-darker);
-            border-right: 1px solid var(--border);
+            border-right: 0px solid var(--border);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -80,7 +222,7 @@
             right: 1rem;
             width: 40px;
             height: 40px;
-            background: var(--accent);
+            background: var(--bg-dark);
             border: none;
             border-radius: 8px;
             color: var(--text);
@@ -191,7 +333,7 @@
 
     <div class="sidebar">
         <button class="tab-button active" data-tab="server">
-            Akari Digita v0.5
+            Akari Digita v0.6
           </button>
       
           <button class="tab-button" data-tab="chat">
@@ -209,14 +351,16 @@
           <button class="tab-button" data-tab="voice-output">
             Voice
           </button>
-      
+        
+          <button class="tab-button" data-tab="xmenu">
+            Extensions
+          </button>
+        
           <button class="tab-button" data-tab="settings">
-            Server Settings
+            Settings
           </button>
 
-        <button class="tab-button" data-tab="recoverymenu">
-            Recovery menu
-          </button>
+      
     </div>
 
     <div class="main-content">
@@ -241,16 +385,21 @@
         <div class="panel" id="llm">
             <iframe data-src="./llama" frameborder="0"></iframe>
         </div>
-
+        
+        <div class="panel" id="xmenu">
+            <h1> No extensions </h1>
+        </div>
+        
         <div class="panel" id="settings">
             <iframe data-src="./settings" frameborder="0"></iframe>
         </div>
-
-        <div class="panel" id="recoverymenu">
-            <iframe data-src="./404" frameborder="0"></iframe>
-        </div>
+        
     </div>
+    
 
+    <div style="position: fixed; top: 0; left:0;" id="notificationArea"></div>
+
+    
     <script>
         // Mobile menu toggle
         const menuToggle = document.querySelector('.menu-toggle');
@@ -287,7 +436,8 @@
                     this.tabs[tabId] = {
                         button,
                         panel,
-                        loaded: tabId === 'server' // Server tab is not an iframe
+                        loaded: tabId === 'server', // Server tab is not an iframe
+                        loaded: tabId === 'xmenu' // Extensions tab is not an iframe
                     };
 
                     button.addEventListener('click', () => this.switchTab(tabId));
@@ -333,7 +483,7 @@
 
         const matrixSettings = {
             opacity: 0.2,
-            color: '#4a9eff',
+            color: '#FFFFFF',
             speed: 2,
             fontSize: 16
         };
@@ -376,7 +526,103 @@
         }
 
         setInterval(drawMatrix, 33);
-    </script>
+
+
+        
+        
+        
+function showNotification(title, message, options = {}) {
+      const {
+        duration = 5000,
+        borderColor,
+        borderColors,
+        image
+      } = options;
+
+      // Remove existing notification if present
+      const existingNotification = document.querySelector('.notification-container');
+      if (existingNotification) {
+        existingNotification.remove();
+      }
+
+      // Create notification elements
+      const notification = document.createElement('div');
+      notification.className = 'notification-container';
+      
+      // Handle border styling
+      if (borderColors && borderColors.length > 1) {
+        notification.classList.add('animated-border');
+        notification.style.setProperty('--border-colors', borderColors.join(', '));
+        const glowColor = borderColors[0].match(/\d+/g).join(',');
+        notification.style.setProperty('--glow-color', glowColor);
+      } else if (borderColor) {
+        notification.classList.add('animated-border');
+        notification.style.setProperty('--border-colors', `${borderColor}, ${borderColor}`);
+        const glowColor = borderColor.match(/\d+/g).join(',');
+        notification.style.setProperty('--glow-color', glowColor);
+      }
+
+      // Create HTML content
+      const imageHtml = image ? `<img src="${image}" class="notification-image" alt="Notification image">` : '';
+      
+      notification.innerHTML = `
+        ${imageHtml}
+        <div class="notification-content">
+          <div class="notification-title">${title}</div>
+          <div class="notification-body">${message}</div>
+        </div>
+        <button class="notification-close" aria-label="Close notification"></button>
+      `;
+
+      // Add to DOM
+      //document.body.appendChild(notification);
+      var element = document.getElementById("notificationArea");
+      element.prepend(notification);
+
+      // Trigger sliding animation
+      requestAnimationFrame(() => notification.classList.add('show'));
+
+      // Setup close button
+      const closeButton = notification.querySelector('.notification-close');
+      closeButton.addEventListener('click', () => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 400);
+      });
+
+      // Auto-dismiss after duration
+      if (duration) {
+        setTimeout(() => {
+          if (notification.parentElement) {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 400);
+          }
+        }, duration);
+      }
+    }
+            
+            async function loadscreen(message) {
+                document.getElementById('output').innerHTML += message + '<br>';
+                showNotification('System status updated:', message, {borderColors: ['#00FFFF', '#00FF00', '#0000FF', '#FFFFFF'] });
+            };
+            //loadscreen("Akari Digita starting...");
+
+    
+if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().then(granted => {
+        if (granted) {
+            showNotification('[OK]', 'Persistent storage granted!', {borderColors: ['#00FFFF', '#00FF00', '#0000FF', '#FFFFFF'] });
+        } else {
+            showNotification('[Error]', 'Persist cache failed, defaulting to temporary storage. Cache may be cleared.', {borderColors: ['#0000FF', '#0000ff', '#0000FF', '#0000ff'] });
+        }
+    });
+} else {
+    showNotification('[Error]', "Persistent storage API not supported.", {borderColors: ['#0000FF', '#0000ff', '#0000FF', '#0000ff'] });
+}
+
+
+        </script>
+    </div>
+
 </body>
 
 </html>
