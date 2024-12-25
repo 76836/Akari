@@ -1,0 +1,231 @@
+<html><head><base href="about:blank">
+<title>Chat</title>
+<style>
+:root {
+  --amoled-black: #000000;
+  --amoled-dark: #111111; 
+  --amoled-gray: #222222;
+  --amoled-light: #333333;
+  --text-color: #ffffff;
+  --accent: #5865F2;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: var(--amoled-black);
+  color: var(--text-color);
+  height: 100vh;
+
+}
+
+.messages {
+  padding: 0;
+  margin-top:1rem;
+  overflow-y: auto;
+  padding-bottom: 140px;
+}
+
+.message {
+  margin: 0.5rem 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  background: var(--amoled-dark);
+  width: calc(100% - 4rem);
+  word-wrap: break-word;
+}
+
+.message .username {
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+  color: var(--accent);
+}
+
+.video-container {
+  background: rgba(255,255,255,0.6);
+  border-radius: 16px;
+  padding: 0rem;
+  margin: 1rem;
+  display:block;
+}
+
+.input-island {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 2rem);
+  max-width: 800px;
+  background: var(--amoled-gray);
+  border-radius: 16px;
+  padding: 1rem;
+}
+
+.input-box {
+  width: 100%;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--amoled-light);
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+}
+
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.left-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.button-container button {
+  background: transparent;
+  border: none;
+  color: var(--text-color);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  
+}
+
+.button-container button:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+@media (min-width: 768px) {
+  .chat-container {
+    flex-direction: row;
+  }
+  
+  .messages {
+    width: 50vw;
+  }
+
+  .video-container.hidden {
+    display: none;
+  }
+
+  .messages.full {
+    width:70vw;
+    padding-left: 0;
+    padding-right: 0;
+    gap:0;
+    margin:0;
+    margin-left: 15vw;
+  }
+  
+  .video-container {
+    width: calc(50% - 4rem);
+    position: fixed;
+    right: 1rem;
+    top:1rem;
+    height: calc(100vh - 11rem);
+  }
+}
+
+@media (max-width: 767px) {
+  .video-container {
+    width: calc(100vw - 2rem);
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 40vh;
+  }
+  
+  .messages {
+    margin-top: calc(40vh + 2rem);
+  }
+  
+  .video-container.hidden {
+    display: none;
+  }
+  
+  .messages.full {
+    margin-top: 1rem;
+  }
+}
+</style>
+</head>
+<body>
+
+<div>
+  <div class="messages" id="messages">
+    <!-- Messages will be inserted here -->
+  </div>
+  
+  <div class="video-container" id="videoContainer">
+
+  </div>
+</div>
+
+<div class="input-island">
+  <input type="text" class="input-box" id="messageInput" placeholder="Message...">
+  <div class="button-container">
+    <div class="left-buttons">
+      <button id="voiceBtn">Voice</button>
+      <button id="toggleVideo">Toggle Video</button>
+    </div>
+    <button id="sendBtn">Send</button>
+  </div>
+</div>
+
+<script>
+const messageInput = document.getElementById('messageInput');
+const messagesContainer = document.getElementById('messages');
+const sendBtn = document.getElementById('sendBtn');
+const toggleVideoBtn = document.getElementById('toggleVideo');
+const videoContainer = document.getElementById('videoContainer');
+const messages = document.getElementById('messages');
+
+let isVideoVisible = true;
+
+function addMessage(text, username = 'User') {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'message';
+  messageDiv.innerHTML = `
+    <div class="username">${username}</div>
+    <div class="content">${marked.parse(text)}</div>
+  `;
+  messagesContainer.appendChild(messageDiv);
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function sendMessage() {
+  const text = messageInput.value.trim();
+  if (text) {
+    addMessage(text);
+    messageInput.value = '';
+  }
+}
+
+function toggleVideo() {
+  isVideoVisible = !isVideoVisible;
+  videoContainer.classList.toggle('hidden');
+  messages.classList.toggle('full');
+}
+
+messageInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') sendMessage();
+});
+
+sendBtn.addEventListener('click', sendMessage);
+toggleVideoBtn.addEventListener('click', toggleVideo);
+
+// Load marked.js for Markdown support
+const script = document.createElement('script');
+script.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+document.head.appendChild(script);
+
+// Add some sample messages
+setTimeout(() => {
+  addMessage('Nonfunctional demo', 'System');
+  addMessage('Markdown supported. **bold** *italic*', 'System');
+}, 100);
+</script>
+
+</body></html>
