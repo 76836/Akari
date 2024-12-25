@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Digita VRM</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      overflow: hidden;
+    }
+
+    body {
+      background-color: transparent !important;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    canvas {
+      position: absolute;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 1;
+      background-color: transparent !important;
+    }
+
+    .backplate {
+      position: absolute;
+      font-family: Sans-Serif;
+      color: rgb(183, 50, 50);
+      margin: 10px;
+      font-size: 14px;
+      opacity: 0.75;
+      background-color:transparent !important;
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    .credits {
+      position: absolute;
+      right: 0px;
+      font-family: Sans-Serif;
+      color: rgb(201, 38, 38);
+      margin: 10px;
+      font-size: 14px;
+      text-align: right;
+      opacity: 0.75;
+      background-color:transparent !important;
+      padding: 10px;
+      border-radius: 5px;
+      z-index: 1;
+    }
+
+    .infobar {
+      position: absolute;
+      bottom: 0px;
+      left: 0px;
+      font-family: Sans-Serif;
+      background-color:transparent !important;
+      margin: 10px;
+      font-size: 14px;
+      z-index: 998;
+      color: white;
+      padding: 5px;
+      border-radius: 5px;
+      opacity: 0.75;
+    }
+
+    .interface {
+      position: absolute;
+      bottom: 0px;
+      right: 0px;
+      font-family: Sans-Serif;
+      background-color: #2F5164;
+      margin: 10px;
+      font-size: 13px;
+      z-index: 999;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      width: 200px;
+      opacity: 0.75;
+    }
+
+    .interface .fileinput {
+      margin-top: 10px;
+    }
+
+    .interface .slider {
+      appearance: none;
+      width: 100%;
+      height: 13px;
+      background: #000;
+      opacity: 1;
+      margin-top: 3px;
+      margin-bottom: 3px;
+      overflow: hidden;
+      border-radius: 30px;
+    }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      background: #fff;
+      width: 18px;
+      height: 18px;
+      border-radius: 30px;
+    }
+
+    .interface .file {
+      background-color: #2F5164;
+    }
+
+    .interface .closebtn {
+      color: red;
+      text-align: right;
+      margin-top: -5px;
+      margin-bottom: -15px;
+      font-size: 14px;
+    }
+
+    .interface input[type=number]::-webkit-inner-spin-button,
+    .interface input[type=number]::-webkit-outer-spin-button {
+      opacity: 1;
+    }
+
+    .highlight {
+      background-color: black;
+      border-radius: 5px;
+      padding: 1px;
+      padding-left: 5px;
+      padding-right: 5px;
+      color: white;
+      font-weight: bold;
+      font-size: 12px;
+      line-height: 15px;
+    }
+
+    #audioDeviceSelect {
+      width: 100%;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="backplate" id="backplate">
+    <h1>Digita VRM</h1>
+    <h3>Audio-driven VRM avatar for AIs.</h3>
+    <h4>Double click to show menu.</h4>
+    <h4>press X on the configuration panel to hide.</h4>
+  </div>
+
+  <div id="credits" class="credits" onclick="hideinfo()">
+    <p>Original code:</p>
+    <a href="https://github.com/Automattic/VU-VRM">VU-VRM v1.0 by itsTallulahhh</a>
+  </div>
+
+  <div id="infobar" class="infobar">
+  </div>
+
+  <div class="interface" id="interface">
+    <div class="closebtn" id="closebtn" onclick="hideinterface()">❌</div>
+    <div class="sliders" id="sliders">
+      <p>
+        <span class="controlboxlabel">Input Volume VU</span>
+        <input type="range" min="0" max="100" value="100" class="slider" id="inputlevel">
+        <br>
+        <span class="controlboxlabel">Mouth Threshold</span>
+        <input type="range" min="0" max="50" value="50" class="slider" id="mouththreshold">
+        <br>
+        <span class="controlboxlabel">Body Threshold</span>
+        <input type="range" min="0" max="50" value="1" class="slider" id="bodythreshold">
+        <br>
+        <span class="controlboxlabel">Mouth Gain Boost</span>
+        <input type="range" min="0" max="25" value="25" class="slider" id="mouthboost">
+        <br>
+        <span class="controlboxlabel">Body Gain Boost</span>
+        <input type="range" min="0" max="25" value="25" class="slider" id="bodymotion">
+        <br>
+        <span class="controlboxlabel">Serious / Smiling</span>
+        <input type="range" min="0" max="100" value="100" class="slider" id="expression">
+      </p>
+    </div>
+    <div class="fileinput" id="fileinput">
+      <p>
+        Change VRM model...
+        <input id="file" class="file" type="file" accept=".vrm,.VRM" onchange="dofile()">
+      </p>
+    </div>
+  </div>
+
+  <!-- three.min.js r110 -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.110.0/build/three.min.js"></script>
+  <!-- GLTFLoader.js -->
+  <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r110/examples/js/loaders/GLTFLoader.js"></script>
+  <!-- OrbitControls.js -->
+  <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r110/examples/js/controls/OrbitControls.js"></script>
+  <!-- pixiv three-vrm.js -->
+  <script src="https://unpkg.com/@pixiv/three-vrm@0.3.0/lib/three-vrm.js"></script>
+
+  <script>
+    // setup
+    var expressionyay = 0;
+    var expressionoof = 0;
+    var expressionlimityay = 0.5;
+    var expressionlimitoof = 0.5;
+    var expressionease = 100;
+    var expressionintensity = 0.75;
+
+    var mouththreshold, mouthboost, bodythreshold, bodymotion, expression;
+
+    if (localStorage.localvalues) {
+      var initvalues = true;
+      mouththreshold = Number(localStorage.mouththreshold);
+      mouthboost = Number(localStorage.mouthboost);
+      bodythreshold = Number(localStorage.bodythreshold);
+      bodymotion = Number(localStorage.bodymotion);
+      expression = Number(localStorage.expression);
+    } else {
+      mouththreshold = 10;
+      mouthboost = 10;
+      bodythreshold = 10;
+      bodymotion = 10;
+      expression = 80;
+    }
+
+    let audioContext, analyser, microphone, javascriptNode;
+
+    // setup three-vrm
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    const camera = new THREE.PerspectiveCamera(30.0, window.innerWidth / window.innerHeight, 0.1, 20.0);
+    camera.position.set(0.0, 1.45, 0.75);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.screenSpacePanning = true;
+    controls.target.set(0.0, 1.45, 0.0);
+    controls.update();
+
+    const scene = new THREE.Scene();
+
+    const light = new THREE.DirectionalLight(0xffffff);
+    light.position.set(1.0, 1.0, 1.0).normalize();
+    scene.add(light);
+
+    const lookAtTarget = new THREE.Object3D();
+    camera.add(lookAtTarget);
+
+    let currentVrm = undefined;
+    const loader = new THREE.GLTFLoader();
+
+    function load(url) {
+      loader.crossOrigin = 'anonymous';
+      loader.load(
+        url,
+        (gltf) => {
+          THREE.VRMUtils.removeUnnecessaryJoints(gltf.scene);
+
+          THREE.VRM.from(gltf).then((vrm) => {
+            if (currentVrm) {
+              scene.remove(currentVrm.scene);
+              currentVrm.dispose();
+            }
+
+            currentVrm = vrm;
+            scene.add(vrm.scene);
+
+            vrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.Hips).rotation.y = Math.PI;
+            vrm.springBoneManager.reset();
+
+            // un-T-pose
+            vrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.RightUpperArm).rotation.z = 250;
+            vrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.RightLowerArm).rotation.z = -0.2;
+            vrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.LeftUpperArm).rotation.z = -250;
+            vrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.LeftLowerArm).rotation.z = 0.2;
+
+            // randomise init positions
+            function randomsomesuch() {
+              return (Math.random() - 0.5) / 10;
+            }
+
+            vrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.Head).rotation.x = randomsomesuch();
+            vrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.Head).rotation.y = randomsomesuch();
+            vrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.Head).rotation.z = randomsomesuch();
+
+            vrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.Neck).rotation.x = randomsomesuch();
+            vrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.Neck).rotation.y = randomsomesuch();
+            vrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.Neck).rotation.z = randomsomesuch();
+
+            vrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.Spine).rotation.x = randomsomesuch();
+            vrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.Spine).rotation.y = randomsomesuch();
+            vrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.Spine).rotation.z = randomsomesuch();
+
+            vrm.lookAt.target = lookAtTarget;
+            vrm.springBoneManager.reset();
+
+            console.log(vrm);
+          });
+        },
+        (progress) => console.log('Loading model...', 100.0 * (progress.loaded / progress.total), '%'),
+        (error) => console.error(error)
+      );
+    }
+
+    load('https://76836.github.io/Akari/Digita/test.vrm');
+
+    const clock = new THREE.Clock();
+
+let idleEnabled = true; // Toggle idle animation
+let idleSpeed = 0.15; // Controls the speed of idle animations
+let idleCraziness = 0.75; // Controls the randomness/craziness of idle animations
+let preferredFps = 24; // Desired framerate
+
+function animate() {
+  setTimeout(() => requestAnimationFrame(animate), 1000 / preferredFps);
+
+  const deltaTime = clock.getDelta();
+
+  if (currentVrm) {
+    currentVrm.update(deltaTime);
+  }
+
+  renderer.render(scene, camera);
+}
+
+animate();
+
+async function setupAudio() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const audioInputs = devices.filter(device => device.kind === 'audioinput');
+
+    const select = document.createElement('select');
+    select.id = 'audioDeviceSelect';
+
+    const defaultOption = document.createElement('option');
+    defaultOption.value = 'default';
+    defaultOption.text = 'Default';
+    select.appendChild(defaultOption);
+
+    audioInputs.forEach(device => {
+      const option = document.createElement('option');
+      option.value = device.deviceId;
+      option.text = device.label || `Microphone ${select.length}`;
+      select.appendChild(option);
+    });
+
+    const fileInput = document.getElementById('fileinput');
+    fileInput.after(select);
+
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioContext.createAnalyser();
+    javascriptNode = audioContext.createScriptProcessor(256, 1, 1);
+
+    analyser.smoothingTimeConstant = 0.5;
+    analyser.fftSize = 1024;
+
+    javascriptNode.connect(audioContext.destination);
+
+    async function setupStream(deviceId) {
+      let constraints;
+      if (deviceId === 'default') {
+        constraints = { audio: true };
+      } else {
+        constraints = { audio: { deviceId: { exact: deviceId } } };
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      if (microphone) {
+        microphone.disconnect();
+      }
+
+      microphone = audioContext.createMediaStreamSource(stream);
+      microphone.connect(analyser);
+      analyser.connect(javascriptNode);
+    }
+
+    await setupStream('default');
+
+    select.addEventListener('change', async () => {
+      await setupStream(select.value);
+      localStorage.selectedAudioDevice = select.value;
+    });
+
+    if (localStorage.selectedAudioDevice) {
+      select.value = localStorage.selectedAudioDevice;
+      await setupStream(localStorage.selectedAudioDevice);
+    }
+
+    javascriptNode.onaudioprocess = function () {
+      const array = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(array);
+      const average = array.reduce((a, b) => a + b, 0) / array.length;
+      const inputvolume = average;
+
+      document.getElementById('inputlevel').value = inputvolume;
+
+      if (currentVrm) {
+        if (inputvolume > 10) {
+          idleEnabled = false; // Disable idle animation if audio is detected
+          var voweldamp = 53;
+          var vowelmin = 12;
+
+          if (inputvolume > 20) {
+            currentVrm.blendShapeProxy.setValue(
+              THREE.VRMSchema.BlendShapePresetName.A,
+              ((average - vowelmin) / voweldamp) * 0.1
+            );
+          } else {
+            currentVrm.blendShapeProxy.setValue(
+              THREE.VRMSchema.BlendShapePresetName.A,
+              0
+            );
+          }
+        } else {
+          idleEnabled = true; // Enable idle animation when no audio
+        }
+      }
+    };
+  } catch (err) {
+    console.error('Error setting up audio:', err);
+  }
+}
+
+function playIdleAnimation() {
+  if (!idleEnabled || !currentVrm) return;
+
+  const parts = ['Head', 'Neck', 'Spine'];
+
+  parts.forEach(part => {
+    const node = currentVrm.humanoid.getBoneNode(
+      THREE.VRMSchema.HumanoidBoneName[part]
+    );
+
+    if (node) {
+      const damping = 100 / idleSpeed;
+      node.rotation.x += (Math.random() - 0.5) * idleCraziness / damping;
+      node.rotation.y += (Math.random() - 0.5) * idleCraziness / damping;
+      node.rotation.z += (Math.random() - 0.5) * idleCraziness / damping;
+
+      const springback = 1.001;
+      node.rotation.x /= springback;
+      node.rotation.y /= springback;
+      node.rotation.z /= springback;
+    }
+  });
+}
+
+setInterval(playIdleAnimation, 1000 / preferredFps);
+window.addEventListener('load', setupAudio);
+
+
+    function blink() {
+      var blinktimeout = Math.floor(Math.random() * 250) + 50;
+      lookAtTarget.position.y = camera.position.y - camera.position.y * 2 + 1.25;
+      
+      setTimeout(() => {
+        currentVrm.blendShapeProxy.setValue(THREE.VRMSchema.BlendShapePresetName.BlinkL, 0);
+        currentVrm.blendShapeProxy.setValue(THREE.VRMSchema.BlendShapePresetName.BlinkR, 0);
+      }, blinktimeout);
+
+      currentVrm.blendShapeProxy.setValue(THREE.VRMSchema.BlendShapePresetName.BlinkL, 1);
+      currentVrm.blendShapeProxy.setValue(THREE.VRMSchema.BlendShapePresetName.BlinkR, 1);
+    }
+
+    (function loop() {
+      var rand = Math.round(Math.random() * 10000) + 1000;
+      setTimeout(function() {
+        blink();
+        loop();
+      }, rand);
+    })();
+
+    window.addEventListener('dragover', function(event) {
+      event.preventDefault();
+    });
+
+    window.addEventListener('drop', function(event) {
+      event.preventDefault();
+      const files = event.dataTransfer.files;
+      if (!files) { return; }
+      const file = files[0];
+      if (!file) { return; }
+      const blob = new Blob([file], { type: "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
+      load(url);
+    });
+
+    // Add double-click event listener
+    window.addEventListener('dblclick', function() {
+      var interface = document.getElementById("interface");
+      var backplate = document.getElementById("backplate");
+      var infobar = document.getElementById("infobar");
+      var credits = document.getElementById("credits");
+      
+      interface.style.display = "block";
+      backplate.style.display = "block";
+      infobar.style.display = "block";
+      credits.style.display = "block";
+    });
+
+    window.addEventListener('resize', onWindowResize, false);
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    var talktime = true;
+
+    function interface() {
+      if (initvalues && localStorage.localvalues) {
+        initvalues = false;
+        document.getElementById("mouththreshold").value = mouththreshold;
+        document.getElementById("mouthboost").value = mouthboost;
+        document.getElementById("bodythreshold").value = bodythreshold;
+        document.getElementById("bodymotion").value = bodymotion;
+        document.getElementById("expression").value = expression;
+      }
+
+      mouththreshold = document.getElementById("mouththreshold").value;
+      mouthboost = document.getElementById("mouthboost").value;
+      bodythreshold = document.getElementById("bodythreshold").value;
+      bodymotion = document.getElementById("bodymotion").value;
+      expression = document.getElementById("expression").value;
+
+      expressionlimityay = (expression / 100) * expressionintensity;
+      expressionlimitoof = ((100 - expression) / 100) * expressionintensity;
+
+      console.log("Expression " + expressionyay + " yay / " + expressionoof + " oof");
+      console.log("Expression mix " + expressionlimityay + " yay / " + expressionlimitoof + " oof");
+
+      localStorage.localvalues = 1;
+      localStorage.mouththreshold = mouththreshold;
+      localStorage.mouthboost = mouthboost;
+      localStorage.bodythreshold = bodythreshold;
+      localStorage.bodymotion = bodymotion;
+      localStorage.expression = expression;
+
+      const audioDeviceSelect = document.getElementById('audioDeviceSelect');
+      if (audioDeviceSelect) {
+        localStorage.selectedAudioDevice = audioDeviceSelect.value;
+      }
+    }
+
+    function hideinterface() {
+      var a = document.getElementById("backplate");
+      var b = document.getElementById("interface");
+      var x = document.getElementById("infobar");
+      var y = document.getElementById("credits");
+      a.style.display = "none";
+      b.style.display = "none";
+      x.style.display = "none";
+      y.style.display = "none";
+    }
+
+    function hideinfo() {
+      var a = document.getElementById("backplate");
+      var x = document.getElementById("infobar");
+      var y = document.getElementById("credits");
+      a.style.display = "none";
+      x.style.display = "none";
+      y.style.display = "none";
+    }
+
+    function dofile() {
+      var file = document.querySelector('input[type=file]').files[0];
+      if (!file) { return; }
+      const blob = new Blob([file], { type: "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
+      load(url);
+    }
+
+    setTimeout(() => { interface(); }, 500);
+    hideinterface()
+  </script>
+</body>
+</html>
