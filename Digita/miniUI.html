@@ -31,6 +31,7 @@ body {
   margin: 0.5rem 1rem;
   padding: 0.5rem 1rem;
   border-radius: 8px;
+  border: 1px solid white;
   background: var(--amoled-dark);
   width: calc(100% - 4rem);
   word-wrap: break-word;
@@ -56,7 +57,7 @@ body {
   left: 50%;
   transform: translateX(-50%);
   width: calc(100% - 2rem);
-  max-width: 800px;
+  max-width: calc(100% - 2rem);
   background: var(--amoled-gray);
   border-radius: 16px;
   padding: 1rem;
@@ -189,7 +190,7 @@ function addMessage(text, username = 'User') {
   messageDiv.className = 'message';
   messageDiv.innerHTML = `
     <div class="username">${username}</div>
-    <div class="content">${marked.parse(text)}</div>
+    <div class="content">${text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\*(.*?)\*/g, '<i>$1</i>')}</div>
   `;
   messagesContainer.appendChild(messageDiv);
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -199,6 +200,8 @@ function sendMessage() {
   const text = messageInput.value.trim();
   if (text) {
     addMessage(text);
+    localStorage.setItem('DigitaUserMessage', text);
+    localStorage.setItem('DigitaMessageSource', 'typed');
     messageInput.value = '';
   }
 }
@@ -216,15 +219,29 @@ messageInput.addEventListener('keypress', (e) => {
 sendBtn.addEventListener('click', sendMessage);
 toggleVideoBtn.addEventListener('click', toggleVideo);
 
-// Load marked.js for Markdown support
-const script = document.createElement('script');
-script.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
-document.head.appendChild(script);
+// Detect changes in DigitaMessage and display messages from "Akari"
+window.addEventListener('storage', (e) => {
+  if (e.key === 'DigitaMessage') {
+    const akariMessage = localStorage.getItem('DigitaMessage');
+    if (akariMessage) {
+      addMessage(akariMessage, 'Akari');
+    }
+  }
+
+  // Detect changes in DigitaVoiceInput and treat them as user messages
+  if (e.key === 'DigitaVoiceInput') {
+    const voiceInput = localStorage.getItem('DigitaVoiceInput');
+    if (voiceInput) {
+      addMessage(voiceInput);
+      localStorage.setItem('DigitaUserMessage', voiceInput);
+      localStorage.setItem('DigitaMessageSource', 'voice');
+    }
+  }
+});
 
 // Add some sample messages
 setTimeout(() => {
-  addMessage('Nonfunctional demo', 'System');
-  addMessage('Markdown supported. **bold** *italic*', 'System');
+  addMessage('**Chat supports MD** *sort-of...* Chat UI v0.1', 'System');
 }, 100);
 </script>
 
