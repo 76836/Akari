@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digita STT (via Vosk-Browser) v2</title>
+    <title>Digita STT (via Vosk-Browser) v3</title>
     <script src="https://cdn.jsdelivr.net/npm/vosk-browser@0.0.3/dist/vosk.js"></script>
     <style>
         * {
@@ -302,7 +302,7 @@
     <div class="container">
         <div class="header">
             <i data-lucide="ear" style="color: rgb(255, 128, 246)"></i>
-            <h1>Digita STT (via Vosk-Browser)</h1>
+            <h1>Digita STT (via Vosk-Browser) v3</h1>
             <div class="status">
                 <div class="status-dot" id="statusDot"></div>
                 <span id="statusText">Initializing...</span>
@@ -321,10 +321,10 @@
             <div class="setting-card">
                 <h3>
                     <i data-lucide="shield" style="width: 14px; height: 14px"></i>
-                    Privacy Mode
+                    Require wakeword to transcribe: 
                 </h3>
                 <div class="switch-wrapper">
-                    <span>Show All Words</span>
+                    <span>on/off</span>
                     <label class="switch">
                         <input type="checkbox" id="privacyToggle">
                         <span class="slider"></span>
@@ -429,6 +429,8 @@ function handleRecognitionResult(text) {
         addToLog(text, true);
         startTranscriptionTimeout();
     } else if (shouldLog) {
+        localStorage.setItem("DigitaVoiceInput", text);
+        console.log("Submitting transcription to Digita system:" + text);
         addToLog(text, true);
     }
 }
