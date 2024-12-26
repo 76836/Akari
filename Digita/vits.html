@@ -267,7 +267,7 @@
         <!-- Simple header -->
         <div class="header">
             <i data-lucide="mic" style="color: rgb(45, 212, 191)"></i>
-            <h1>Digita TTS (experimental)</h1>
+            <h1>Digita TTS (v0.2)</h1>
             <div class="status">
                 <div class="status-dot"></div>
                 <span id="status">Local</span>
@@ -389,6 +389,28 @@
 
         // Initialize on load
         init().catch(console.error);
+
+
+
+        
+        localStorage.setItem("wordsToSay", "Hello World");
+        // Get a reference to the local storage item
+        var emoteStorage = localStorage.getItem("wordsToSay");
+
+        // This function checks for changes in the emote storage and runs the textbubble function
+        function checkEmoteChange() {
+            var newEmote = localStorage.getItem("wordsToSay");
+            // If the emote has changed, run the textbubble function with the new content
+            if (newEmote !== emoteStorage) {
+                document.getElementById('textInput').value = newEmote;
+                synthesize();
+                emoteStorage = newEmote; // Update the stored value to avoid future mismatches
+            }
+        }
+        // Call the checkEmoteChange function initially
+        checkEmoteChange();
+        // Set up an interval to call the checkEmoteChange function regularly
+        setInterval(checkEmoteChange, 300);
     </script>
 
 
