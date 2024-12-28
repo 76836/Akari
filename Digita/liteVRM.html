@@ -1,28 +1,29 @@
-<html><head><base href="about:blank" target="_blank"></head><body>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>VRM Avatar</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;  
-      border: 0;
-      overflow: hidden;
-    }
+<html><head><base href="about:blank" target="_blank">
+<title>VRM Avatar lite</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;  
+    border: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
 
-    body {
-      background-color: transparent !important;
-    }
+  body {
+    background-color: transparent !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 
-    canvas {
-      width: 100vw !important;
-      height: 100vh !important;
-      position: fixed;
-      top: 0;
-      left: 0;
-    }
-  </style>
+  canvas {
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+  }
+</style>
 </head>
 <body>
   <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
@@ -31,19 +32,19 @@
 
   <script>
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 20);
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 20);
     const renderer = new THREE.WebGLRenderer({
-      antialias: false, 
+      antialias: true,
       alpha: true,
       precision: 'lowp',
       powerPreference: 'low-power'
     });
-    
+
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(0.7);
+    renderer.setPixelRatio(0.5);
     document.body.appendChild(renderer.domElement);
 
-    camera.position.set(0, 1.4, 0.7);
+    camera.position.set(0, 1.4, 0.6);
     camera.lookAt(0, 1.4, 0);
 
     const light = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -54,26 +55,25 @@
     let currentVrm = null;
     const clock = new THREE.Clock();
     let lastBlinkTime = 0;
-    let lastMovementTime = 0; 
-    let lastLookTime = 0;
+    let lastMovementTime = 0;
     let currentMovement = null;
     let isMoving = false;
     let isBlinking = false;
     let isLooking = false;
-    let currentMood = {
-      energy: Math.random(),
-      focus: Math.random(),
-      direction: {x: 0, y: 0, z: 0},
-      eyeTarget: {x: 0, y: 1.4, z: 0}
-    };
-
     let isSmiling = false;
     let smileTimeout = null;
     let blinkHoldTimeout = null;
 
+    const currentMood = {
+      energy: Math.random(),
+      focus: Math.random(),
+      direction: { x: 0, y: 0, z: 0 },
+      eyeTarget: { x: 0, y: 1.4, z: 0 }
+    };
+
     const loader = new THREE.GLTFLoader();
     loader.crossOrigin = 'anonymous';
-    
+
     function loadVRM(url) {
       loader.load(url, (gltf) => {
         THREE.VRM.from(gltf).then((vrm) => {
@@ -86,23 +86,21 @@
           
           vrm.scene.rotation.y = Math.PI;
 
+          // Explicitly position arms by the sides/hips
           const leftArm = vrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.LeftUpperArm);
           const rightArm = vrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.RightUpperArm);
           if (leftArm) {
-            leftArm.rotation.z = 0.6;  // Rotate arms down to her sides
+            leftArm.rotation.x = 0.2;  // Slight natural angle
+            leftArm.rotation.y = 0.51;
+            leftArm.rotation.z = 1; // Down by side
           }
           if (rightArm) {
-            rightArm.rotation.z = -0.6;
+            rightArm.rotation.x = 0.2;  // Slight natural angle
+            rightArm.rotation.y = -0.51;
+            rightArm.rotation.z = -1;  // Down by side
           }
-
-          // Added springiness to hair movement
-          vrm.springBoneManager.springBoneGroups.forEach((group) => {
-              group.forEach((bone) => {
-                  bone.stiffness = 0.25; // Lower stiffness for more springiness
-                  bone.gravityDir = new THREE.Vector3(0, -1, 0); // Gravity direction for hair
-                  bone.gravityPower = 0.6; // Modify to increase spring effect
-              });
-          });
+        }).catch((error) => {
+          console.error("Failed to load VRM:", error);
         });
       });
     }
@@ -121,22 +119,22 @@
     function lookAtUser() {
       if (!currentVrm || isMoving) return;
       
-      currentMood.eyeTarget = {x: 0, y: 1.4, z: 2};
+      currentMood.eyeTarget = { x: 0, y: 1.4, z: 2 };
       isLooking = true;
       
       if (!isSmiling && !isBlinking) {
         isSmiling = true;
-        currentVrm.blendShapeProxy.setValue('blendShape1.smile', 0.4); // Subtle smile shape
+        currentVrm.blendShapeProxy.setValue('blendShape1.smile', 0.42);
         
         if (smileTimeout) clearTimeout(smileTimeout);
 
-        if(!isBlinking) {
+        if (!isBlinking) {
           isBlinking = true;
           currentVrm.blendShapeProxy.setValue(THREE.VRMSchema.BlendShapePresetName.Blink, 1);
           
-          const holdDuration = getRandomTime(2000, 5000);
+          const holdDuration = getRandomTime(2000, 3000);
           
-          if(blinkHoldTimeout) clearTimeout(blinkHoldTimeout);
+          if (blinkHoldTimeout) clearTimeout(blinkHoldTimeout);
           blinkHoldTimeout = setTimeout(() => {
             currentVrm.blendShapeProxy.setValue(THREE.VRMSchema.BlendShapePresetName.Blink, 0);
             isBlinking = false;
@@ -154,9 +152,9 @@
     document.addEventListener('touchstart', lookAtUser);
 
     function updateMood() {
-      currentMood.energy = Math.max(0.3, Math.min(1, 
+      currentMood.energy = Math.max(0.3, Math.min(1,
         currentMood.energy + (Math.random() - 0.5) * 0.2));
-      
+
       currentMood.focus = Math.max(0, Math.min(1,
         currentMood.focus + (Math.random() - 0.5) * 0.3));
 
@@ -169,7 +167,7 @@
       if (!isLooking) {
         const lookAtUser = Math.random() < 0.3;
         if (lookAtUser) {
-          currentMood.eyeTarget = {x: 0, y: 1.4, z: 2};
+          currentMood.eyeTarget = { x: 0, y: 1.4, z: 2 };
         } else {
           currentMood.eyeTarget = {
             x: (Math.random() - 0.5) * 2,
@@ -182,7 +180,7 @@
 
     function triggerRandomMovement() {
       if (!currentVrm || isMoving) return;
-      
+
       updateMood();
       isMoving = true;
       
@@ -210,13 +208,13 @@
       const spine = currentVrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.Spine);
 
       const startRotations = {
-        head: {x: head.rotation.x, y: head.rotation.y, z: head.rotation.z},
-        neck: {x: neck.rotation.x, y: neck.rotation.y, z: neck.rotation.z},
-        spine: {x: spine.rotation.x, y: spine.rotation.y, z: spine.rotation.z}
+        head: { x: head.rotation.x, y: head.rotation.y, z: head.rotation.z },
+        neck: { x: neck.rotation.x, y: neck.rotation.y, z: neck.rotation.z },
+        spine: { x: spine.rotation.x, y: spine.rotation.y, z: spine.rotation.z }
       };
 
       const startTime = clock.getElapsedTime();
-      
+
       currentMovement = {
         start: startTime,
         duration: duration,
@@ -237,57 +235,82 @@
       const head = currentVrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.Head);
       const neck = currentVrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.Neck);
       const spine = currentVrm.humanoid.getBoneNode(THREE.VRMSchema.HumanoidBoneName.Spine);
-      
+
       const currentTime = clock.getElapsedTime();
       const elapsed = currentTime - currentMovement.start;
       const progress = Math.min(elapsed / currentMovement.duration, 1);
-      
+
       const eased = progress < 0.5 
         ? 4 * progress * progress * progress 
         : 1 - Math.pow(-2 * progress + 2, 3) / 2;
 
       ['x', 'y', 'z'].forEach(axis => {
-        head.rotation[axis] = currentMovement.startRotations.head[axis] + 
+        head.rotation[axis] = currentMovement.startRotations.head[axis] +
           (currentMovement.targetRotations.head[axis] - currentMovement.startRotations.head[axis]) * eased;
-        
-        neck.rotation[axis] = currentMovement.startRotations.neck[axis] + 
+
+        neck.rotation[axis] = currentMovement.startRotations.neck[axis] +
           (currentMovement.targetRotations.neck[axis] - currentMovement.startRotations.neck[axis]) * eased;
-        
-        spine.rotation[axis] = currentMovement.startRotations.spine[axis] + 
+
+        spine.rotation[axis] = currentMovement.startRotations.spine[axis] +
           (currentMovement.targetRotations.spine[axis] - currentMovement.startRotations.spine[axis]) * eased;
       });
     }
 
     function triggerBlink() {
       if (!currentVrm || isBlinking) return;
-      
+
       isBlinking = true;
       currentVrm.blendShapeProxy.setValue(THREE.VRMSchema.BlendShapePresetName.Blink, 1);
-      
+
       setTimeout(() => {
         currentVrm.blendShapeProxy.setValue(THREE.VRMSchema.BlendShapePresetName.Blink, 0);
         isBlinking = false;
-      }, 200);
+      }, getRandomTime(150, 350));
     }
 
     function animate() {
       requestAnimationFrame(animate);
-      
+
       const currentTime = clock.getElapsedTime();
-      
+
       if (currentVrm) {
         if (!isMoving && currentTime - lastMovementTime > getRandomTime(2, 4) * (1 / currentMood.energy)) {
           triggerRandomMovement();
           lastMovementTime = currentTime;
         }
 
-        if (!isBlinking && currentTime - lastBlinkTime > getRandomTime(3, 6)) {
+        if (!isBlinking && currentTime - lastBlinkTime > getRandomTime(4, 10)) {
           triggerBlink();
           lastBlinkTime = currentTime;
         }
 
         updateMovement();
-        currentVrm.update(clock.getDelta() * 0.8);
+
+        // Safely check spring bone manager
+        if (currentVrm.springBoneManager && currentVrm.springBoneManager.springBoneGroupList) {
+          currentVrm.springBoneManager.springBoneGroupList.forEach(group => {
+            if (group.springs) {
+              group.springs.forEach(spring => {
+                if (spring.bone) {
+                  spring.bone.localQuaternion.slerp(
+                    new THREE.Quaternion().setFromRotationMatrix(
+                      new THREE.Matrix4().lookAt(
+                        spring.bone.getWorldPosition(new THREE.Vector3()),
+                        currentMood.eyeTarget,
+                        new THREE.Vector3(0, 1, 0)
+                      )
+                    ),
+                    0.2
+                  );
+                }
+              });
+            }
+          });
+        }
+
+        if (currentVrm.update) {
+          currentVrm.update(clock.getDelta() * 0.8);
+        }
       }
 
       renderer.render(scene, camera);
@@ -303,4 +326,3 @@
   </script>
 </body>
 </html>
-</body></html>
