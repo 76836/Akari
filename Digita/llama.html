@@ -224,7 +224,7 @@
     <div class="container">
         <div class="header">
             <i data-lucide="message-circle" style="color: rgb(45, 212, 191)"></i>
-            <h1>Llama3.2 1b on Wllama</h1>
+            <h1>Llama3.2 1b on Wllama (v2)</h1>
             <div class="status">
                 <div class="status-dot"></div>
                 <span id="status-text">Offline</span>
@@ -258,191 +258,265 @@
         </div>
     </div>
 
-    <script type="module">
-        import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.0/esm/wllama.js';
+   <script type="module">
+    import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.0/esm/wllama.js';
 
-        let wllama;
-        let isModelLoaded = false;
-        let chatHistory = [];
+    let wllama;
+    let isModelLoaded = false;
+    let chatHistory = [];
+    let tokenCache = new Map(); // Cache for tokenized messages
+
+    // Load token cache from localStorage
+    function loadTokenCache() {
+        try {
+            const savedCache = localStorage.getItem('tokenCache');
+            if (savedCache) {
+                const parsed = JSON.parse(savedCache);
+                // Convert the plain object back to a Map
+                tokenCache = new Map(Object.entries(parsed));
+                console.log('Token cache loaded successfully');
+            }
+        } catch (error) {
+            console.error('Error loading token cache:', error);
+            tokenCache = new Map();
+        }
+    }
+
+    // Save token cache to localStorage
+    function saveTokenCache() {
+        try {
+            // Convert Map to a plain object for storage
+            const cacheObj = Object.fromEntries(tokenCache);
+            localStorage.setItem('tokenCache', JSON.stringify(cacheObj));
+        } catch (error) {
+            console.error('Error saving token cache:', error);
+        }
+    }
+
+    // Function to tokenize and cache a message
+    async function tokenizeAndCache(message) {
+        const cacheKey = JSON.stringify(message);
+        if (!tokenCache.has(cacheKey)) {
+            const tokens = await wllama.tokenize(message.content);
+            tokenCache.set(cacheKey, tokens);
+            saveTokenCache(); // Save cache after each new tokenization
+        }
+        return tokenCache.get(cacheKey);
+    }
+
+    const messagesDiv = document.getElementById('messages');
+    const userInput = document.getElementById('user-input');
+    const sendButton = document.getElementById('send-button');
+    const clearButton = document.getElementById('clear-button');
+    const loadingDiv = document.getElementById('loading');
+    const systemPromptInput = document.getElementById('system-prompt');
+    const savePromptButton = document.getElementById('save-prompt');
+    const modelInfoDiv = document.getElementById('model-info');
+    const statusText = document.getElementById('status-text');
+
+    // Function to build context efficiently
+    async function buildContext(messages) {
+        const systemMessage = { role: 'system', content: systemPromptInput.value.trim() };
+        let tokenizedMessages = [];
         
+        for (const msg of [systemMessage, ...messages]) {
+            const tokens = await tokenizeAndCache(msg);
+            tokenizedMessages.push(tokens);
+        }
+        
+        return tokenizedMessages.flat();
+    }
 
-        const messagesDiv = document.getElementById('messages');
-        const userInput = document.getElementById('user-input');
-        const sendButton = document.getElementById('send-button');
-        const clearButton = document.getElementById('clear-button');
-        const loadingDiv = document.getElementById('loading');
-        const systemPromptInput = document.getElementById('system-prompt');
-        const savePromptButton = document.getElementById('save-prompt');
-        const modelInfoDiv = document.getElementById('model-info');
-        const statusText = document.getElementById('status-text');
+    // Add model loading button
+    const addLoadModelButton = () => {
+        const button = document.createElement('button');
+        button.className = 'load-model-button';
+        button.innerHTML = '<i data-lucide="download"></i> Load Model';
+        messagesDiv.appendChild(button);
 
-        // Add model loading button
-        const addLoadModelButton = () => {
-            const button = document.createElement('button');
-            button.className = 'load-model-button';
-            button.innerHTML = '<i data-lucide="download"></i> Load Model';
-            messagesDiv.appendChild(button);
-
-            button.addEventListener('click', () => {
-                button.remove();
-                initWllama();
-            });
-        };
-
-        // Load chat history from localStorage
-        const loadChatHistory = () => {
-            const history = localStorage.getItem('chatHistory');
-            if (history) {
-                chatHistory = JSON.parse(history);
-                chatHistory.forEach(msg => addMessageToUI(msg.role, msg.content));
-            }
-        };
-
-        // Save chat history to localStorage
-        const saveChatHistory = () => {
-            localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
-        };
-
-        // Load system prompt from localStorage
-        const loadSystemPrompt = () => {
-            const prompt = localStorage.getItem('systemPrompt');
-            if (prompt) {
-                systemPromptInput.value = prompt;
-            }
-        };
-
-        // Save system prompt to localStorage
-        savePromptButton.addEventListener('click', () => {
-            localStorage.setItem('systemPrompt', systemPromptInput.value);
-            addMessageToUI('system', 'System prompt saved successfully');
+        button.addEventListener('click', () => {
+            button.remove();
+            initWllama();
         });
+    };
 
-        // Add message to UI
-        const addMessageToUI = (role, content) => {
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message', `${role}-message`);
-            messageDiv.textContent = content;
-            messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        };
+    // Load chat history from localStorage
+    const loadChatHistory = () => {
+        const history = localStorage.getItem('chatHistory');
+        if (history) {
+            chatHistory = JSON.parse(history);
+            chatHistory.forEach(msg => addMessageToUI(msg.role, msg.content));
+        }
+    };
 
-        // Check for cached model
-        const checkCachedModel = async () => {
-            try {
-                const cache = await caches.open('wllama-model-cache');
-                const response = await cache.match('llama-3.2-1b-instruct-q4_k_m.gguf');
-                return !!response;
-            } catch (error) {
-                console.error('Error checking cache:', error);
-                return false;
-            }
-        };
+    // Save chat history to localStorage
+    const saveChatHistory = () => {
+        localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+    };
 
-        // Initialize Wllama
-        const initWllama = async () => {
-            loadingDiv.style.display = 'block';
-            sendButton.disabled = true;
-            statusText.textContent = 'Loading...';
+    // Load system prompt from localStorage
+    const loadSystemPrompt = () => {
+        const prompt = localStorage.getItem('systemPrompt');
+        if (prompt) {
+            systemPromptInput.value = prompt;
+        }
+    };
 
-            try {
-                wllama = new Wllama({
-                    'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.0/esm/single-thread/wllama.wasm',
-                    'multi-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.0/esm/multi-thread/wllama.wasm'
-                });
+    // Save system prompt to localStorage
+    savePromptButton.addEventListener('click', () => {
+        localStorage.setItem('systemPrompt', systemPromptInput.value);
+        addMessageToUI('system', 'System prompt saved successfully');
+    });
 
-                // Try to load from cache first
-                const isCached = await checkCachedModel();
-                
-                await wllama.loadModelFromHF(
-                    'hugging-quants/Llama-3.2-1B-Instruct-Q4_K_M-GGUF',
-                    'llama-3.2-1b-instruct-q4_k_m.gguf',
-                    {
-                        progressCallback: ({ loaded, total }) => {
-                            const progress = Math.round((loaded / total) * 100);
-                            loadingDiv.textContent = `Loading model... ${progress}%`;
-                        },
-                        cache: true // Enable caching
-                    }
-                );
+    // Modified addMessageToUI function without streaming support
+    const addMessageToUI = (role, content) => {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message', `${role}-message`);
+        messageDiv.textContent = content;
+        messagesDiv.appendChild(messageDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    };
 
-                const template = await wllama.getChatTemplate();
-                modelInfoDiv.textContent = `Model loaded successfully | Chat template: ${template ? 'Available' : 'Using default'}`;
+    // Check for cached model
+    const checkCachedModel = async () => {
+        try {
+            const cache = await caches.open('wllama-model-cache');
+            const response = await cache.match('llama-3.2-1b-instruct-q4_k_m.gguf');
+            return !!response;
+        } catch (error) {
+            console.error('Error checking cache:', error);
+            return false;
+        }
+    };
 
-                isModelLoaded = true;
-                loadingDiv.style.display = 'none';
-                sendButton.disabled = false;
-                statusText.textContent = 'Online';
-
-                // Add initial system message
-                addMessageToUI('system', 'Model loaded successfully. You can start chatting!');
-            } catch (error) {
-                console.error('Error initializing Wllama:', error);
-                loadingDiv.textContent = 'Error loading model. Please try again.';
-                statusText.textContent = 'Error';
-                addLoadModelButton();
-            }
-        };
-
-        // Handle sending messages
-        const handleSend = async () => {
-            const message = userInput.value.trim();
-            if (!message) return;
-
-            const userMessage = { role: 'user', content: message };
-            chatHistory.push(userMessage);
-            addMessageToUI('user', message);
-            userInput.value = '';
-            sendButton.disabled = true;
-            loadingDiv.style.display = 'block';
-
-            try {
-                const messages = [
-                    { role: 'system', content: systemPromptInput.value.trim() },
-                    ...chatHistory
-                ];
-
-                const response = await wllama.createChatCompletion(messages, {
-                    maxTokens: 512,
-                    temperature: 0.7,
-                    topK: 40,
-                    topP: 0.9,
-                });
-
-                const assistantMessage = { role: 'assistant', content: response.trim() };
-                chatHistory.push(assistantMessage);
-                addMessageToUI('assistant', response.trim());
-                saveChatHistory();
-            } catch (error) {
-                console.error('Error generating response:', error);
-                addMessageToUI('system', 'Sorry, I encountered an error generating a response.');
-            }
-
-            loadingDiv.style.display = 'none';
-            sendButton.disabled = false;
-        };
-
-        // Event listeners
-        sendButton.addEventListener('click', handleSend);
-        userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
+    // Listen for DigitaUserMessage changes
+    function setupDigitaUserMessageListener() {
+        let lastValue = localStorage.getItem('DigitaUserMessage');
+        
+        setInterval(() => {
+            const currentValue = localStorage.getItem('DigitaUserMessage');
+            if (currentValue && currentValue !== lastValue) {
+                lastValue = currentValue;
+                userInput.value = currentValue;
                 handleSend();
             }
-        });
+        }, 100);
+    }
 
-        clearButton.addEventListener('click', () => {
-            messagesDiv.innerHTML = '';
-            chatHistory = [];
-            localStorage.removeItem('chatHistory');
-            if (!isModelLoaded) {
-                addLoadModelButton();
+    // Initialize Wllama
+    const initWllama = async () => {
+        loadingDiv.style.display = 'block';
+        sendButton.disabled = true;
+        statusText.textContent = 'Loading...';
+
+        try {
+            wllama = new Wllama({
+                'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.0/esm/single-thread/wllama.wasm',
+                'multi-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.1.0/esm/multi-thread/wllama.wasm'
+            });
+
+            await wllama.loadModelFromHF(
+                'hugging-quants/Llama-3.2-1B-Instruct-Q4_K_M-GGUF',
+                'llama-3.2-1b-instruct-q4_k_m.gguf',
+                {
+                    progressCallback: ({ loaded, total }) => {
+                        const progress = Math.round((loaded / total) * 100);
+                        loadingDiv.textContent = `Loading model... ${progress}%`;
+                    },
+                    cache: true
+                }
+            );
+
+            const template = await wllama.getChatTemplate();
+            if (template) {
+                await tokenizeAndCache({ role: 'system', content: template });
             }
-        });
 
-        // Initialize
-        loadSystemPrompt();
-        loadChatHistory();
-        addLoadModelButton();
-    </script>
+            modelInfoDiv.textContent = `Model loaded successfully | Chat template: ${template ? 'Available' : 'Using default'}`;
+
+            isModelLoaded = true;
+            loadingDiv.style.display = 'none';
+            sendButton.disabled = false;
+            statusText.textContent = 'Online';
+
+            setupDigitaUserMessageListener();
+            addMessageToUI('system', 'Model loaded successfully. You can start chatting!');
+        } catch (error) {
+            console.error('Error initializing Wllama:', error);
+            loadingDiv.textContent = 'Error loading model. Please try again.';
+            statusText.textContent = 'Error';
+            addLoadModelButton();
+        }
+    };
+
+    // Handle sending messages
+    const handleSend = async () => {
+        const message = userInput.value.trim();
+        if (!message) return;
+
+        const userMessage = { role: 'user', content: message };
+        chatHistory.push(userMessage);
+        addMessageToUI('user', message);
+        userInput.value = '';
+        sendButton.disabled = true;
+        loadingDiv.style.display = 'block';
+
+        try {
+            const messages = [
+                { role: 'system', content: systemPromptInput.value.trim() },
+                ...chatHistory
+            ];
+
+            // Use cached tokenization
+            const contextTokens = await buildContext(chatHistory);
+
+            const response = await wllama.createChatCompletion(messages, {
+                maxTokens: 512,
+                temperature: 0.7,
+                topK: 40,
+                topP: 0.9,
+                useCache: true
+            });
+
+            // Save complete response to localStorage
+            localStorage.setItem('DigitaMessage', response.trim());
+
+            const assistantMessage = { role: 'assistant', content: response.trim() };
+            chatHistory.push(assistantMessage);
+            addMessageToUI('assistant', response.trim());
+            saveChatHistory();
+        } catch (error) {
+            console.error('Error generating response:', error);
+            addMessageToUI('system', 'Sorry, I encountered an error generating a response.');
+        }
+
+        loadingDiv.style.display = 'none';
+        sendButton.disabled = false;
+    };
+
+    // Event listeners
+    sendButton.addEventListener('click', handleSend);
+    userInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    });
+
+    clearButton.addEventListener('click', () => {
+        messagesDiv.innerHTML = '';
+        chatHistory = [];
+        localStorage.removeItem('chatHistory');
+        if (!isModelLoaded) {
+            addLoadModelButton();
+        }
+    });
+
+    // Initialize
+    loadTokenCache(); // Load token cache on startup
+    loadSystemPrompt();
+    loadChatHistory();
+    addLoadModelButton();
+</script>
 </body>
 </html>
