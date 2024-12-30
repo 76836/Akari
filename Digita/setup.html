@@ -1,0 +1,431 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digita Setup</title>
+    <style>
+    :root {
+      /* Theme Colors */
+      --primary: darkcyan;
+      --secondary: darkcyan;
+      --accent: darkcyan;
+      --text: #ffffff;
+      --bg-dark: #679;
+      --card-bg: black;
+      --border: cyan;
+      
+      /* Layout */
+      --border-radius: 8px;
+      --card-padding: 1rem;
+      --container-padding: 2rem;
+      --spacing-sm: 8px;
+      --spacing-md: 1rem;
+      --spacing-lg: 2rem;
+    }
+    
+    body {
+      font-family: 'Ubuntu', system-ui, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      background-image: url('/Akari/wallpapers/Foreshadowing.jpg');
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: var(--text);
+      padding: var(--spacing-md);
+      overflow: hidden;
+    }
+    
+    .setup-container {
+      background: rgba(55,55,55, 0.7);
+      border-radius: var(--border-radius);
+      padding: var(--container-padding);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      max-width: 900px;
+      width: 90%;
+      border: 1px solid var(--border);
+      position: relative;
+    }
+
+    .setup-container.maximized {
+      background: rgba(55,55,55, 1);
+      border-radius: 0;
+      padding: var(--container-padding);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      max-width: 100vw;
+      width: calc(100vw - 4rem - 2px);
+      height: calc(100vh - 4rem - 2px);
+      border: 1px solid var(--border);
+      position: fixed;
+      top:0;
+      left:0;
+    }
+    
+    .titlebar {
+      background: var(--bg-dark);
+      padding: 6px;
+      border-radius: var(--border-radius) var(--border-radius) 0 0;
+      display: flex;
+      align-items: center;
+      cursor: move;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+    }
+    
+    .window-controls {
+      display: flex;
+      gap: var(--spacing-sm);
+      margin-left: auto;
+    }
+    
+    .window-button {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 0px solid rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    
+    .close { background: transparent; }
+    .minimize { background: transparent; }
+    .maximize { background: transparent; }
+    
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--bg-dark);
+      border-radius: 4px;
+      margin: 1rem 0;
+      position: relative;
+    }
+    
+    .progress-fill {
+      position: absolute;
+      height: 100%;
+      width: 0%;
+      background: var(--primary);
+      border-radius: 4px;
+      transition: width 0.5s ease-out;
+    }
+    
+    .setup-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+    
+    .feature-card {
+      background: var(--card-bg);
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .feature-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(233, 84, 32, 0.2);
+    }
+    
+    .feature-card.selected {
+      border-color: var(--primary);
+      background: var(--accent);
+    }
+    
+    .option-list {
+      margin-top: 1rem;
+      padding-left: 0;
+      list-style: none;
+    }
+    
+    .option-item {
+      padding: 8px;
+      margin: 4px 0;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .option-item:hover {
+      background: rgba(233, 84, 32, 0.2);
+    }
+    
+    .option-item.selected {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .setup-nav {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 2rem;
+    }
+    
+    .nav-button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    
+    .nav-button:hover {
+      background: #cd3c14;
+    }
+    
+    .nav-button[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .setup-stage {
+      display: none;
+    }
+    
+    .setup-stage.active {
+      display: block;
+    }
+    
+    .character-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--spacing-md);
+    }
+    
+    .character-card {
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: var(--card-padding);
+      text-align: center;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+    }
+    
+    .character-card:hover {
+      border-color: var(--primary);
+    }
+    
+    .character-card.selected {
+      border-color: var(--primary);
+      background: var(--accent);
+    }
+    
+    .character-img {
+      width: 120px;
+      height: 120px;
+      margin-left: calc(50% - 60px);
+      border-radius: 50%;
+      margin-bottom: var(--spacing-md);
+      background: var(--primary);
+    }
+    
+    h1, h2, h3 {
+      color: var(--text);
+    }
+    
+    @media (max-width: 768px) {
+      .setup-container {
+        width: 100%;
+        padding: var(--spacing-md);
+      }
+      
+      .setup-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .character-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      }
+    }
+    </style>
+    </head>
+    <body>
+    
+    <div class="setup-container">
+      <div class="titlebar">
+        <span>Akari Digita Quick Setup v0.1</span>
+        <div class="window-controls">
+          <div class="window-button minimize">_</div>
+          <div class="window-button maximize">□</div>
+          <div class="window-button close">×</div>
+        </div>
+      </div>
+      
+      <h1>Digita AI Setup</h1>
+      <div class="progress-bar">
+        <div class="progress-fill"></div>
+      </div>
+    
+      <div class="setup-stage active" data-stage="1">
+        <h2>Step 1: Choose Voice Recognition Panel</h2>
+        <div class="setup-grid">
+          <div class="feature-card">
+            <h3>Voice Recognition service:</h3>
+            <ul class="option-list">
+              <li class="option-item" data-feature="voice-basic">Web Speech API</li>
+              <li class="option-item selected" data-feature="voice-enhanced">VOSK EN</li>
+              <li class="option-item" data-feature="voice-neural">Whisper Tiny EN</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    
+      <div class="setup-stage" data-stage="2">
+        <h2>Step 2: Voice Synthesis panel</h2>
+        <div class="setup-grid">
+          <div class="feature-card">
+            <h3>Voice Output service:</h3>
+            <ul class="option-list">
+              <li class="option-item" data-feature="tts-basic">Web Speech API</li>
+              <li class="option-item selected" data-feature="tts-neural">Vits WEB</li>
+              <li class="option-item" data-feature="tts-emotional">SpeechT5</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    
+      <div class="setup-stage" data-stage="3">
+        <h2>Step 3: Character Selection</h2>
+        <div class="character-grid">
+          <div class="character-card">
+            <div class="character-img"></div>
+            <h3>Akari</h3>
+            <p>Emotive AI assistant. (default)</p>
+          </div>
+          <div class="character-card">
+            <div class="character-img"></div>
+            <h3>Kumoharu</h3>
+            <p>Airheaded and engaging.</p>
+          </div>
+          <div class="character-card">
+            <div class="character-img"></div>
+            <h3>Luna</h3>
+            <p>Helpful multipurpose AI bot.</p>
+          </div>
+          <div class="character-card">
+            <div class="character-img"></div>
+            <h3>Vanilla AI</h3>
+            <p>No avatar Interface with vanilla system prompts and voice models.</p>
+          </div>
+        </div>
+      </div>
+    
+      <div class="setup-stage" data-stage="4">
+        <h2>Step 4: Language Model Panel Selection</h2>
+        <div class="setup-grid">
+          <div class="feature-card">
+            <h3>AI Model:</h3>
+            <ul class="option-list">
+              <li class="option-item selected" data-feature="llm-basic">Llama3.2 1b</li>
+              <li class="option-item" data-feature="llm-advanced">Gemini API</li>
+              <li class="option-item" data-feature="llm-expert">Smollm 135M</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    
+      <div class="setup-stage" data-stage="5">
+        <h2>Step 5: Main Interface Panel Selecton</h2>
+        <div class="setup-grid">
+          <div class="feature-card">
+            <h3>UI Theme:</h3>
+            <ul class="option-list">
+              <li class="option-item selected" data-feature="ui-light">Adaptive (default)</li>
+              <li class="option-item" data-feature="ui-dark">Tiny</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    
+      <div class="setup-nav">
+        <button class="nav-button" id="prevBtn" disabled>Previous</button>
+        <button class="nav-button" id="nextBtn">Next</button>
+      </div>
+    </div>
+    
+    <script>
+    let currentStage = 1;
+    const totalStages = 5;
+    
+    function updateStage(direction) {
+      document.querySelector(`.setup-stage[data-stage="${currentStage}"]`).classList.remove('active');
+      currentStage += direction;
+      document.querySelector(`.setup-stage[data-stage="${currentStage}"]`).classList.add('active');
+      
+      // Update buttons
+      document.getElementById('prevBtn').disabled = currentStage === 1;
+      document.getElementById('nextBtn').textContent = currentStage === totalStages ? 'Finish' : 'Next';
+      
+      // Update progress bar
+      const progress = ((currentStage - 1) / (totalStages - 1)) * 100;
+      document.querySelector('.progress-fill').style.width = `${progress}%`;
+    }
+    
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      if (currentStage > 1) updateStage(-1);
+    });
+    
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      if (currentStage < totalStages) {
+        updateStage(1);
+      } else {
+        alert('Setup Complete! Redirecting to Digita...');
+      }
+    });
+    
+    document.querySelectorAll('.option-item').forEach(option => {
+      option.addEventListener('click', (e) => {
+        // Deselect siblings
+        e.target.parentNode.querySelectorAll('.option-item').forEach(item => {
+          item.classList.remove('selected');
+        });
+        // Select clicked item
+        e.target.classList.add('selected');
+      });
+    });
+    
+    document.querySelectorAll('.character-card').forEach(option => {
+      option.addEventListener('click', (e) => {
+        // Deselect siblings
+        e.target.parentNode.querySelectorAll('.character-card').forEach(item => {
+          item.classList.remove('selected');
+        });
+        // Select clicked item
+        e.target.classList.add('selected');
+      });
+    });
+    
+    // Initial progress
+    document.querySelector('.progress-fill').style.width = '0%';
+    
+    // Window controls
+    document.querySelector('.close').addEventListener('click', () => {
+      if(confirm('Are you sure you want to cancel setup?')) {
+        window.close();
+      }
+    });
+    
+    document.querySelector('.minimize').addEventListener('click', () => {
+      document.querySelector('.setup-container').style.transform = 'scale(0)';
+      setTimeout(() => {
+        document.querySelector('.setup-container').style.transform = 'none';
+      }, 1000);
+    });
+    
+    document.querySelector('.maximize').addEventListener('click', () => {
+      document.querySelector('.setup-container').classList.toggle('maximized');
+    });
+    </script>
+    
+    </body></html>
