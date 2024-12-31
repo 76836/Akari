@@ -224,7 +224,7 @@
     <div class="container">
         <div class="header">
             <i data-lucide="message-circle" style="color: rgb(45, 212, 191)"></i>
-            <h1>Llama3.2 1b on Wllama (v2)</h1>
+            <h1>Llama3.2 1b on Wllama (v2.1)</h1>
             <div class="status">
                 <div class="status-dot"></div>
                 <span id="status-text">Offline</span>
@@ -264,46 +264,68 @@
     let wllama;
     let isModelLoaded = false;
     let chatHistory = [];
-    let tokenCache = new Map(); // Cache for tokenized messages
+const CONTEXT_WINDOW_SIZE = 10; // Number of recent messages to include in context
+let tokenCache = new Map();
 
-    // Load token cache from localStorage
-    function loadTokenCache() {
-        try {
-            const savedCache = localStorage.getItem('tokenCache');
-            if (savedCache) {
-                const parsed = JSON.parse(savedCache);
-                // Convert the plain object back to a Map
-                tokenCache = new Map(Object.entries(parsed));
-                console.log('Token cache loaded successfully');
+function loadTokenCache() {
+    try {
+        const savedCache = localStorage.getItem('tokenCache');
+        const savedHistory = localStorage.getItem('chatHistory');
+        
+        if (savedCache && savedHistory) {
+            const parsed = JSON.parse(savedCache);
+            const history = JSON.parse(savedHistory);
+            const validCache = new Map();
+            
+            for (const [key, value] of Object.entries(parsed)) {
+                const msgObj = JSON.parse(key);
+                if (msgObj.role === 'system' || 
+                    history.some(h => h.role === msgObj.role && h.content === msgObj.content)) {
+                    validCache.set(key, value);
+                }
             }
-        } catch (error) {
-            console.error('Error loading token cache:', error);
-            tokenCache = new Map();
+            
+            tokenCache = validCache;
+            console.log('Token cache loaded and validated');
         }
+    } catch (error) {
+        console.error('Error loading token cache:', error);
+        tokenCache = new Map();
     }
+}
 
-    // Save token cache to localStorage
-    function saveTokenCache() {
-        try {
-            // Convert Map to a plain object for storage
-            const cacheObj = Object.fromEntries(tokenCache);
-            localStorage.setItem('tokenCache', JSON.stringify(cacheObj));
-        } catch (error) {
-            console.error('Error saving token cache:', error);
-        }
+function saveTokenCache() {
+    try {
+        const cacheObj = Object.fromEntries(tokenCache);
+        localStorage.setItem('tokenCache', JSON.stringify(cacheObj));
+    } catch (error) {
+        console.error('Error saving token cache:', error);
     }
+}
 
-    // Function to tokenize and cache a message
-    async function tokenizeAndCache(message) {
-        const cacheKey = JSON.stringify(message);
-        if (!tokenCache.has(cacheKey)) {
-            const tokens = await wllama.tokenize(message.content);
-            tokenCache.set(cacheKey, tokens);
-            saveTokenCache(); // Save cache after each new tokenization
-        }
-        return tokenCache.get(cacheKey);
+function getRecentMessages(messages) {
+    if (messages.length <= CONTEXT_WINDOW_SIZE) return messages;
+    return messages.slice(-CONTEXT_WINDOW_SIZE);
+}
+
+
+async function tokenizeAndCache(message) {
+    const cacheKey = JSON.stringify(message);
+    console.log('Checking cache for key:', cacheKey);
+    console.log('Cache has this key?:', tokenCache.has(cacheKey));
+    console.log('Current cache keys:', [...tokenCache.keys()]);
+    
+    if (!tokenCache.has(cacheKey)) {
+        console.log('Cache miss, tokenizing:', message.content);
+        const tokens = await wllama.tokenize(message.content);
+        tokenCache.set(cacheKey, tokens);
+        saveTokenCache();
+    } else {
+        console.log('Cache hit for:', message.content);
     }
-
+    return tokenCache.get(cacheKey);
+}
+       
     const messagesDiv = document.getElementById('messages');
     const userInput = document.getElementById('user-input');
     const sendButton = document.getElementById('send-button');
@@ -315,17 +337,23 @@
     const statusText = document.getElementById('status-text');
 
     // Function to build context efficiently
-    async function buildContext(messages) {
-        const systemMessage = { role: 'system', content: systemPromptInput.value.trim() };
-        let tokenizedMessages = [];
-        
-        for (const msg of [systemMessage, ...messages]) {
-            const tokens = await tokenizeAndCache(msg);
-            tokenizedMessages.push(tokens);
-        }
-        
-        return tokenizedMessages.flat();
+  async function buildContext(messages) {
+    const systemMessage = { role: 'system', content: systemPromptInput.value.trim() };
+    const recentMessages = getRecentMessages(messages);
+    let tokenizedMessages = [];
+    
+    // First tokenize all existing messages
+    for (const msg of recentMessages) {
+        const tokens = await tokenizeAndCache(msg);
+        tokenizedMessages.push(tokens);
     }
+    
+    // Then add system message tokens last to ensure fresh system prompt is used
+    const systemTokens = await tokenizeAndCache(systemMessage);
+    tokenizedMessages.unshift(systemTokens);
+    
+    return tokenizedMessages.flat();
+}
 
     // Add model loading button
     const addLoadModelButton = () => {
@@ -450,49 +478,53 @@
     };
 
     // Handle sending messages
-    const handleSend = async () => {
-        const message = userInput.value.trim();
-        if (!message) return;
+  const handleSend = async () => {
+    const message = userInput.value.trim();
+    if (!message) return;
 
-        const userMessage = { role: 'user', content: message };
-        chatHistory.push(userMessage);
-        addMessageToUI('user', message);
-        userInput.value = '';
-        sendButton.disabled = true;
-        loadingDiv.style.display = 'block';
+    const userMessage = { role: 'user', content: message };
+    chatHistory.push(userMessage);
+    addMessageToUI('user', message);
+    userInput.value = '';
+    sendButton.disabled = true;
+    loadingDiv.style.display = 'block';
 
-        try {
-            const messages = [
-                { role: 'system', content: systemPromptInput.value.trim() },
-                ...chatHistory
-            ];
+    try {
+        // Tokenize the new message first to add it to cache
+        await tokenizeAndCache(userMessage);
+        
+        const recentMessages = getRecentMessages(chatHistory);
+        const messages = [
+            { role: 'system', content: systemPromptInput.value.trim() },
+            ...recentMessages
+        ];
 
-            // Use cached tokenization
-            const contextTokens = await buildContext(chatHistory);
+        const response = await wllama.createChatCompletion(messages, {
+            maxTokens: 512,
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.9,
+            useCache: true
+        });
 
-            const response = await wllama.createChatCompletion(messages, {
-                maxTokens: 512,
-                temperature: 0.7,
-                topK: 40,
-                topP: 0.9,
-                useCache: true
-            });
+        localStorage.setItem('DigitaMessage', response.trim());
 
-            // Save complete response to localStorage
-            localStorage.setItem('DigitaMessage', response.trim());
+        const assistantMessage = { role: 'assistant', content: response.trim() };
+        chatHistory.push(assistantMessage);
+        // Cache the response immediately
+        await tokenizeAndCache(assistantMessage);
+        
+        addMessageToUI('assistant', response.trim());
+        saveChatHistory();
+        saveTokenCache();
+    } catch (error) {
+        console.error('Error generating response:', error);
+        addMessageToUI('system', 'Sorry, I encountered an error generating a response.');
+    }
 
-            const assistantMessage = { role: 'assistant', content: response.trim() };
-            chatHistory.push(assistantMessage);
-            addMessageToUI('assistant', response.trim());
-            saveChatHistory();
-        } catch (error) {
-            console.error('Error generating response:', error);
-            addMessageToUI('system', 'Sorry, I encountered an error generating a response.');
-        }
-
-        loadingDiv.style.display = 'none';
-        sendButton.disabled = false;
-    };
+    loadingDiv.style.display = 'none';
+    sendButton.disabled = false;
+};
 
     // Event listeners
     sendButton.addEventListener('click', handleSend);
@@ -503,14 +535,23 @@
         }
     });
 
-    clearButton.addEventListener('click', () => {
-        messagesDiv.innerHTML = '';
-        chatHistory = [];
-        localStorage.removeItem('chatHistory');
-        if (!isModelLoaded) {
-            addLoadModelButton();
+clearButton.addEventListener('click', () => {
+    messagesDiv.innerHTML = '';
+    chatHistory = [];
+    const newCache = new Map();
+    tokenCache.forEach((value, key) => {
+        const msgObj = JSON.parse(key);
+        if (msgObj.role === 'system') {
+            newCache.set(key, value);
         }
     });
+    tokenCache = newCache;
+    saveTokenCache();
+    localStorage.removeItem('chatHistory');
+    if (!isModelLoaded) {
+        addLoadModelButton();
+    }
+});
 
     // Initialize
     loadTokenCache(); // Load token cache on startup
