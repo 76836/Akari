@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Akari Digita v0.6</title>
+        <title>Akari Digita v0.7</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta charset="utf-8" />
         <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
@@ -333,7 +333,7 @@
 
     <div class="sidebar">
         <button class="tab-button active" data-tab="server">
-            Akari Digita v0.6
+            Akari Digita v0.7
           </button>
       
           <button class="tab-button" data-tab="chat">
@@ -358,6 +358,10 @@
         
           <button class="tab-button" data-tab="settings">
             Settings
+          </button>
+
+          <button class="tab-button" onclick="shutdown();">
+            ( ' ) Shutdown.
           </button>
 
       
@@ -401,6 +405,8 @@
 
     
     <script>
+ 
+        
         // Mobile menu toggle
         const menuToggle = document.querySelector('.menu-toggle');
         const sidebar = document.querySelector('.sidebar');
@@ -619,7 +625,70 @@ if (navigator.storage && navigator.storage.persist) {
     showNotification('[Error]', "Persistent storage API not supported.", {borderColors: ['#0000FF', '#0000ff', '#0000FF', '#0000ff'] });
 }
 
+       // Constants
+const SHUTDOWN_STATUS_KEY = 'shutdownstatus';
+const SHUTDOWN_SUCCESS_VALUE = 'success';
+const SHUTDOWN_RUNNING_VALUE = 'running';
 
+// Startup check
+function checkShutdownStatus() {
+    const shutdownStatus = localStorage.getItem(SHUTDOWN_STATUS_KEY);
+
+    if (shutdownStatus && shutdownStatus !== SHUTDOWN_SUCCESS_VALUE) {
+        // Last shutdown was improper
+        showNotification('[Error]', "System was not properly shut down on last exit. \nUse the shutdown button in the menu to prevent this message from appearing.", {borderColors: ['#0000FF', '#0000ff', '#0000FF', '#0000ff'] });
+    }
+
+    // Set status to "running"
+    localStorage.setItem(SHUTDOWN_STATUS_KEY, SHUTDOWN_RUNNING_VALUE);
+}
+
+// Shutdown function
+async function shutdown() {
+    // Display fullscreen splash screen
+    const splash = document.createElement('div');
+    splash.style.position = 'fixed';
+    splash.style.top = '0';
+    splash.style.left = '0';
+    splash.style.width = '100%';
+    splash.style.height = '100%';
+    splash.style.backgroundColor = 'black';
+    splash.style.color = 'white';
+    splash.style.display = 'flex';
+    splash.style.justifyContent = 'center';
+    splash.style.alignItems = 'center';
+    splash.style.zIndex = '10000';
+    splash.textContent = 'Attempting to shut down...';
+    document.body.appendChild(splash);
+
+    // Check for storage concerns
+    if (navigator.storage && navigator.storage.estimate) {
+        const estimate = await navigator.storage.estimate();
+        const usagePercentage = (estimate.usage / estimate.quota) * 100;
+
+        if (usagePercentage > 80) {
+            // Low storage detected
+            const confirmShutdown = confirm('Warning: Your device is low on storage and might attempt to delete Digita system files after shutdown. Do you still want to proceed? (Digita will automatically re-download deleted files when needed, chat history will not be lost.)');
+            if (!confirmShutdown) {
+                // Cancel shutdown
+                splash.remove();
+                return;
+            }
+        }
+    }
+
+    // Set shutdown status to "success"
+    localStorage.setItem(SHUTDOWN_STATUS_KEY, SHUTDOWN_SUCCESS_VALUE);
+
+    // Destroy the page and close it
+    window.addEventListener('beforeunload', () => {
+        document.body.innerHTML = 'exit code 0'; // Clear the page content
+    });
+    window.close(); // Attempt to close the window
+}
+
+// Run startup check on page load
+window.addEventListener('load', checkShutdownStatus);
         </script>
     </div>
 
