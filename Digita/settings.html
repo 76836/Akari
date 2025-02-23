@@ -276,7 +276,7 @@ button:hover {
 </style>
 </head>
 <body>
-<p class="title" style="color:darkcyan;">SETTINGS (v2.0, expect bugs)</p>
+<p class="title" style="color:darkcyan;">SETTINGS v2.1</p>
 <div class="settings-container">
   <div class="setting-group">
     <h2>Interface Settings</h2>
@@ -289,18 +289,20 @@ button:hover {
   <div class="setting-group">
     <h2>Speech Synthesis Panel</h2>
     <div class="button-group">
-      <button onclick="setSpeechEngine('default')">VITS-WEB</button>
-      <button onclick="setSpeechEngine('enhanced')">SpeechT5</button>
-      <button onclick="setSpeechEngine('offline')">Web Speech API</button>
+      <button onclick="setSpeechEngine('./vits')">VITS-WEB</button>
+      <!--<button onclick="setSpeechEngine('enhanced')">SpeechT5</button>
+      <button onclick="setSpeechEngine('offline')">Web Speech API</button>-->
+      <button onclick="setSpeechEngine('./feature_disabled')">Disable this feature.</button>
     </div>
   </div>
 
   <div class="setting-group">
     <h2>Speech Recognition Panel</h2>
     <div class="button-group">
-      <button onclick="setSpeechEngine('default')">VOSK EN</button>
-      <button onclick="setSpeechEngine('enhanced')">Whisper Tiny EN</button>
-      <button onclick="setSpeechEngine('offline')">Web Speech API</button>
+      <button onclick="setSpeechInput('./vosk')">VOSK EN</button>
+      <!--<button onclick="setSpeechInput('enhanced')">Whisper Tiny EN</button>
+      <button onclick="setSpeechInput('offline')">Web Speech API</button>-->
+      <button onclick="setSpeechInput('./feature_disabled')">Disable this feature.</button>
     </div>
   </div>
 
@@ -308,17 +310,26 @@ button:hover {
     <h2>LLM Panel</h2>
     <div class="button-group">
       <button onclick="setLLM('./llama')">Llama 3.2 1B</button>
-      <button onclick="setLLM('./')">Gemini API</button>
-      <button onclick="setLLM('./')">Smollm 135M</button>
+      <button onclick="setLLM('./granite')">IBM Granite 1B</button>
+      <button onclick="setLLM('./gemini')">Gemini API</button>
+      <button onclick="setLLM('./smollm')">Smollm 135M</button>
+      <button onclick="setLLM('./feature_disabled')">Disable this feature.</button>
     </div>
   </div>
 
+  <div class="setting-group">
+    <h2>Chat UI</h2>
+    <div class="button-group">
+      <button onclick="setUI('default')">Default</button>
+    </div>
+  </div>
+  
   <div class="setting-group">
     <h2>Avatar Widget</h2>
     <div class="button-group">
       <button onclick="setAvatar('default')">Akari</button>
       <button onclick="setAvatar('anime')">Kumoharu</button>
-      <button onclick="setAvatar('realistic')">Disable VRM Avatar</button>
+      <button onclick="setAvatar('./feature_disabled')">Disable VRM Avatar</button>
     </div>
   </div>
 
@@ -359,14 +370,26 @@ function showToast(message) {
   }, 2300);
 }
 
+function setSpeechInput(engine) {
+  localStorage.setItem('voiceInputUrl', engine);
+  showToast('Speech recognizer updated');
+  animateSuccess('.setting-group');
+}
+
+function setUI(htmlpage) {
+  //localStorage.setItem('chatUrl', htmlpage);
+  showToast('This feature is disabled.');
+  //animateSuccess('.setting-group');
+}  
+  
 function setSpeechEngine(engine) {
-  localStorage.setItem('speechEngine', engine);
+  localStorage.setItem('voiceOutputUrl', engine);
   showToast('Speech engine updated');
   animateSuccess('.setting-group');
 }
 
 function setLLM(model) {
-  localStorage.setItem('llmModel', model);
+  localStorage.setItem('llmUrl', model);
   showToast('LLM model updated');
   animateSuccess('.setting-group');
 }
