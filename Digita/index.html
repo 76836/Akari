@@ -333,7 +333,7 @@
 
     <div class="sidebar">
         <button class="tab-button active" data-tab="server">
-            Akari Digita v0.8a
+            Akari Digita v0.8b
           </button>
       
           <button class="tab-button" data-tab="chat">
@@ -361,7 +361,7 @@
           </button>
 
           <button class="tab-button" onclick="shutdown();">
-            ( ' ) Shutdown.
+            ( ' ) Shutdown
           </button>
 
       
@@ -636,7 +636,7 @@ function getLocalStorageValue(key, defaultValue, validator) {
 // Validate URLs
 function isValidUrl(url) {
     try {
-        new URL(url); // Throws an error if the URL is invalid
+        //new URL(url); // Throws an error if the URL is invalid
         return true;
     } catch (e) {
         return false;
