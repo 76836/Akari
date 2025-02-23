@@ -276,7 +276,7 @@ button:hover {
 </style>
 </head>
 <body>
-<p class="title" style="color:darkcyan;">SETTINGS v2.2</p>
+<p class="title" style="color:darkcyan;">SETTINGS v2.3</p>
 <div class="settings-container">
   <div class="setting-group">
     <h2>Interface Settings</h2>
@@ -329,8 +329,8 @@ button:hover {
   <div class="setting-group">
     <h2>Avatar Widget</h2>
     <div class="button-group">
-      <button onclick="setAvatar('default')">Akari</button>
-      <button onclick="setAvatar('anime')">Kumoharu</button>
+      <button onclick="setAvatar('./VRM')">Akari</button>
+      <button onclick="setAvatar('./liteVRM')">Kumoharu</button>
       <button onclick="setAvatar('./feature_disabled')">Disable VRM Avatar</button>
     </div>
   </div>
@@ -410,8 +410,8 @@ if (navigator.onLine) {
 };
     
 function setAvatar(style) {
-  localStorage.setItem('avatarStyle', style);
-  showToast('Avatar style updated');
+  localStorage.setItem('DigitaAvatar', style);
+  showToast('Avatar choice updated');
   animateSuccess('.setting-group');
 }
 
