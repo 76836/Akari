@@ -276,13 +276,15 @@ button:hover {
 </style>
 </head>
 <body>
-<p class="title" style="color:darkcyan;">SETTINGS v2.1</p>
+<p class="title" style="color:darkcyan;">SETTINGS v2.2</p>
 <div class="settings-container">
   <div class="setting-group">
     <h2>Interface Settings</h2>
     <div class="button-group">
       <button onclick="localStorage.removeItem('defaultAssistant');">Reset default UI in PWA.</button>
       <button onclick="installupdates();">Check for and install updates.</button>
+      <button onclick="localStorage.setItem('lazyLoadPreference', 'lazy');">Enable lazy loading.</button>
+      <button onclick="localStorage.setItem('lazyLoadPreference', 'full');">Disable lazy loading.</button>
     </div>
   </div>
 
