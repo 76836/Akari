@@ -1,248 +1,250 @@
-<html><head>
-<title>Chat</title>
-<style>
-:root {
-  --amoled-black: #000000;
-  --amoled-dark: #111111; 
-  --amoled-gray: #222222;
-  --amoled-light: #333333;
-  --text-color: #ffffff;
-  --accent: #5865F2;
-}
+<html>
+<head>
+  <title>Chat</title>
+  <style>
+    :root {
+      --amoled-black: #000000;
+      --amoled-dark: #111111;
+      --amoled-gray: #222222;
+      --amoled-light: #333333;
+      --text-color: #ffffff;
+      --accent: #5865F2;
+    }
 
-body {
-  margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
-  background: var(--amoled-black);
-  color: var(--text-color);
-  height: 100vh;
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: var(--amoled-black);
+      color: var(--text-color);
+      height: 100vh;
+      overflow: hidden;
+    }
 
-}
+    .messages {
+      padding: 0;
+      margin-top: 1rem;
+      overflow-y: auto;
+      padding-bottom: 120px; /* Adjusted for shorter input island */
+    }
 
-.messages {
-  padding: 0;
-  margin-top:1rem;
-  overflow-y: auto;
-  padding-bottom: 140px;
-}
+    .message {
+      margin: 0.5rem 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--amoled-dark);
+      width: calc(100% - 4rem);
+      word-wrap: break-word;
+      box-sizing: border-box;
+    }
 
-.message {
-  margin: 0.5rem 1rem;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  border: 1px solid white;
-  background: var(--amoled-dark);
-  width: calc(100% - 4rem);
-  word-wrap: break-word;
-}
+    .message .username {
+      font-weight: bold;
+      margin-bottom: 0.25rem;
+      color: var(--accent);
+    }
 
-.message .username {
-  font-weight: bold;
-  margin-bottom: 0.25rem;
-  color: var(--accent);
-}
+    .message .content {
+      line-height: 1.4;
+    }
 
-.video-container {
-  background: rgba(255,255,255,0.6);
-  border-radius: 16px;
-  padding: 0rem;
-  margin: 1rem;
-  display:block;
-}
+    .video-container {
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 16px;
+      padding: 0;
+      margin: 1rem;
+      display: block;
+    }
 
-.input-island {
-  position: fixed;
-  bottom: 1rem;
-  left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 2rem);
-  max-width: calc(100% - 2rem);
-  background: var(--amoled-gray);
-  border-radius: 16px;
-  padding: 1rem;
-}
+    .video-container.hidden {
+      display: none;
+    }
 
-.input-box {
-  width: 100%;
-  padding: 0.75rem;
-  border: none;
-  border-radius: 8px;
-  background: var(--amoled-light);
-  color: var(--text-color);
-  margin-bottom: 0.5rem;
-}
+    .input-island {
+      position: fixed;
+      bottom: 0.5rem; /* Adjusted for shorter gap */
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 2rem);
+      max-width: 800px; /* Ensures the island doesn't stretch too wide */
+      background: var(--amoled-gray);
+      border-radius: 16px;
+      padding: 0.75rem; /* Adjusted for shorter height */
+    }
 
-.button-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+    .input-box {
+      width: 100%;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      background: var(--amoled-light);
+      color: var(--text-color);
+      margin-bottom: 0.5rem;
+      box-sizing: border-box;
+    }
 
-.left-buttons {
-  display: flex;
-  gap: 0.5rem;
-}
+    .button-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
-.button-container button {
-  background: transparent;
-  border: none;
-  color: var(--text-color);
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  cursor: pointer;
-  
-}
+    .left-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
 
-.button-container button:hover {
-  background: rgba(255,255,255,0.1);
-}
+    .button-container button {
+      background: transparent;
+      border: none;
+      color: var(--text-color);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      cursor: pointer;
+    }
 
-@media (min-width: 768px) {
-  .chat-container {
-    flex-direction: row;
-  }
-  
-  .messages {
-    width: 50vw;
-  }
+    .button-container button:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
 
-  .video-container.hidden {
-    display: none;
-  }
+    @media (min-width: 768px) {
+      .messages {
+        width: 50vw;
+      }
 
-  .messages.full {
-    width:70vw;
-    padding-left: 0;
-    padding-right: 0;
-    gap:0;
-    margin:0;
-    margin-left: 15vw;
-  }
-  
-  .video-container {
-    width: calc(50% - 4rem);
-    position: fixed;
-    right: 1rem;
-    top:1rem;
-    height: calc(100vh - 11rem);
-  }
-}
+      .video-container {
+        width: calc(50% - 4rem);
+        position: fixed;
+        right: 1rem;
+        top: 1rem;
+        height: calc(100vh - 11rem);
+      }
 
-@media (max-width: 767px) {
-  .video-container {
-    width: calc(100vw - 2rem);
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 40vh;
-  }
-  
-  .messages {
-    margin-top: calc(40vh + 2rem);
-  }
-  
-  .video-container.hidden {
-    display: none;
-  }
-  
-  .messages.full {
-    margin-top: 1rem;
-  }
-}
-</style>
+      .messages.full {
+        width: 70vw;
+        margin-left: 15vw;
+      }
+    }
+
+    @media (max-width: 767px) {
+      .video-container {
+        width: calc(100vw - 2rem);
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 40vh;
+      }
+
+      .messages {
+        margin-top: calc(40vh + 2rem);
+      }
+
+      .messages.full {
+        margin-top: 1rem;
+      }
+    }
+  </style>
 </head>
 <body>
-
-<div>
-  <div class="messages" id="messages">
-    <!-- Messages will be inserted here -->
-  </div>
-  
-  <div class="video-container" id="videoContainer">
-  <iframe src="./VRM" style="margin:0; border:0; width:100%; height:100%; background:transparent; border-radius:16px;"></iframe>
-  </div>
-</div>
-
-<div class="input-island">
-  <input type="text" class="input-box" id="messageInput" placeholder="Message...">
-  <div class="button-container">
-    <div class="left-buttons">
-      <button id="voiceBtn">Voice</button>
-      <button id="toggleVideo">Toggle Video</button>
+  <div>
+    <div class="messages" id="messages">
+      <!-- Messages will be inserted here -->
     </div>
-    <button id="sendBtn">Send</button>
+
+    <div class="video-container" id="videoContainer">
+      <iframe id="avatarFrame" style="margin:0; border:0; width:100%; height:100%; background:transparent; border-radius:16px;"></iframe>
+    </div>
   </div>
-</div>
 
-<script>
-const messageInput = document.getElementById('messageInput');
-const messagesContainer = document.getElementById('messages');
-const sendBtn = document.getElementById('sendBtn');
-const toggleVideoBtn = document.getElementById('toggleVideo');
-const videoContainer = document.getElementById('videoContainer');
-const messages = document.getElementById('messages');
+  <div class="input-island">
+    <input type="text" class="input-box" id="messageInput" placeholder="Message...">
+    <div class="button-container">
+      <div class="left-buttons">
+        <button id="voiceBtn">Voice</button>
+        <button id="toggleVideo">Toggle Video</button>
+      </div>
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
 
-let isVideoVisible = true;
+  <script>
+    const messageInput = document.getElementById('messageInput');
+    const messagesContainer = document.getElementById('messages');
+    const sendBtn = document.getElementById('sendBtn');
+    const toggleVideoBtn = document.getElementById('toggleVideo');
+    const videoContainer = document.getElementById('videoContainer');
+    const avatarFrame = document.getElementById('avatarFrame');
+    const messages = document.getElementById('messages');
 
-function addMessage(text, username = 'User') {
-  const messageDiv = document.createElement('div');
-  messageDiv.className = 'message';
-  messageDiv.innerHTML = `
-    <div class="username">${username}</div>
-    <div class="content">${text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\*(.*?)\*/g, '<i>$1</i>')}</div>
-  `;
-  messagesContainer.appendChild(messageDiv);
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
+    let isVideoVisible = true;
 
-function sendMessage() {
-  const text = messageInput.value.trim();
-  if (text) {
-    addMessage(text);
-    localStorage.setItem('DigitaUserMessage', text);
-    localStorage.setItem('DigitaMessageSource', 'typed');
-    messageInput.value = '';
-  }
-}
-
-function toggleVideo() {
-  isVideoVisible = !isVideoVisible;
-  videoContainer.classList.toggle('hidden');
-  messages.classList.toggle('full');
-}
-
-messageInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') sendMessage();
-});
-
-sendBtn.addEventListener('click', sendMessage);
-toggleVideoBtn.addEventListener('click', toggleVideo);
-
-// Detect changes in DigitaMessage and display messages from "Akari"
-window.addEventListener('storage', (e) => {
-  if (e.key === 'DigitaMessage') {
-    const akariMessage = localStorage.getItem('DigitaMessage');
-    if (akariMessage) {
-      addMessage(akariMessage, 'Akari');
+    // Load video URL from localStorage
+    const videoUrl = localStorage.getItem('DigitaAvatar') || './feature_disabled';
+    if (videoUrl === './feature_disabled') {
+      toggleVideo(); // Hide video on load if feature is disabled
+    } else {
+      avatarFrame.src = videoUrl; // Set iFrame source
     }
-  }
 
-  // Detect changes in DigitaVoiceInput and treat them as user messages
-  if (e.key === 'DigitaVoiceInput') {
-    const voiceInput = localStorage.getItem('DigitaVoiceInput');
-    if (voiceInput) {
-      addMessage(voiceInput);
-      localStorage.setItem('DigitaUserMessage', voiceInput);
-      localStorage.setItem('DigitaMessageSource', 'voice');
+    function addMessage(text, username = 'User') {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message';
+      messageDiv.innerHTML = `
+        <div class="username">${username}</div>
+        <div class="content">${text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\*(.*?)\*/g, '<i>$1</i>')}</div>
+      `;
+      messagesContainer.appendChild(messageDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
-  }
-});
 
-// Add some sample messages
-setTimeout(() => {
-  addMessage('**Chat supports MD** *sort-of...* Chat UI v0.1', 'System');
-}, 100);
-</script>
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      if (text) {
+        addMessage(text);
+        localStorage.setItem('DigitaUserMessage', text);
+        localStorage.setItem('DigitaMessageSource', 'typed');
+        messageInput.value = '';
+      }
+    }
 
-</body></html>
+    function toggleVideo() {
+      isVideoVisible = !isVideoVisible;
+      videoContainer.classList.toggle('hidden');
+      messages.classList.toggle('full');
+    }
+
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    sendBtn.addEventListener('click', sendMessage);
+    toggleVideoBtn.addEventListener('click', toggleVideo);
+
+    // Detect changes in DigitaMessage and display messages from "Akari"
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'DigitaMessage') {
+        const akariMessage = localStorage.getItem('DigitaMessage');
+        if (akariMessage) {
+          addMessage(akariMessage, 'Akari');
+        }
+      }
+
+      // Detect changes in DigitaVoiceInput and treat them as user messages
+      if (e.key === 'DigitaVoiceInput') {
+        const voiceInput = localStorage.getItem('DigitaVoiceInput');
+        if (voiceInput) {
+          addMessage(voiceInput);
+          localStorage.setItem('DigitaUserMessage', voiceInput);
+          localStorage.setItem('DigitaMessageSource', 'voice');
+        }
+      }
+    });
+
+    // Add some sample messages
+    setTimeout(() => {
+      addMessage('**Chat supports MD** *sort-of...* Chat UI v0.2', 'System');
+    }, 100);
+  </script>
+</body>
+</html>
