@@ -224,7 +224,7 @@
     <div class="container">
         <div class="header">
             <i data-lucide="message-circle" style="color: rgb(45, 212, 191)"></i>
-            <h1>IBM Granite 1b on Wllama (v2.1)</h1>
+            <h1>IBM Granite 1b on Wllama (v1.2)</h1>
             <div class="status">
                 <div class="status-dot"></div>
                 <span id="status-text">Offline</span>
@@ -444,7 +444,7 @@ async function tokenizeAndCache(message) {
             });
 
             await wllama.loadModelFromHF(
-                'bartowski/granite-3.0-1b-a400m-instruct-Q4_K_M.gguf',
+                'bartowski/granite-3.0-1b-a400m-instruct-GGUF',
                 'granite-3.0-1b-a400m-instruct-Q4_K_M.gguf',
                 {
                     progressCallback: ({ loaded, total }) => {
