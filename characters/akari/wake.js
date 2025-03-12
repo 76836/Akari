@@ -57,6 +57,13 @@ async function loadAllScripts() {
         const classLabels = recognizer.wordLabels(); // get class labels
 
 
+
+            // Fetch custom threshold from localStorage
+            const wakeSense = parseFloat(localStorage.getItem('wakeSense')) || 0.97;
+
+
+
+
         // listen() takes two arguments:
         // 1. A callback function that is invoked anytime a word is recognized.
         // 2. A configuration object with adjustable fields
@@ -64,9 +71,9 @@ async function loadAllScripts() {
             const scores = result.scores; // probability of prediction for each class
             // render the probability scores per class
             if (result.scores[1] > 0.97 && result.scores[1] < 1.62) {
-                 bubble_incoming('Akari');
+                 //bubble_incoming('Akari');
             };
-            if (result.scores[2] > 0.97 && result.scores[2] < 1.62) {
+            if (result.scores[2] > wakeSense && result.scores[2] < 1.62) {
                 playAudio();
                 goakari();
             };
