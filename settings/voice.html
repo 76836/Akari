@@ -18,6 +18,15 @@
 
     <p class="title" style="color:darkcyan;">Voice input and synthesis.</p>
 
+
+
+<p class="smallertext">Wake word sensitivity (hey Akari):</p>   
+    <input class="box" id="sensitivityBox" placeholder="0.97" type=text>
+    <button class="setbutton" onclick="setsense()">Save Changes</button>
+
+
+
+
     <p class="smallertext">Voice input (speech recognition) script:</p>
     <button class="setbutton" onclick="document.getElementById('whisperurl').value = './engine/web-speech-recognition.js';">Browser built-in (Web speech API)</button>
     <button class="setbutton" onclick="document.getElementById('whisperurl').value = './engine/whisper-tiny-cpu.js';">OpenAI Whisper Tiny English (local download under 500MB)</button>
@@ -32,7 +41,7 @@
     <button class="setbutton" onclick="setvoice()">Save Changes</button>
 
     <br><br><br><br>
-    <p class="smallertext">Voice cfg panel v1.1</p>
+    <p class="smallertext">Voice cfg panel v1.2</p>
 
 </body>
 
@@ -133,6 +142,11 @@
     function setwhisper() {
         var Url = document.getElementById('whisperurl').value;
         localStorage.setItem('selectedWhisperScript', Url);
+    };
+
+function setsense() {
+        var Url = document.getElementById('sensitivitybox').value;
+        localStorage.setItem('wakeSense', Url);
     };
 
 
