@@ -1,4 +1,4 @@
-say('<em>Gemma 3 1B running locally (adapter v1.0 beta)<em>');
+say('<em>Gemma 3 1B running locally (adapter v1.1 beta)<em>');
 function postMessages(messages) {
     messages.forEach(message => {
         if (message.role === "user") {
@@ -24,7 +24,52 @@ var CloudAI = true;
 
 import { FilesetResolver, LlmInference } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai';
 
-const modelFileName = 'https://huggingface.co/K4N4T/gemma3-1B-it-int4.task/resolve/main/gemma3-1B-it-int4.task';
+async function loadModelFromCache() {
+    const MODEL_URL = 'https://huggingface.co/K4N4T/gemma3-1B-it-int4.task/resolve/main/gemma3-1B-it-int4.task';
+    const MODEL_CACHE = 'model-cache-v1';
+
+    try {
+        // Check cache first
+        const cache = await caches.open(MODEL_CACHE);
+        let modelResponse = await cache.match(MODEL_URL);
+
+        if (!modelResponse) {
+            const userConsent = confirm(
+                'The model needs to be downloaded (557 MB). Continue?'
+            );
+            
+            if (!userConsent) {
+                throw new Error('Model loading canceled by user');
+            }
+
+            // Download model
+            modelResponse = await fetch(MODEL_URL);
+            if (!modelResponse.ok) {
+                throw new Error(\`Download failed: \${modelResponse.statusText}\`);
+            }
+
+            // Cache the response
+            await cache.put(MODEL_URL, modelResponse.clone());
+        }
+
+        // Create a blob URL that the inference engine can use
+        const modelBlob = await modelResponse.blob();
+        const modelBlobUrl = URL.createObjectURL(modelBlob);
+
+        // Clean up the blob URL when the page unloads
+        window.addEventListener('unload', () => URL.revokeObjectURL(modelBlobUrl));
+
+        return modelBlobUrl;
+    } catch (error) {
+        console.error('Cache error:', error);
+        alert('Failed to load model: ' + error.message);
+        throw error;
+    }
+}
+
+// Use the blob URL for the model
+const modelFileName = await loadModelFromCache();
+
 var gemmaCompletion = '';
 
 
@@ -76,7 +121,7 @@ LlmInference.createFromOptions(genaiFileset, {
     .then(llm => {
         llmInference = llm;
         globalThis.alive = true; // Set alive to true when the model is loaded
-        console.log('Model loaded successfully!');
+        say('Model loaded successfully!');
     })
     .catch(() => {
         alert('Failed to initialize the task.');
@@ -86,10 +131,7 @@ let chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
 if (!chatHistory.length) {
     chatHistory.push({
         role: 'system',
-        content: \`Your name is Akari, an AI girl with a vibrant and cheerful personality.
-                        You don't like it when people ask you dumb questions, and if you can't give an accurate answer to a question, you shy away from the conversation.
-                        You give short answers, and sometimes end your messages with sarcastic remarks, and don't always try not to offend people,
-                        but you're generally kind and respectful to everyone...\`
+        content: \`You are Akari\`
     });
 }
 
@@ -112,7 +154,10 @@ globalThis.GenerateResponse = async function (hinp) {
     const maxCharacters = 512;
     const systemPrompt = {
         role: 'system',
-        content: \`You are Akari\`
+        content: \`Your name is Akari, an AI girl with a vibrant and cheerful personality.
+                        You don't like it when people ask you dumb questions, and if you can't give an accurate answer to a question, you shy away from the conversation.
+                        You give short answers, and sometimes end your messages with sarcastic remarks, and don't always try not to offend people,
+                        but you're generally kind and respectful to everyone...\`
     };
 
     let chatHistory = JSON.parse(localStorage.getItem(chatHistoryKey)) || [];
@@ -150,6 +195,7 @@ globalThis.GenerateResponse = async function (hinp) {
         say('Error generating response');
     }
 };
+
 
         `;
         document.body.appendChild(script);
