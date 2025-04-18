@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VRM viewer (actually good edition)</title>
+  <!--<link rel="stylesheet" href="styles.css">-->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@latest/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@latest/examples/jsm/",
+      "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@latest/lib/three-vrm.module.min.js"
+    }
+  }
+  </script>
+  <style>
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: #1a1a1a;
+  overflow: hidden;
+}
+
+body {
+  background: radial-gradient(at center, #252525 0%, #1a1a1a 100%);
+}
+
+#container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: scale(var(--zoom)) 
+}
+
+.drop-zone {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 20px 25px;
+  background: rgba(0,0,0,0.6);
+  border: 2px dashed #4CAF50;
+  border-radius: 8px;
+  color: #ccc;
+  text-align: center;
+  font-family: Arial, sans-serif;
+}
+
+.drop-zone.highlight {
+  background: rgba(76,175,80,0.2);
+  border-color: #4CAF50;
+}
+
+.drop-zone button {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.drop-zone button:hover {
+  background-color: #45a049;
+}
+
+.controls {
+  transition: all 0.2s ease;
+}
+
+  </style>
+</head>
+<body>
+  <div id="container"></div>
+  <div class="drop-zone" id="dropZone">
+    <p>Drop your VRM file here<br/>or click to select</p>
+    <button id="selectFileBtn">Select VRM File</button>
+    <!--<input type="file" id="fileInput" accept=".vrm" />-->
+  </div>
+  <script type="module">
+
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { VRMLoaderPlugin, VRMHumanBoneName } from '@pixiv/three-vrm';
+
+let scene, camera, renderer, clock;
+let currentVrm = null;
+let currentVrmContainer = null;
+let breathBaseY = 0;
+
+// Tidy up blink state and initialize with proper random interval (3–15s)
+const blinkState = {
+  elapsed: 0,
+  nextBlink: 3 + Math.random() * 12,
+  duration: 0,
+  active: false,
+  // intervals between blinks (seconds)
+  minInterval: 1,
+  maxInterval: 10,
+  // how long eyes stay fully closed
+  minHoldDuration: 0.1,
+  maxHoldDuration: 1,
+  // random close/open speed
+  minCloseDuration: 0.05,
+  maxCloseDuration: 0.2,
+  minOpenDuration: 0.05,
+  maxOpenDuration: 0.2,
+  holdDuration: 0,
+  closeDuration: 0,
+  openDuration: 0
+};
+
+const lookState = {
+  elapsed: 0,
+  nextChange: 0,
+  yaw: 0,
+  pitch: 0,
+  targetYaw: 0,
+  targetPitch: 0
+};
+
+const breathState = {
+  elapsed: 0,
+  speed: 0.5,
+  amplitude: 0.002
+};
+
+const pointerState = { x: 0, y: 0, time: 0 };
+
+const eyeState = {
+  lastMoveTime: 0,
+  target: new THREE.Vector2(0, 0),
+  current: new THREE.Vector2(0, 0),
+  blendFactor: 0.05,
+  idleInterval: 2000,  // 2 seconds of inactivity
+  movementIntensity: 0.5,  // New intensity multiplier
+  randomSpeedMultiplier: 0.10,  // New random speed multiplier
+  maxDeviation: {
+    x: 0.4,  // horizontal max eye movement
+    y: 0.2   // vertical max eye movement
+  }
+};
+
+const eyeCoverState = {
+  covered: false,
+  targetAmount: 0,
+  currentAmount: 0,
+  speed: 0.2,
+  maxAmount: 1.1
+};
+
+const mouthState = {
+  openAmount: 0,
+  targetAmount: 0,
+  speed: 0.1,
+  cursorProximity: 0
+};
+
+const CONFIG = {
+  initialPosition: { x: 0, y: 1.4, z: 2.5 },
+  initialLookAt: { x: 0, y: 1.45, z: 0 },
+  zoom: 1.0,
+  quality: 'high',
+  antialias: true,
+  pixelRatio: window.devicePixelRatio,
+  modelUrl: 'https://76836.github.io/Akari/Digita/models/2415633527491002907.vrm'
+};
+
+class PhysicsManager {
+  constructor() {
+    this.gravity = new THREE.Vector3(0, -1, 0);
+    this.gravityStrength = -1.5;
+    this.baseWindDir = new THREE.Vector3(1, 0, 0);
+    this.baseWindStrength = 0.3;
+    this.cursorWind = new THREE.Vector3(0, 0, 0);
+    this.windTurbulence = 0.2;
+    this.gust = new THREE.Vector3(0, 0, 0);
+  }
+  addGust(direction, strength) {
+    this.gust.addScaledVector(direction, strength);
+  }
+  applyPhysics(vrm, deltaTime) {
+    if (!vrm || deltaTime <= 0) return;
+    const wind = new THREE.Vector3().copy(this.baseWindDir).multiplyScalar(this.baseWindStrength);
+    wind.add(this.cursorWind);
+    wind.add(new THREE.Vector3(
+      (Math.random() * 2 - 1),
+      (Math.random() * 2 - 1),
+      (Math.random() * 2 - 1)
+    ).multiplyScalar(this.windTurbulence * this.baseWindStrength));
+    const force = new THREE.Vector3()
+      .copy(this.gravity).multiplyScalar(this.gravityStrength)
+      .add(wind)
+      .add(this.gust);
+    this.updateSpringBones(vrm, force, deltaTime);
+    this.gust.multiplyScalar(0.8);
+    this.cursorWind.multiplyScalar(0.9);
+  }
+  updateSpringBones(vrm, force, deltaTime) {
+    try {
+      const mgr = vrm.springBoneManager;
+      if (!mgr) return;
+      if (Array.isArray(mgr.springBones)) {
+        mgr.springBones.forEach(bone => bone.update(deltaTime, force));
+      } else if (typeof mgr.update === 'function' && mgr.update.length > 1) {
+        mgr.update(deltaTime, {
+          gravityDir: this.gravity,
+          gravityPower: this.gravityStrength,
+          windDir: force
+        });
+      } else if (typeof mgr.update === 'function') {
+        mgr.update(deltaTime);
+      }
+    } catch (e) {
+      console.warn('SpringBone update error:', e);
+    }
+  }
+}
+
+const physicsManager = new PhysicsManager();
+
+function initScene() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x1a1aa1a);
+
+  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444, CONFIG.quality === 'high' ? 1.8 : 0.5);
+  hemiLight.position.set(0, 1, 0);
+  scene.add(hemiLight);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, CONFIG.quality === 'high' ? 0.8 : 0.3);
+  dirLight.position.set(0, 5, 5);
+  dirLight.castShadow = true;
+  scene.add(dirLight);
+
+  const fillLight1 = new THREE.DirectionalLight(0x5555ff, 0.4);
+  fillLight1.position.set(-5, 2, 5);
+  fillLight1.castShadow = false;
+
+  const fillLight2 = new THREE.DirectionalLight(0xffff55, 0.4);
+  fillLight2.position.set(5, 2, -5);
+  fillLight2.castShadow = false;
+
+  const rimLight = new THREE.DirectionalLight(0x77aaff, CONFIG.quality === 'high' ? 0.5 : 0.2);
+  rimLight.position.set(0, 3, -8);
+  rimLight.target.position.set(0, 1.45, 0);
+
+  scene.add(rimLight);
+
+  if (CONFIG.quality === 'high') {
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.set(4096, 4096);
+    dirLight.shadow.camera.near = 10;
+    dirLight.shadow.bias = -0.001;
+  }
+
+  scene.add(fillLight1);
+  scene.add(fillLight2);
+
+  camera = new THREE.PerspectiveCamera(15, window.innerWidth / window.innerHeight, 0.1, CONFIG.quality === 'high' ? 1000 : 500);
+  camera.position.set(CONFIG.initialPosition.x, CONFIG.initialPosition.y, CONFIG.initialPosition.z);
+  camera.lookAt(CONFIG.initialLookAt.x, CONFIG.initialLookAt.y, CONFIG.initialLookAt.z);
+
+  renderer = new THREE.WebGLRenderer({
+    antialias: CONFIG.antialias,
+    alpha: true,
+    powerPreference: CONFIG.quality === 'high' ? 'high-performance' : 'default'
+  });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(CONFIG.pixelRatio);
+  document.getElementById('container').appendChild(renderer.domElement);
+
+  clock = new THREE.Clock();
+  window.addEventListener('resize', onWindowResize);
+  window.addEventListener('pointermove', onPointerMove);
+}
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function loadVRM(url) {
+  const loader = new GLTFLoader();
+  loader.register(parser => new VRMLoaderPlugin(parser));
+  loader.load(url, (gltf) => {
+    const vrm = gltf.userData.vrm;
+    if (!vrm) {
+      alert('Invalid VRM file.');
+      return;
+    }
+
+    if (currentVrmContainer) {
+      scene.remove(currentVrmContainer);
+      currentVrm = null;
+    }
+    currentVrm = vrm;
+    currentVrmContainer = new THREE.Group();
+    currentVrmContainer.add(vrm.scene);
+
+    currentVrmContainer.rotation.y = Math.PI;
+    scene.add(currentVrmContainer);
+
+    const leftArm = vrm.humanoid.getBoneNode(VRMHumanBoneName.LeftUpperArm);
+    const rightArm = vrm.humanoid.getBoneNode(VRMHumanBoneName.RightUpperArm);
+    if (leftArm) leftArm.rotation.z = Math.PI * -0.4;
+    if (rightArm) rightArm.rotation.z = -Math.PI * -0.4;
+
+    breathBaseY = currentVrmContainer.position.y;
+    blinkState.elapsed = 0;
+    blinkState.nextBlink = 3 + Math.random() * 12;
+    lookState.elapsed = 0;
+    lookState.nextChange = 1 + Math.random() * 2;
+    document.getElementById('dropZone').style.display = 'none';
+  }, undefined, (e) => {
+    console.error(e);
+    alert('Failed to load VRM.');
+  });
+}
+
+function setupFileHandling() {
+  if (CONFIG.modelUrl) {
+    loadVRM(CONFIG.modelUrl);
+    return;
+  }
+
+  const dz = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  document.getElementById('selectFileBtn').onclick = () => fileInput.click();
+  fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file || !file.name.toLowerCase().endsWith('.vrm')) {
+      alert('Please select a .vrm file');
+      return;
+    }
+    loadVRM(URL.createObjectURL(file));
+  };
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
+    dz.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); }, false);
+  });
+  ['dragenter', 'dragover'].forEach(evt => {
+    dz.addEventListener(evt, () => dz.classList.add('highlight'), false);
+  });
+  ['dragleave', 'drop'].forEach(evt => {
+    dz.addEventListener(evt, () => dz.classList.remove('highlight'), false);
+  });
+  dz.addEventListener('drop', e => {
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.toLowerCase().endsWith('.vrm')) {
+      loadVRM(URL.createObjectURL(file));
+    }
+  }, false);
+}
+
+function onPointerMove(e) {
+  const now = performance.now();
+  if (pointerState.time) {
+    const dt = (now - pointerState.time) / 1000;
+    const dx = e.clientX - pointerState.x;
+    const dy = e.clientY - pointerState.y;
+    if (dt > 0) {
+      const dir = new THREE.Vector3(dx / window.innerWidth, -dy / window.innerHeight, 0).normalize();
+      const strength = Math.min(Math.hypot(dx, dy) / (dt * 1000), 1) * 0.5;
+      physicsManager.addGust(dir, strength);
+    }
+  }
+  pointerState.x = e.clientX;
+  pointerState.y = e.clientY;
+  pointerState.time = now;
+}
+
+function updateBlinking(delta) {
+  // only blink if a model is loaded and not covering eyes (cursor interaction)
+  if (!currentVrm || eyeCoverState.currentAmount > 0.5) return;
+
+  // If not currently in a blink cycle, count up to nextBlink
+  if (!blinkState.active) {
+    blinkState.elapsed += delta;
+    if (blinkState.elapsed >= blinkState.nextBlink) {
+      // trigger blink and randomize each phase duration
+      blinkState.active    = true;
+      blinkState.duration  = 0;
+      blinkState.elapsed   = 0;
+      blinkState.holdDuration  = blinkState.minHoldDuration +
+                                Math.random() * (blinkState.maxHoldDuration - blinkState.minHoldDuration);
+      blinkState.closeDuration = blinkState.minCloseDuration +
+                                Math.random() * (blinkState.maxCloseDuration - blinkState.minCloseDuration);
+      blinkState.openDuration  = blinkState.minOpenDuration +
+                                Math.random() * (blinkState.maxOpenDuration - blinkState.minOpenDuration);
+      // next blink after a random interval
+      blinkState.nextBlink     = blinkState.minInterval +
+                                Math.random() * (blinkState.maxInterval - blinkState.minInterval);
+    }
+  }
+
+  // Handle active blink cycle
+  if (blinkState.active) {
+    blinkState.duration += delta;
+    const { closeDuration, openDuration, holdDuration } = blinkState;
+    let blinkAmount = 0;
+
+    if (blinkState.duration < closeDuration) {
+      // closing phase
+      blinkAmount = Math.sin(Math.PI * (blinkState.duration / closeDuration));
+    } else if (blinkState.duration < closeDuration + holdDuration) {
+      // fully closed hold
+      blinkAmount = 1;
+    } else if (blinkState.duration < closeDuration + holdDuration + openDuration) {
+      // opening phase
+      const t = (blinkState.duration - closeDuration - holdDuration) / openDuration;
+      blinkAmount = 1 - Math.sin(Math.PI * t);
+    } else {
+      // end blink cycle
+      blinkAmount = 0;
+      blinkState.active = false;
+    }
+
+    // apply to both eyes
+    if (currentVrm.expressionManager) {
+      currentVrm.expressionManager.setValue('blinkLeft', blinkAmount);
+      currentVrm.expressionManager.setValue('blinkRight', blinkAmount);
+    }
+  }
+}
+
+function updateEyeMovements(delta) {
+  const now = performance.now();
+  const timeSinceLastMove = now - pointerState.time;
+
+  // When cursor is in the window, always track the cursor
+  if (timeSinceLastMove < eyeState.idleInterval && currentVrm) {
+    const normX = (pointerState.x / window.innerWidth - 0.5) * 2;
+    const normY = (pointerState.y / window.innerHeight - 0.5) * 2;
+    
+    eyeState.target.x = normX * eyeState.maxDeviation.x * eyeState.movementIntensity;
+    eyeState.target.y = normY * eyeState.maxDeviation.y * eyeState.movementIntensity;
+  } else {
+    // When cursor is idle, generate subtle movements that align with head movement
+    if (currentVrm) {
+      // Randomize speed for random eye movements
+      eyeState.randomSpeedMultiplier = 0.5 + Math.random(); // Between 0.5 and 1.5
+
+      // Bias random eye movement towards the upcoming head movement direction
+      eyeState.target.x = lookState.targetYaw * 0.7 * eyeState.movementIntensity;
+      eyeState.target.y = lookState.targetPitch * 0.7 * eyeState.movementIntensity;
+      
+      // Add a small random offset to make it more natural
+      eyeState.target.x += (Math.random() * 2 - 1) * 0.1;
+      eyeState.target.y += (Math.random() * 2 - 1) * 0.1;
+    }
+  }
+
+  // Eye covering when cursor is touching character
+  const isNearCharacter = mouthState.cursorProximity < 0.3;
+  eyeCoverState.targetAmount = isNearCharacter ? eyeCoverState.maxAmount : 0;
+  eyeCoverState.currentAmount += (eyeCoverState.targetAmount - eyeCoverState.currentAmount) * eyeCoverState.speed * delta * 60;
+
+  // Only override blink when deliberately covering eyes (cursor touching)
+  if (currentVrm.expressionManager && eyeCoverState.currentAmount > 0) {
+    const coverAmount = Math.min(eyeCoverState.currentAmount, eyeCoverState.maxAmount);
+    currentVrm.expressionManager.setValue('blinkLeft', coverAmount);
+    currentVrm.expressionManager.setValue('blinkRight', coverAmount);
+  }
+
+  // Slow down eye movement when randomly wandering
+  const blendFactor = timeSinceLastMove < eyeState.idleInterval 
+    ? 0.2 
+    : (0.01 * eyeState.randomSpeedMultiplier);
+
+  // Smoothly interpolate current eye position
+  eyeState.current.x += (eyeState.target.x - eyeState.current.x) * blendFactor;
+  eyeState.current.y += (eyeState.target.y - eyeState.current.y) * blendFactor;
+
+  // Constrain eye movement to a reasonable range
+  eyeState.current.x = Math.max(Math.min(eyeState.current.x, eyeState.maxDeviation.x), -eyeState.maxDeviation.x);
+  eyeState.current.y = Math.max(Math.min(eyeState.current.y, eyeState.maxDeviation.y), -eyeState.maxDeviation.y);
+
+  const leftEye = currentVrm.humanoid.getBoneNode(VRMHumanBoneName.LeftEye);
+  const rightEye = currentVrm.humanoid.getBoneNode(VRMHumanBoneName.RightEye);
+
+  if (leftEye && rightEye) {
+    leftEye.rotation.y = eyeState.current.x + 0.4;
+    leftEye.rotation.x = eyeState.current.y;
+    rightEye.rotation.y = eyeState.current.x - 0.4;
+    rightEye.rotation.x = eyeState.current.y;
+  }
+}
+
+function updateIdle(delta) {
+  if (!currentVrm) return;
+
+  // Add blinking update
+  updateBlinking(delta);
+
+  // Calculate cursor proximity for mouth and eye coverage
+  const normX = (pointerState.x / window.innerWidth - 0.5) * 2;
+  const normY = (pointerState.y / window.innerHeight - 0.5) * 2;
+  mouthState.cursorProximity = Math.hypot(normX, normY);
+
+  // Mouth stays open while cursor nearby
+  mouthState.targetAmount = (mouthState.cursorProximity < 0.2) ? 0.8 : 0;
+  mouthState.openAmount += (mouthState.targetAmount - mouthState.openAmount) * mouthState.speed * delta * 60;
+  if (currentVrm.expressionManager) {
+    const mouthExpressions = ['aa', 'ih', 'ou', 'ee'];
+    mouthExpressions.forEach(exp => {
+      currentVrm.expressionManager.setValue(exp, mouthState.openAmount * 0.65);
+    });
+  }
+
+  updateEyeMovements(delta);
+
+  breathState.elapsed += delta;
+  const yOff = Math.sin(breathState.elapsed * breathState.speed) * breathState.amplitude;
+  currentVrmContainer.position.y = breathBaseY + yOff;
+
+  lookState.elapsed += delta;
+  if (lookState.elapsed > lookState.nextChange) {
+    lookState.elapsed = 0;
+    lookState.nextChange = 1 + Math.random() * 3;
+    lookState.targetYaw = (Math.random() * 2 - 1) * 0.3;
+    lookState.targetPitch = (Math.random() * 2 - 1) * 0.15;
+  }
+  lookState.yaw += (lookState.targetYaw - lookState.yaw) * 0.05;
+  lookState.pitch += (lookState.targetPitch - lookState.pitch) * 0.05;
+
+  const neck = currentVrm.humanoid?.getBoneNode(VRMHumanBoneName.Neck);
+  if (neck) {
+    const pointerYaw = normX * 0.3;
+    const pointerPitch = normY * 0.15;
+    neck.rotation.y = lookState.yaw + pointerYaw * 0.5;
+    neck.rotation.x = lookState.pitch + pointerPitch * 0.5;
+    if (neck.rotation.x < 0.5) {
+      neck.rotation.x = (pointerPitch * 0.65) + 0.5;
+    }
+  }
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const delta = clock.getDelta();
+
+  if (currentVrm) {
+    const normX = (pointerState.x / window.innerWidth - 0.5) * 2;
+    const normY = (pointerState.y / window.innerHeight - 0.5) * 2;
+    const targetYaw = normX * 0.3;
+    currentVrmContainer.rotation.y += (targetYaw - currentVrmContainer.rotation.y) * 0.05;
+
+    const windTarget = new THREE.Vector3(normX, -normY, 0).multiplyScalar(physicsManager.baseWindStrength);
+    physicsManager.cursorWind.lerp(windTarget, 0.1);
+
+    physicsManager.applyPhysics(currentVrm, delta);
+    updateIdle(delta);
+    if (currentVrm.expressionManager) {
+      currentVrm.expressionManager.update(delta);
+    } else if (currentVrm.blendShapeProxy?.update) {
+      currentVrm.blendShapeProxy.update();
+    }
+  }
+  renderer.render(scene, camera);
+}
+
+initScene();
+setupFileHandling();
+animate();
+
+  </script>
+</body>
+</html>
