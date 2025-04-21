@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat</title>
+  <style>
+    :root {
+      --amoled-black: #000000;
+      --amoled-dark: #111111;
+      --amoled-gray: #222222;
+      --amoled-light: #333333;
+      --text-color: #ffffff;
+      --accent: #5865F2;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: var(--amoled-black);
+      color: var(--text-color);
+      height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .main-container {
+      display: flex;
+      height: calc(100vh - 120px);
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 120px;
+      transition: width 0.3s, margin 0.3s;
+    }
+
+    .messages.with-video {
+      width: 50vw;
+      margin-right: calc(50vw - 1.75rem);
+    }
+
+    .messages.centered {
+      width: 70vw;
+      margin-left: 0;
+    }
+
+    .message {
+      margin: 0.5rem 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--amoled-dark);
+      word-wrap: break-word;
+    }
+
+    .message .username {
+      font-weight: bold;
+      margin-bottom: 0.25rem;
+      color: var(--accent);
+    }
+
+    .message .content {
+      line-height: 1.4;
+    }
+
+    /* Basic markdown styles */
+    .message .content p {
+      margin-bottom: 0.5rem;
+    }
+
+    .message .content p:last-child {
+      margin-bottom: 0;
+    }
+
+    .message .content code {
+      background: var(--amoled-gray);
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+
+    .message .content pre {
+      background: var(--amoled-gray);
+      padding: 0.5rem;
+      border-radius: 4px;
+      overflow-x: auto;
+      margin: 0.5rem 0;
+    }
+
+    .message .content ul,
+    .message .content ol {
+      padding-left: 1.5rem;
+      margin: 0.5rem 0;
+    }
+
+    .message .content blockquote {
+      border-left: 3px solid var(--amoled-light);
+      padding-left: 0.5rem;
+      margin: 0.5rem 0;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .video-container {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 0;
+      margin: 0;
+      user-select: none;
+      display: block;
+      transition: all 0.3s;
+    }
+
+    .video-container.docked {
+      width: calc(50% - 4rem);
+      position: fixed;
+      right: 1rem;
+      top: 1rem;
+      height: calc(100vh - 11rem);
+    }
+
+    .video-container.hidden {
+      display: none;
+    }
+
+    .video-container.floating {
+      user-select: none;
+      position: fixed;
+      padding-right: 2rem;
+      border: 3px solid white;
+      width: 30vw;
+      height: 25vh;
+      bottom: 85px;
+      right: 1rem;
+      z-index: 5;
+      cursor: move;
+    }
+
+    .input-island {
+      position: fixed;
+      bottom: 0.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 2rem);
+      max-width: 800px;
+      background: var(--amoled-gray);
+      border-radius: 16px;
+      padding: 0.75rem;
+      z-index: 10;
+    }
+
+    .input-box {
+      width: 100%;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      background: var(--amoled-light);
+      color: var(--text-color);
+      margin-bottom: 0.5rem;
+      resize: none;
+      min-height: 40px;
+      max-height: 120px;
+    }
+
+    .button-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .left-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .button {
+      background: transparent;
+      border: none;
+      color: var(--text-color);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+
+    .button.hidden {
+      visibility: hidden;
+    }
+
+    .button:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    @media (max-width: 767px) {
+      .messages.with-video {
+        width: 70vw;
+        margin-left: 0;
+        margin-top: calc(40vh + 2rem);
+      }
+
+
+      .messages.centered {
+        width: 70vw;
+        margin-left: 0;
+        margin-top: 1rem;
+      }
+
+      .video-container.docked {
+        width: calc(100vw - 2rem);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 40vh;
+        user-select: none;
+      }
+    }
+
+    /* Snap areas for draggable video */
+    .snap-area {
+      user-select: none;
+      position: fixed;
+      width: calc(30vw);
+      height: 25vh;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 16px;
+      border: 3px solid white;
+      z-index: 4;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .snap-area.visible {
+      opacity: 0.3;
+    }
+
+    .snap-area.top-left {
+      top: 10px;
+      left: 10px;
+    }
+
+    .snap-area.top-right {
+      top: 10px;
+      right: 10px;
+    }
+
+    .snap-area.bottom-left {
+      bottom: 125px;
+      left: 10px;
+    }
+
+    .snap-area.bottom-right {
+      bottom: 125px;
+      right: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="main-container">
+    <div class="messages centered" id="messages">
+      <!-- Messages will be inserted here -->
+    </div>
+
+    <div class="video-container hidden" id="videoContainer">
+      <iframe id="avatarFrame"
+        style="margin:0; border:0; width:100%; height:100%; background:transparent; border-radius:16px;"></iframe>
+    </div>
+  </div>
+
+  <!-- Snap areas for draggable video -->
+  <div class="snap-area top-left" id="snapTopLeft"></div>
+  <div class="snap-area top-right" id="snapTopRight"></div>
+  <div class="snap-area bottom-left" id="snapBottomLeft"></div>
+  <div class="snap-area bottom-right" id="snapBottomRight"></div>
+
+  <div class="input-island">
+    <textarea class="input-box" id="messageInput" placeholder="Message..." rows="1"></textarea>
+    <div class="button-container">
+      <div class="left-buttons">
+        <button id="voiceBtn" class="button">Voice</button>
+        <button id="toggleVideo" class="button">Toggle Video</button>
+        <button id="videoMode" class="button">Float Video</button>
+      </div>
+      <button id="sendBtn" class="button">Send</button>
+    </div>
+  </div>
+
+  <script>
+    // Get all necessary DOM elements
+    const messageInput = document.getElementById('messageInput');
+    const messagesContainer = document.getElementById('messages');
+    const sendBtn = document.getElementById('sendBtn');
+    const toggleVideoBtn = document.getElementById('toggleVideo');
+    const videoModeBtn = document.getElementById('videoMode');
+    const videoContainer = document.getElementById('videoContainer');
+    const avatarFrame = document.getElementById('avatarFrame');
+
+    // Snap areas
+    const snapAreas = {
+      topLeft: document.getElementById('snapTopLeft'),
+      topRight: document.getElementById('snapTopRight'),
+      bottomLeft: document.getElementById('snapBottomLeft'),
+      bottomRight: document.getElementById('snapBottomRight')
+    };
+
+    // State variables
+    let isVideoVisible = false;
+    let isVideoFloating = false;
+
+    // Draggable video variables
+    let isDragging = false;
+    let offsetX, offsetY;
+    let currentSnapArea = null;
+
+    // Load video URL from localStorage
+    const videoUrl = localStorage.getItem('DigitaAvatar') || './feature_disabled';
+    avatarFrame.src = videoUrl;
+
+    // Simple markdown rendering function
+    function renderMarkdown(text) {
+      if (!text) return '';
+
+      // Handle bold text
+      text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+      // Handle italic text
+      text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+      // Handle code blocks with language
+      text = text.replace(/```([a-z]*)\n([\s\S]*?)```/g, function (match, language, code) {
+        return `<pre><code class="language-${language}">${code.trim()}</code></pre>`;
+      });
+
+      // Handle inline code
+      text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+      // Handle lists
+      text = text.replace(/^(\s*)-\s+(.*?)$/gm, '<li>$2</li>');
+      text = text.replace(/(<li>.*?<\/li>)/gs, '<ul>$1</ul>');
+
+      // Handle paragraphs - split by newlines and wrap in p tags
+      const paragraphs = text.split(/\n\n+/);
+      return paragraphs.map(p => {
+        if (p.startsWith('<ul>') || p.startsWith('<pre>')) {
+          return p;
+        }
+        return `<p>${p}</p>`;
+      }).join('');
+    }
+
+    // Function to add a message to the chat
+    function addMessage(text, username = 'User') {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message';
+
+      // Use the markdown renderer
+      const renderedContent = renderMarkdown(text);
+
+      messageDiv.innerHTML = `
+        <div class="username">${username}</div>
+        <div class="content">${renderedContent}</div>
+      `;
+
+      messagesContainer.appendChild(messageDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // Auto-resize textarea
+    messageInput.addEventListener('input', function () {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+    });
+
+    // Function to send a message
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      if (text) {
+        addMessage(text);
+        localStorage.setItem('DigitaUserMessage', text);
+        localStorage.setItem('DigitaMessageSource', 'typed');
+        messageInput.value = '';
+        messageInput.style.height = 'auto';
+      }
+    }
+
+    // Function to toggle video visibility
+    function toggleVideo() {
+      isVideoVisible = !isVideoVisible;
+      videoContainer.classList.toggle('hidden', !isVideoVisible);
+      videoModeBtn.classList.toggle('hidden', !isVideoVisible);
+
+      if (isVideoVisible) {
+        if (!isVideoFloating) {
+          videoContainer.classList.add('docked');
+          messagesContainer.classList.remove('centered');
+          messagesContainer.classList.add('with-video');
+        } else {
+          videoContainer.classList.add('floating');
+          messagesContainer.classList.remove('with-video');
+          messagesContainer.classList.add('centered');
+        }
+      } else {
+        messagesContainer.classList.remove('with-video');
+        messagesContainer.classList.add('centered');
+        videoContainer.classList.remove('docked', 'floating');
+      }
+    }
+
+    // Function to toggle video mode (floating vs docked)
+    function toggleVideoMode() {
+      if (!isVideoVisible) return;
+
+      videoContainer.style.left = 'auto';
+          videoContainer.style.top = '10px';
+          videoContainer.style.right = '10px';
+          videoContainer.style.bottom = 'auto';
+
+      isVideoFloating = !isVideoFloating;
+
+      if (isVideoFloating) {
+        videoContainer.classList.remove('docked');
+        videoContainer.classList.add('floating');
+        messagesContainer.classList.remove('with-video');
+        messagesContainer.classList.add('centered');
+        videoModeBtn.textContent = 'Dock Video';
+      } else {
+        videoContainer.classList.remove('floating');
+        videoContainer.classList.add('docked');
+        messagesContainer.classList.remove('centered');
+        messagesContainer.classList.add('with-video');
+        videoModeBtn.textContent = 'Float Video';
+      }
+    }
+
+    // Make the video draggable when in floating mode
+    videoContainer.addEventListener('pointerdown', (e) => {
+      if (!isVideoFloating) {
+        document.addEventListener('selectstart', function (e) {
+          e.preventDefault();
+        });
+        return;
+      } else {
+        document.removeEventListener('selectstart', function (e) {
+          e.preventDefault();
+        });
+      };
+
+      isDragging = true;
+      offsetX = e.clientX - videoContainer.getBoundingClientRect().left;
+      offsetY = e.clientY - videoContainer.getBoundingClientRect().top;
+      videoContainer.style.transition = 'none';
+
+      // Show snap areas
+      for (const area in snapAreas) {
+        snapAreas[area].classList.add('visible');
+      }
+    });
+
+    document.addEventListener('pointermove', async (e) => {
+      if (!isDragging) return;
+
+      e.preventDefault();
+
+      // Calculate new position
+      const x = e.clientX - offsetX;
+      const y = e.clientY - offsetY;
+
+      // Check if near any snap area
+      let snapping = false;
+      currentSnapArea = null;
+
+      // Check each snap area
+      for (const areaKey in snapAreas) {
+        const area = snapAreas[areaKey];
+        const rect = area.getBoundingClientRect();
+
+        if (
+          x < rect.right &&
+          x + videoContainer.offsetWidth > rect.left &&
+          y < rect.bottom &&
+          y + videoContainer.offsetHeight > rect.top
+        ) {
+          snapping = true;
+          currentSnapArea = areaKey;
+          break;
+        }
+      }
+
+      if (snapping && currentSnapArea) {
+        // Position based on the snap area
+        switch (currentSnapArea) {
+          case 'topLeft':
+            document.getElementById('snapTopLeft').style.visibility = 'visible';
+            document.getElementById('snapBottomRight').style.visibility = 'hidden';
+            document.getElementById('snapBottomLeft').style.visibility = 'hidden';
+            document.getElementById('snapTopRight').style.visibility = 'hidden';
+            break;
+          case 'topRight':
+            document.getElementById('snapTopLeft').style.visibility = 'hidden';
+            document.getElementById('snapBottomRight').style.visibility = 'hidden';
+            document.getElementById('snapBottomLeft').style.visibility = 'hidden';
+            document.getElementById('snapTopRight').style.visibility = 'visible';
+            break;
+          case 'bottomLeft':
+            document.getElementById('snapTopLeft').style.visibility = 'hidden';
+            document.getElementById('snapBottomRight').style.visibility = 'hidden';
+            document.getElementById('snapBottomLeft').style.visibility = 'visible';
+            document.getElementById('snapTopRight').style.visibility = 'hidden';
+            break;
+          case 'bottomRight':
+            document.getElementById('snapTopLeft').style.visibility = 'hidden';
+            document.getElementById('snapBottomRight').style.visibility = 'visible';
+            document.getElementById('snapBottomLeft').style.visibility = 'hidden';
+            document.getElementById('snapTopRight').style.visibility = 'hidden';
+            break;
+        }
+      } else {
+        /* Free-form dragging
+        videoContainer.style.left = `${x}px`;
+        videoContainer.style.top = `${y}px`;
+        videoContainer.style.right = 'auto';
+        videoContainer.style.bottom = 'auto';*/
+      }
+    });
+
+    document.addEventListener('pointerup', () => {
+      if (!isDragging) return;
+
+      // If we're near a snap area, snap to it
+      switch (true) {
+        case (document.getElementById('snapTopLeft').style.visibility === 'visible'):
+          videoContainer.style.left = '10px';
+          videoContainer.style.top = '10px';
+          videoContainer.style.right = 'auto';
+          videoContainer.style.bottom = 'auto';
+          break;
+        case (document.getElementById('snapTopRight').style.visibility === 'visible'):
+          videoContainer.style.right = '10px';
+          videoContainer.style.top = '10px';
+          videoContainer.style.left = 'auto';
+          videoContainer.style.bottom = 'auto';
+          break;
+        case (document.getElementById('snapBottomLeft').style.visibility == 'visible'):
+          videoContainer.style.left = '10px';
+          videoContainer.style.bottom = '125px';
+          videoContainer.style.right = 'auto';
+          videoContainer.style.top = 'auto';
+          break;
+        case (document.getElementById('snapBottomRight').style.visibility === 'visible'):
+          videoContainer.style.right = '10px';
+          videoContainer.style.bottom = '125px';
+          videoContainer.style.left = 'auto';
+          videoContainer.style.top = 'auto';
+          break;
+      }
+
+      currentSnapArea = null;
+      isDragging = false;
+      videoContainer.style.transition = 'all 0.3s';
+
+      // Hide snap areas
+      for (const area in snapAreas) {
+        snapAreas[area].classList.remove('visible');
+      }
+
+
+
+    });
+
+    // Event listeners
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    sendBtn.addEventListener('click', sendMessage);
+    toggleVideoBtn.addEventListener('click', toggleVideo);
+    videoModeBtn.addEventListener('click', toggleVideoMode);
+
+    // Handle storage events for cross-window communication
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'DigitaMessage') {
+        const akariMessage = localStorage.getItem('DigitaMessage');
+        const akariName = localStorage.getItem('DigitaAIName');
+        if (!akariName) {
+          akariName = 'Akari';
+        };
+        if (akariMessage) {
+          addMessage(akariMessage, akariName);
+        };
+      }
+
+      if (e.key === 'DigitaVoiceInput') {
+        const voiceInput = localStorage.getItem('DigitaVoiceInput');
+        if (voiceInput) {
+          addMessage(voiceInput);
+          localStorage.setItem('DigitaUserMessage', voiceInput);
+          localStorage.setItem('DigitaMessageSource', 'voice');
+        }
+      }
+    });
+
+    // Add a welcome message
+    setTimeout(() => {
+      addMessage('**Chat supports Markdown** *formatting* \n\n```js\nconst chatUIVersion = "v1.0";\n```\n\n- List item 1\n- List item 2', 'System');
+    }, 100);
+  </script>
+</body>
+
+</html>
