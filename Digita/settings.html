@@ -322,7 +322,8 @@ button:hover {
   <div class="setting-group">
     <h2>Chat UI</h2>
     <div class="button-group">
-      <button onclick="setUI('default')">Default</button>
+      <button onclick="setUI('./miniUI')">simplified</button>
+      <button onclick="setUI('./chatUI')">Default</button>
     </div>
   </div>
   
@@ -380,9 +381,9 @@ function setSpeechInput(engine) {
 }
 
 function setUI(htmlpage) {
-  //localStorage.setItem('chatUrl', htmlpage);
-  showToast('This feature is disabled.');
-  //animateSuccess('.setting-group');
+  localStorage.setItem('chatUrl', htmlpage);
+  showToast('changed chat interface');
+  animateSuccess('.setting-group');
 }  
   
 function setSpeechEngine(engine) {
