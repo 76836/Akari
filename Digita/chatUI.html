@@ -592,7 +592,7 @@
     window.addEventListener('storage', (e) => {
       if (e.key === 'DigitaMessage') {
         const akariMessage = localStorage.getItem('DigitaMessage');
-        const akariName = localStorage.getItem('DigitaAIName');
+        let akariName = localStorage.getItem('DigitaAIName');
         if (!akariName) {
           akariName = 'Akari';
         };
@@ -613,7 +613,7 @@
 
     // Add a welcome message
     setTimeout(() => {
-      addMessage('**Chat supports Markdown** *formatting* \n\n```js\nconst chatUIVersion = "v1.1";\n```\n\n- List item 1\n- List item 2', 'System');
+      addMessage('**Chat supports Markdown** *formatting* \n\n```js\nlet chatUIVersion = "v1.1b";\n```\n\n- List item 1\n- List item 2', 'System');
     }, 100);
   </script>
 </body>
