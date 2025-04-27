@@ -322,6 +322,12 @@
             background: var(--bg-dark);
             border: 0px solid var(--border);
         }
+
+html {
+  overscroll-behavior: none;
+}
+
+
     </style>
 </head>
 
@@ -333,7 +339,7 @@
 
     <div class="sidebar">
         <button class="tab-button active" data-tab="server">
-            Akari Digita v0.8b
+            Akari Digita v0.8c
           </button>
       
           <button class="tab-button" data-tab="chat">
@@ -375,7 +381,7 @@
         </div>
 
         <div class="panel" id="chat">
-            <iframe data-src="./miniUI" frameborder="0"></iframe>
+            <iframe data-src="./chatUI" frameborder="0"></iframe>
         </div>
 
         <div class="panel" id="voice-input">
