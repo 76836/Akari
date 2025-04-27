@@ -1,3 +1,8 @@
+# ℹ️ Notice:
+**I am splitting the Digita project from the Akari repository, as I am focusing on tidying up Digita the AkariNET project might fall into disrepair. I aim to clean up the Akari et project soon after I've cleaned up Digita.**
+
+<br>
+
 # Akari 
 **Fully customizable AI assistant with voice commands, serverless AI, interactive avatars, device control, and more.**
 
