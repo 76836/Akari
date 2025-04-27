@@ -1,5 +1,5 @@
 # ℹ️ Notice:
-**I am splitting the Digita project from the Akari repository, as I am focusing on tidying up Digita the AkariNET project might fall into disrepair. I aim to clean up the Akari et project soon after I've cleaned up Digita.**
+**I am splitting the Digita project from the Akari repository, as I am focusing on tidying up Digita the AkariNET project might fall into disrepair. I aim to clean up the AkariNET project soon after I've cleaned up Digita.**
 
 <br>
 
