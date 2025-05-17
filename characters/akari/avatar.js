@@ -111,7 +111,7 @@ const html = `
     }
 </style>
 
-<div class="cdiv" id="mydiv">
+<div class="cdiv" onclick="if (isFullscreen) {exitFullscreen();};" id="mydiv">
     <div class="iframei" id="mydivheader">
         <img id="avatarimage" class="iframei" src="" alt="avatar image">
     </div>
@@ -411,26 +411,26 @@ imageElem.src = "./characters/akari/emote2/" + nil;
     // Fullscreen button action
     fullscreenBtn.addEventListener('click', () => {
         enterFullscreen();
-        closeDragElement();
     });
 
 enterFullscreen();
-        closeDragElement();
+        
 
     // Clicking the image in fullscreen mode exits fullscreen
     avatarImage.addEventListener('pointerdown', () => {
         if (isFullscreen) {
             exitFullscreen();
-            dragElement(document.getElementById("mydiv"));
         }
     });
 
     function enterFullscreen() {
         isFullscreen = true;
         myDiv.classList.add('fullscreen');
+        closeDragElement();
     }
 
     function exitFullscreen() {
         isFullscreen = false;
         myDiv.classList.remove('fullscreen');
+        dragElement(document.getElementById("mydiv"));
     }
