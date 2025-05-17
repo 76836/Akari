@@ -426,7 +426,7 @@ enterFullscreen();
     function enterFullscreen() {
         isFullscreen = true;
         myDiv.classList.add('fullscreen');
-        closeDragElement();
+        //closeDragElement();
     }
 
     function exitFullscreen() {
