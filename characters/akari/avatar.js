@@ -140,7 +140,7 @@ const html = `
 document.getElementById('avatar').innerHTML = html;
 /* told you i'd finish this script later. */
 // um but its not done quite yet...
-
+//lol still not finished, actually I have more changes planned than I used to...
 
 
 
@@ -344,9 +344,9 @@ function detectAnger(text) {
 
 
 
-
+var nil = 'default.jpeg';
     function updateImage(etxt) {
-    var nil = 'default.jpeg';
+    //var nil = 'default.jpeg';
 if (detectHappiness(etxt) == true) {nil="happy.jpg"};
 if (detectSadness(etxt) == true) {nil="sad.webp"};
 if (detectAnger(etxt) == true) {nil="angry.jpg"};
@@ -414,8 +414,11 @@ imageElem.src = "./characters/akari/emote2/" + nil;
         closeDragElement();
     });
 
+enterFullscreen();
+        closeDragElement();
+
     // Clicking the image in fullscreen mode exits fullscreen
-    avatarImage.addEventListener('click', () => {
+    avatarImage.addEventListener('pointerdown', () => {
         if (isFullscreen) {
             exitFullscreen();
             dragElement(document.getElementById("mydiv"));
