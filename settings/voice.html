@@ -20,7 +20,7 @@
 
 
 
-<p class="smallertext">Wake word sensitivity (hey Akari):</p>   
+<p class="smallertext">Wake word confidence (lower is more sensitive) (hey Akari):</p>   
     <input class="box" id="sensitivityBox" placeholder="0.97" type=text>
     <button class="setbutton" onclick="setsense()">Save Changes</button>
 
@@ -145,7 +145,7 @@
     };
 
 function setsense() {
-        var Url = document.getElementById('sensitivitybox').value;
+        var Url = document.getElementById('sensitivityBox').value;
         localStorage.setItem('wakeSense', Url);
     };
 
