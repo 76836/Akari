@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VRM viewer Akari (AkariNet embedded version 1.0)</title>
+  <!--<link rel="stylesheet" href="styles.css">-->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@latest/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@latest/examples/jsm/",
+      "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@latest/lib/three-vrm.module.min.js"
+    }
+  }
+  </script>
+  <style>
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+}
+
+body {
+  background: transparent;
+}
+
+#container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: scale(var(--zoom)) 
+}
+
+.drop-zone {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 20px 25px;
+  background: rgba(0,0,0,0.6);
+  border: 2px dashed #4CAF50;
+  border-radius: 8px;
+  color: #ccc;
+  text-align: center;
+  font-family: Arial, sans-serif;
+}
+
+.drop-zone.highlight {
+  background: rgba(76,175,80,0.2);
+  border-color: #4CAF50;
+}
+
+.drop-zone button {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.drop-zone button:hover {
+  background-color: #45a049;
+}
+
+.controls {
+  transition: all 0.2s ease;
+}
+
+  </style>
+</head>
+<body>
+  <div id="container"></div>
+  <div class="drop-zone" id="dropZone">
+    <p>Drop your VRM file here<br/>or click to select</p>
+    <button id="selectFileBtn">Select VRM File</button>
+    <!--<input type="file" id="fileInput" accept=".vrm" />-->
+  </div>
+  <script type="module">
+//yes i vibe coded with claude, yes it barely works, yet this file isnt near finished, but guess what? it almost works... I'll take it for now! I can fix this all later, and when i'm done i'll have just what i wanted.
+//Update: im gonna lock in soon, it works basically perfectly now...
+    
+
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { VRMLoaderPlugin, VRMHumanBoneName } from '@pixiv/three-vrm';
+
+let scene, camera, renderer, clock;
+let currentVrm = null;
+let currentVrmContainer = null;
+let breathBaseY = 0;
+
+// Tidy up blink state and initialize with proper random interval (3–15s)
+const blinkState = {
+  elapsed: 0,
+  nextBlink: 3 + Math.random() * 12,
+  duration: 0,
+  active: false,
+  // intervals between blinks (seconds)
+  minInterval: 1,
+  maxInterval: 10,
+  // how long eyes stay fully closed
+  minHoldDuration: 0.1,
+  maxHoldDuration: 1,
+  // random close/open speed
+  minCloseDuration: 0.05,
+  maxCloseDuration: 0.2,
+  minOpenDuration: 0.05,
+  maxOpenDuration: 0.2,
+  holdDuration: 0,
+  closeDuration: 0,
+  openDuration: 0
+};
+
+const lookState = {
+  elapsed: 0,
+  nextChange: 0,
+  yaw: 0,
+  pitch: 0,
+  targetYaw: 0,
+  targetPitch: 0
+};
+
+const breathState = {
+  elapsed: 0,
+  speed: 0.5,
+  amplitude: 0.002
+};
+
+const pointerState = { x: 0, y: 0, time: 0 };
+
+const eyeState = {
+  lastMoveTime: 0,
+  target: new THREE.Vector2(0, 0),
+  current: new THREE.Vector2(0, 0),
+  blendFactor: 0.05,
+  idleInterval: 2000,  // 2 seconds of inactivity
+  movementIntensity: 0.5,  // New intensity multiplier
+  randomSpeedMultiplier: 0.10,  // New random speed multiplier
+  maxDeviation: {
+    x: 0.4,  // horizontal max eye movement
+    y: 0.2   // vertical max eye movement
+  }
+};
+
+const eyeCoverState = {
+  covered: false,
+  targetAmount: 0,
+  currentAmount: 0,
+  speed: 0.2,
+  maxAmount: 1.1
+};
+
+const mouthState = {
+  openAmount: 0,
+  targetAmount: 0,
+  speed: 0.1,
+  cursorProximity: 0
+};
+
+const CONFIG = {
+  initialPosition: { x: 0, y: 1.4, z: 2.5 },
+  initialLookAt: { x: 0, y: 1.45, z: 0 },
+  zoom: 1.0,
+  quality: 'high',
+  antialias: true,
+  pixelRatio: window.devicePixelRatio,
+  modelUrl: 'https://76836.github.io/Akari/characters/akari/VRM/1192842823581716627.vrm'
+};
+
+
+
+
+
+
+const VRMState = {
+  UNLOADED: 'unloaded',
+  LOADING: 'loading', 
+  READY: 'ready',
+  CACHED: 'cached'
+};
+
+let vrmCurrentState = VRMState.UNLOADED;
+let vrmCache = null; // Store the cached VRM data
+let vrmReadyCallbacks = []; // Functions to call when VRM is ready
+let vrmUnloadCallbacks = []; // Functions to call when VRM is unloaded
+
+// Global VRM Lifecycle Functions
+window.VRMLifecycle = {
+  // Get current VRM state
+  getState: () => vrmCurrentState,
+  
+  // Check if VRM is ready for display
+  isReady: () => vrmCurrentState === VRMState.READY,
+  
+  // Register callback for when VRM becomes ready
+  onReady: (callback) => {
+    if (typeof callback === 'function') {
+      vrmReadyCallbacks.push(callback);
+      // If already ready, call immediately
+      if (vrmCurrentState === VRMState.READY) {
+        callback(currentVrm);
+      }
+    }
+  },
+  
+  // Register callback for when VRM is unloaded
+  onUnload: (callback) => {
+    if (typeof callback === 'function') {
+      vrmUnloadCallbacks.push(callback);
+    }
+  },
+  
+  // Remove callbacks
+  removeReadyCallback: (callback) => {
+    const index = vrmReadyCallbacks.indexOf(callback);
+    if (index > -1) vrmReadyCallbacks.splice(index, 1);
+  },
+  
+  removeUnloadCallback: (callback) => {
+    const index = vrmUnloadCallbacks.indexOf(callback);
+    if (index > -1) vrmUnloadCallbacks.splice(index, 1);
+  },
+  
+  // Manual control functions
+  unload: () => UnloadVRM(),
+  reload: () => ReloadVRM(),
+  
+  // Get current VRM reference (null if not ready)
+  getVRM: () => vrmCurrentState === VRMState.READY ? currentVrm : null
+};
+
+// Internal function to call when VRM is fully loaded and ready to display
+function VRMReady(vrm) {
+  console.log('VRM Ready - showing model');
+  vrmCurrentState = VRMState.READY;
+  
+  // Make VRM container visible
+  if (currentVrmContainer) {
+    currentVrmContainer.visible = true;
+  }
+  
+  // Call all registered ready callbacks
+  vrmReadyCallbacks.forEach(callback => {
+    try {
+      callback(vrm);
+    } catch (e) {
+      console.warn('VRM ready callback error:', e);
+    }
+  });
+  
+  // Hide loading UI
+  const dropZone = document.getElementById('dropZone');
+  if (dropZone) {
+    dropZone.style.display = 'none';
+  }
+  
+  // Dispatch custom event for other scripts
+  window.dispatchEvent(new CustomEvent('vrmReady', { 
+    detail: { vrm: vrm, state: vrmCurrentState } 
+  }));
+}
+
+// Global function to unload VRM and cache it
+function UnloadVRM() {
+  console.log('Unloading VRM to cache');
+  
+  if (currentVrm && vrmCurrentState === VRMState.READY) {
+    // Cache the current VRM data
+    vrmCache = {
+      vrm: currentVrm,
+      container: currentVrmContainer,
+      breathBaseY: breathBaseY,
+      timestamp: performance.now()
+    };
+    
+    // Hide the VRM
+    if (currentVrmContainer) {
+      currentVrmContainer.visible = false;
+    }
+    
+    // Update state
+    vrmCurrentState = VRMState.CACHED;
+    
+    // Call unload callbacks
+    vrmUnloadCallbacks.forEach(callback => {
+      try {
+        callback(currentVrm);
+      } catch (e) {
+        console.warn('VRM unload callback error:', e);
+      }
+    });
+    
+    // Reset animation states to save resources
+    blinkState.elapsed = 0;
+    blinkState.active = false;
+    lookState.elapsed = 0;
+    eyeState.current.set(0, 0);
+    eyeState.target.set(0, 0);
+    
+    // Dispatch custom event
+    window.dispatchEvent(new CustomEvent('vrmUnloaded', { 
+      detail: { cached: true, state: vrmCurrentState } 
+    }));
+    
+    console.log('VRM cached and hidden');
+    return true;
+  }
+  
+  return false;
+}
+
+// Global function to reload VRM from cache (nearly instant)
+function ReloadVRM() {
+  console.log('Reloading VRM from cache');
+  
+  if (vrmCache && vrmCurrentState === VRMState.CACHED) {
+    // Restore from cache
+    currentVrm = vrmCache.vrm;
+    currentVrmContainer = vrmCache.container;
+    breathBaseY = vrmCache.breathBaseY;
+    
+    // Reset animation states
+    blinkState.elapsed = 0;
+    blinkState.nextBlink = 3 + Math.random() * 12;
+    blinkState.active = false;
+    lookState.elapsed = 0;
+    lookState.nextChange = 1 + Math.random() * 2;
+    
+    // Show VRM and mark as ready
+    VRMReady(currentVrm);
+    
+    console.log('VRM reloaded from cache in', performance.now() - vrmCache.timestamp, 'ms');
+    return true;
+  }
+  
+  console.warn('No cached VRM available to reload');
+  return false;
+}
+
+
+
+
+
+
+    
+
+const PERFORMANCE_PRESETS = [
+  {
+    name: 'ultraLow',
+    pixelRatio: 0.2,
+    antialias: false,
+    shadow: false,
+    light: 0.3,
+    desc: 'Minimum quality for slowest devices'
+  },
+  {
+    name: 'low',
+    pixelRatio: 0.4,
+    antialias: false,
+    shadow: false,
+    light: 0.5,
+    desc: 'Low quality'
+  },
+  {
+    name: 'medium',
+    pixelRatio: 0.6,
+    antialias: false,
+    shadow: false,
+    light: 1.0,
+    desc: 'Medium quality'
+  },
+  {
+    name: 'high',
+    pixelRatio: 1,
+    antialias: true,
+    shadow: true,
+    light: 1.8,
+    desc: 'High quality'
+  }
+];
+//const FPS_TARGET = 24;
+
+let ft = parseInt(localStorage.getItem('maxFrameTime')) || 40;
+let fps = parseInt(localStorage.getItem('frameRate')) || 24;
+    
+const TARGET_LATENCY = ft;
+const RENDER_INTERVAL = 1000 / fps; // ms (41.6ms/frame, 24fps)
+const EMA_ALPHA = 0.15;
+const PIXEL_RATIO_MIN = 0.2;
+const PIXEL_RATIO_MAX = 1.5;
+const BLOOM_THRESHOLDS = { enable: 0.7, disable: 0.5 };
+const SHADOW_THRESHOLDS = { enable: 0.7, disable: 0.5 };
+
+class PerformanceManager {
+  constructor() {
+    this.emaFrameTime = TARGET_LATENCY;
+    this.lastRender = performance.now();
+    this.lastAdjust = performance.now();
+    this.pixelRatio = PIXEL_RATIO_MIN;
+    this.bloomEnabled = false;
+    this.shadowEnabled = false;
+    this.actualRenderTime = 0;
+    
+    // Add stability controls
+    this.stableFrameCount = 0;
+    this.requiredStableFrames = 3; // Require 3 stable frames before adjusting
+    this.lastDirection = 0; // -1 for decreasing, 1 for increasing, 0 for none
+    this.adjustmentCooldown = 100; // 0.1 second minimum between adjustments
+  }
+
+  // Call this with the actual time spent rendering (not including frame rate limiting)
+  update(actualRenderTime = null) {
+    const now = performance.now();
+    
+    if (actualRenderTime !== null) {
+      this.recordFrameTime(actualRenderTime);
+    } else {
+      let dt = now - (this.lastRender || now);
+      this.lastRender = now;
+      this.recordFrameTime(dt);
+    }
+    
+    this.adjustQuality();
+  }
+
+  recordFrameTime(dt) {
+    this.emaFrameTime = EMA_ALPHA * dt + (1 - EMA_ALPHA) * this.emaFrameTime;
+  }
+
+  adjustQuality() {
+    const now = performance.now();
+    
+    // Increased minimum time between adjustments to prevent flickering
+    if (now - this.lastAdjust < this.adjustmentCooldown) return;
+    
+    // Use wider thresholds to create hysteresis and prevent oscillation
+    const upperThreshold = TARGET_LATENCY + 8; // Increased from +2
+    const lowerThreshold = TARGET_LATENCY - 8; // Increased from -2
+    
+    let over = this.emaFrameTime > upperThreshold;
+    let under = this.emaFrameTime < lowerThreshold;
+    
+    // Only adjust if we have a clear direction and it's been stable
+    if (over && this.pixelRatio > PIXEL_RATIO_MIN) {
+      // Check if we're switching directions (oscillating)
+      if (this.lastDirection === 1) {
+        this.stableFrameCount = 0; // Reset if we're switching directions
+      }
+      
+      this.stableFrameCount++;
+      if (this.stableFrameCount >= this.requiredStableFrames) {
+        // Make smaller adjustments to prevent overshooting
+        this.pixelRatio *= 0.95; // Reduced from 0.97
+        if (this.pixelRatio < PIXEL_RATIO_MIN) this.pixelRatio = PIXEL_RATIO_MIN;
+        this.lastDirection = -1;
+        this.lastAdjust = now;
+        this.stableFrameCount = 0;
+      }
+    } else if (under && this.pixelRatio < PIXEL_RATIO_MAX) {
+      // Check if we're switching directions (oscillating)
+      if (this.lastDirection === -1) {
+        this.stableFrameCount = 0; // Reset if we're switching directions
+      }
+      
+      this.stableFrameCount++;
+      if (this.stableFrameCount >= this.requiredStableFrames) {
+        // Make smaller adjustments to prevent overshooting
+        this.pixelRatio *= 1.02; // Reduced from 1.025
+        if (this.pixelRatio > PIXEL_RATIO_MAX) this.pixelRatio = PIXEL_RATIO_MAX;
+        this.lastDirection = 1;
+        this.lastAdjust = now;
+        this.stableFrameCount = 0;
+      }
+    } else {
+      // Reset stable frame count if we're in the acceptable range
+      this.stableFrameCount = 0;
+      this.lastDirection = 0;
+    }
+
+    this.pixelRatio = Math.max(PIXEL_RATIO_MIN, Math.min(PIXEL_RATIO_MAX, this.pixelRatio));
+    
+if (typeof renderer !== "undefined") {
+  const currentRatio = renderer.getPixelRatio();
+  if (Math.abs(this.pixelRatio - currentRatio) > 0.05) {
+    // Defer pixel ratio change to next frame to prevent flash
+    requestAnimationFrame(() => {
+      renderer.setPixelRatio(this.pixelRatio);
+      shouldRender = true; // Force a render after the change
+    });
+  }
+}
+
+    // Use wider hysteresis for bloom and shadow toggles
+    if (typeof bloomPass !== "undefined") {
+      if (!this.bloomEnabled && this.pixelRatio > BLOOM_THRESHOLDS.enable + 0.1) { // Added buffer
+        bloomPass.enabled = true;
+        this.bloomEnabled = true;
+      } else if (this.bloomEnabled && this.pixelRatio < BLOOM_THRESHOLDS.disable - 0.1) { // Added buffer
+        bloomPass.enabled = false;
+        this.bloomEnabled = false;
+      }
+    }
+
+    // Use wider hysteresis for shadow toggles
+    if (typeof scene !== "undefined") {
+      if (!this.shadowEnabled && this.pixelRatio > SHADOW_THRESHOLDS.enable + 0.1) { // Added buffer
+        scene.traverse(obj => {
+          if (obj.isDirectionalLight) {
+            obj.castShadow = true;
+            if (obj.shadow) obj.shadow.mapSize.set(2048, 2048);
+          }
+        });
+        this.shadowEnabled = true;
+      } else if (this.shadowEnabled && this.pixelRatio < SHADOW_THRESHOLDS.disable - 0.1) { // Added buffer
+        scene.traverse(obj => {
+          if (obj.isDirectionalLight) {
+            obj.castShadow = false;
+            if (obj.shadow) obj.shadow.mapSize.set(512, 512);
+          }
+        });
+        this.shadowEnabled = false;
+      }
+    }
+  }
+}
+  
+export default PerformanceManager;
+let perfManager = null;
+    
+class PhysicsManager {
+  constructor() {
+    this.gravity = new THREE.Vector3(0, -1, 0);
+    this.gravityStrength = -1.5;
+    this.baseWindDir = new THREE.Vector3(1, 0, 0);
+    this.baseWindStrength = 0.3;
+    this.cursorWind = new THREE.Vector3(0, 0, 0);
+    this.windTurbulence = 0.2;
+    this.gust = new THREE.Vector3(0, 0, 0);
+  }
+  addGust(direction, strength) {
+    this.gust.addScaledVector(direction, strength);
+  }
+  applyPhysics(vrm, deltaTime) {
+    if (!vrm || deltaTime <= 0) return;
+    const wind = new THREE.Vector3().copy(this.baseWindDir).multiplyScalar(this.baseWindStrength);
+    wind.add(this.cursorWind);
+    wind.add(new THREE.Vector3(
+      (Math.random() * 2 - 1),
+      (Math.random() * 2 - 1),
+      (Math.random() * 2 - 1)
+    ).multiplyScalar(this.windTurbulence * this.baseWindStrength));
+    const force = new THREE.Vector3()
+      .copy(this.gravity).multiplyScalar(this.gravityStrength)
+      .add(wind)
+      .add(this.gust);
+    this.updateSpringBones(vrm, force, deltaTime);
+    this.gust.multiplyScalar(0.8);
+    this.cursorWind.multiplyScalar(0.9);
+  }
+  updateSpringBones(vrm, force, deltaTime) {
+    try {
+      const mgr = vrm.springBoneManager;
+      if (!mgr) return;
+      if (Array.isArray(mgr.springBones)) {
+        mgr.springBones.forEach(bone => bone.update(deltaTime, force));
+      } else if (typeof mgr.update === 'function' && mgr.update.length > 1) {
+        mgr.update(deltaTime, {
+          gravityDir: this.gravity,
+          gravityPower: this.gravityStrength,
+          windDir: force
+        });
+      } else if (typeof mgr.update === 'function') {
+        mgr.update(deltaTime);
+      }
+    } catch (e) {
+      console.warn('SpringBone update error:', e);
+    }
+  }
+}
+
+const physicsManager = new PhysicsManager();
+
+function initScene() {
+  scene = new THREE.Scene();
+  //scene.background = new THREE.Color(0x291942);
+  //disable for transparent
+  
+  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444, CONFIG.quality === 'high' ? 1.8 : 0.5);
+  hemiLight.position.set(0, 1, 0);
+  scene.add(hemiLight);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, CONFIG.quality === 'high' ? 0.8 : 0.3);
+  dirLight.position.set(0, 5, 5);
+  dirLight.castShadow = true;
+  scene.add(dirLight);
+
+  const fillLight1 = new THREE.DirectionalLight(0x5555ff, 0.4);
+  fillLight1.position.set(-5, 2, 5);
+  fillLight1.castShadow = false;
+
+  const fillLight2 = new THREE.DirectionalLight(0xffff55, 0.4);
+  fillLight2.position.set(5, 2, -5);
+  fillLight2.castShadow = false;
+
+  const rimLight = new THREE.DirectionalLight(0x77aaff, CONFIG.quality === 'high' ? 0.5 : 0.2);
+  rimLight.position.set(0, 3, -8);
+  rimLight.target.position.set(0, 1.45, 0);
+
+  scene.add(rimLight);
+
+  if (CONFIG.quality === 'high') {
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.set(4096, 4096);
+    dirLight.shadow.camera.near = 10;
+    dirLight.shadow.bias = -0.001;
+  }
+
+  scene.add(fillLight1);
+  scene.add(fillLight2);
+
+  camera = new THREE.PerspectiveCamera(15, window.innerWidth / window.innerHeight, 0.1, CONFIG.quality === 'high' ? 1000 : 500);
+  camera.position.set(CONFIG.initialPosition.x, CONFIG.initialPosition.y, CONFIG.initialPosition.z);
+  camera.lookAt(CONFIG.initialLookAt.x, CONFIG.initialLookAt.y, CONFIG.initialLookAt.z);
+
+  
+  renderer = new THREE.WebGLRenderer({
+    antialias: true, // i think it looks nicer so i might just force this to stay on
+    alpha: true,
+    powerPreference: 'low-power'
+  });
+  renderer.setPixelRatio(PERFORMANCE_PRESETS[0].pixelRatio);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.getElementById('container').appendChild(renderer.domElement);
+
+  perfManager = new PerformanceManager();
+
+
+  
+  clock = new THREE.Clock();
+  window.addEventListener('resize', onWindowResize);
+  window.addEventListener('pointermove', onPointerMove);
+}
+
+// Updated onWindowResize function
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  
+  // Force a render after resize to prevent blank screen
+  shouldRender = true;
+}
+    
+// Updated loadVRM function with proper state management
+function loadVRM(url) {
+  console.log('Loading VRM:', url);
+  vrmCurrentState = VRMState.LOADING;
+  
+  // Show loading state
+  const dropZone = document.getElementById('dropZone');
+  if (dropZone && dropZone.style.display === 'none') {
+    dropZone.innerHTML = '<p>Loading VRM...</p>';
+    dropZone.style.display = 'block';
+  }
+  
+  // Dispatch loading event
+  window.dispatchEvent(new CustomEvent('vrmLoading', { 
+    detail: { url: url, state: vrmCurrentState } 
+  }));
+  
+  const loader = new GLTFLoader();
+  loader.register(parser => new VRMLoaderPlugin(parser));
+  
+  loader.load(url, (gltf) => {
+    const vrm = gltf.userData.vrm;
+    if (!vrm) {
+      console.error('Invalid VRM file');
+      vrmCurrentState = VRMState.UNLOADED;
+      alert('Invalid VRM file.');
+      return;
+    }
+
+    // Remove old VRM if exists
+    if (currentVrmContainer) {
+      scene.remove(currentVrmContainer);
+      currentVrm = null;
+    }
+    
+    // Clear cache when loading new VRM
+    vrmCache = null;
+    
+    // Set up new VRM
+    currentVrm = vrm;
+    currentVrmContainer = new THREE.Group();
+    currentVrmContainer.add(vrm.scene);
+    
+    // Initially hide the VRM container
+    currentVrmContainer.visible = false;
+    
+    // Set up VRM properties
+    currentVrmContainer.rotation.y = Math.PI;
+    scene.add(currentVrmContainer);
+
+    // Set up arm positions
+    const leftArm = vrm.humanoid.getRawBoneNode(VRMHumanBoneName.LeftUpperArm);
+    const rightArm = vrm.humanoid.getRawBoneNode(VRMHumanBoneName.RightUpperArm);
+    if (leftArm) leftArm.rotation.z = Math.PI * -0.4;
+    if (rightArm) rightArm.rotation.z = -Math.PI * -0.4;
+
+    // Set up animation base values
+    breathBaseY = currentVrmContainer.position.y;
+    blinkState.elapsed = 0;
+    blinkState.nextBlink = 3 + Math.random() * 12;
+    blinkState.active = false;
+    lookState.elapsed = 0;
+    lookState.nextChange = 1 + Math.random() * 2;
+    
+    // Wait a few frames to ensure everything is set up, then show VRM
+    setTimeout(() => {
+      VRMReady(vrm);
+    }, 100); // Small delay to prevent initial flickering
+    
+  }, 
+  // Progress callback
+  (progress) => {
+    const percent = Math.round((progress.loaded / progress.total) * 100);
+    const dropZone = document.getElementById('dropZone');
+    if (dropZone && vrmCurrentState === VRMState.LOADING) {
+      dropZone.innerHTML = `<p>Loading VRM... ${percent}%</p>`;
+    }
+  },
+  // Error callback
+  (error) => {
+    console.error('VRM loading error:', error);
+    vrmCurrentState = VRMState.UNLOADED;
+    
+    const dropZone = document.getElementById('dropZone');
+    if (dropZone) {
+      dropZone.innerHTML = '<p>Failed to load VRM<br/>Drop your VRM file here<br/>or click to select</p><button id="selectFileBtn">Select VRM File</button>';
+      // Re-setup file button
+      document.getElementById('selectFileBtn').onclick = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.vrm';
+        input.onchange = (e) => {
+          const file = e.target.files[0];
+          if (file && file.name.toLowerCase().endsWith('.vrm')) {
+            loadVRM(URL.createObjectURL(file));
+          }
+        };
+        input.click();
+      };
+    }
+    
+    // Dispatch error event
+    window.dispatchEvent(new CustomEvent('vrmLoadError', { 
+      detail: { error: error, state: vrmCurrentState } 
+    }));
+    
+    alert('Failed to load VRM.');
+  });
+}
+    
+
+function setupFileHandling() {
+  if (CONFIG.modelUrl) {
+    loadVRM(CONFIG.modelUrl);
+    return;
+  }
+
+  const dz = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  document.getElementById('selectFileBtn').onclick = () => fileInput.click();
+  fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file || !file.name.toLowerCase().endsWith('.vrm')) {
+      alert('Please select a .vrm file');
+      return;
+    }
+    loadVRM(URL.createObjectURL(file));
+  };
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
+    dz.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); }, false);
+  });
+  ['dragenter', 'dragover'].forEach(evt => {
+    dz.addEventListener(evt, () => dz.classList.add('highlight'), false);
+  });
+  ['dragleave', 'drop'].forEach(evt => {
+    dz.addEventListener(evt, () => dz.classList.remove('highlight'), false);
+  });
+  dz.addEventListener('drop', e => {
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.toLowerCase().endsWith('.vrm')) {
+      loadVRM(URL.createObjectURL(file));
+    }
+  }, false);
+}
+
+function onPointerMove(e) {
+  const now = performance.now();
+  if (pointerState.time) {
+    const dt = (now - pointerState.time) / 1000;
+    const dx = e.clientX - pointerState.x;
+    const dy = e.clientY - pointerState.y;
+    if (dt > 0) {
+      const dir = new THREE.Vector3(dx / window.innerWidth, -dy / window.innerHeight, 0).normalize();
+      const strength = Math.min(Math.hypot(dx, dy) / (dt * 1000), 1) * 0.5;
+      physicsManager.addGust(dir, strength);
+    }
+  }
+  pointerState.x = e.clientX;
+  pointerState.y = e.clientY;
+  pointerState.time = now;
+}
+
+function updateBlinking(delta) {
+  // only blink if a model is loaded and not covering eyes (cursor interaction)
+  if (!currentVrm || eyeCoverState.currentAmount > 0.5) return;
+
+  // If not currently in a blink cycle, count up to nextBlink
+  if (!blinkState.active) {
+    blinkState.elapsed += delta;
+    if (blinkState.elapsed >= blinkState.nextBlink) {
+      // trigger blink and randomize each phase duration
+      blinkState.active    = true;
+      blinkState.duration  = 0;
+      blinkState.elapsed   = 0;
+      blinkState.holdDuration  = blinkState.minHoldDuration +
+                                Math.random() * (blinkState.maxHoldDuration - blinkState.minHoldDuration);
+      blinkState.closeDuration = blinkState.minCloseDuration +
+                                Math.random() * (blinkState.maxCloseDuration - blinkState.minCloseDuration);
+      blinkState.openDuration  = blinkState.minOpenDuration +
+                                Math.random() * (blinkState.maxOpenDuration - blinkState.minOpenDuration);
+      // next blink after a random interval
+      blinkState.nextBlink     = blinkState.minInterval +
+                                Math.random() * (blinkState.maxInterval - blinkState.minInterval);
+    }
+  }
+
+  // Handle active blink cycle
+  if (blinkState.active) {
+    blinkState.duration += delta;
+    const { closeDuration, openDuration, holdDuration } = blinkState;
+    let blinkAmount = 0;
+
+    if (blinkState.duration < closeDuration) {
+      // closing phase
+      blinkAmount = Math.sin(Math.PI * (blinkState.duration / closeDuration));
+    } else if (blinkState.duration < closeDuration + holdDuration) {
+      // fully closed hold
+      blinkAmount = 1;
+    } else if (blinkState.duration < closeDuration + holdDuration + openDuration) {
+      // opening phase
+      const t = (blinkState.duration - closeDuration - holdDuration) / openDuration;
+      blinkAmount = 1 - Math.sin(Math.PI * t);
+    } else {
+      // end blink cycle
+      blinkAmount = 0;
+      blinkState.active = false;
+    }
+
+    // apply to both eyes
+    if (currentVrm.expressionManager) {
+      currentVrm.expressionManager.setValue('blinkLeft', blinkAmount);
+      currentVrm.expressionManager.setValue('blinkRight', blinkAmount);
+    }
+  }
+}
+
+function updateEyeMovements(delta) {
+  const now = performance.now();
+  const timeSinceLastMove = now - pointerState.time;
+
+  // When cursor is in the window, always track the cursor
+  if (timeSinceLastMove < eyeState.idleInterval && currentVrm) {
+    const normX = (pointerState.x / window.innerWidth - 0.5) * 2;
+    const normY = (pointerState.y / window.innerHeight - 0.5) * 2;
+    
+    eyeState.target.x = normX * eyeState.maxDeviation.x * eyeState.movementIntensity;
+    eyeState.target.y = normY * eyeState.maxDeviation.y * eyeState.movementIntensity;
+  } else {
+    // When cursor is idle, generate subtle movements that align with head movement
+    if (currentVrm) {
+      // Randomize speed for random eye movements
+      eyeState.randomSpeedMultiplier = 0.5 + Math.random(); // Between 0.5 and 1.5
+
+      // Bias random eye movement towards the upcoming head movement direction
+      eyeState.target.x = lookState.targetYaw * 0.7 * eyeState.movementIntensity;
+      eyeState.target.y = lookState.targetPitch * 0.7 * eyeState.movementIntensity;
+      
+      // Add a small random offset to make it more natural
+      eyeState.target.x += (Math.random() * 2 - 1) * 0.1;
+      eyeState.target.y += (Math.random() * 2 - 1) * 0.1;
+    }
+  }
+
+  // Eye covering when cursor is touching character
+  const isNearCharacter = mouthState.cursorProximity < 0.3;
+  eyeCoverState.targetAmount = isNearCharacter ? eyeCoverState.maxAmount : 0;
+  eyeCoverState.currentAmount += (eyeCoverState.targetAmount - eyeCoverState.currentAmount) * eyeCoverState.speed * delta * 60;
+
+  // Only override blink when deliberately covering eyes (cursor touching)
+  if (currentVrm.expressionManager && eyeCoverState.currentAmount > 0) {
+    const coverAmount = Math.min(eyeCoverState.currentAmount, eyeCoverState.maxAmount);
+    currentVrm.expressionManager.setValue('blinkLeft', coverAmount);
+    currentVrm.expressionManager.setValue('blinkRight', coverAmount);
+  }
+
+  // Slow down eye movement when randomly wandering
+  const blendFactor = timeSinceLastMove < eyeState.idleInterval 
+    ? 0.2 
+    : (0.01 * eyeState.randomSpeedMultiplier);
+
+  // Smoothly interpolate current eye position
+  eyeState.current.x += (eyeState.target.x - eyeState.current.x) * blendFactor;
+  eyeState.current.y += (eyeState.target.y - eyeState.current.y) * blendFactor;
+
+  // Constrain eye movement to a reasonable range
+  eyeState.current.x = Math.max(Math.min(eyeState.current.x, eyeState.maxDeviation.x), -eyeState.maxDeviation.x);
+  eyeState.current.y = Math.max(Math.min(eyeState.current.y, eyeState.maxDeviation.y), -eyeState.maxDeviation.y);
+
+  const leftEye = currentVrm.humanoid.getRawBoneNode(VRMHumanBoneName.LeftEye);
+  const rightEye = currentVrm.humanoid.getRawBoneNode(VRMHumanBoneName.RightEye);
+
+  if (leftEye && rightEye) {
+    leftEye.rotation.y = eyeState.current.x + 0.4;
+    leftEye.rotation.x = eyeState.current.y;
+    rightEye.rotation.y = eyeState.current.x - 0.4;
+    rightEye.rotation.x = eyeState.current.y;
+  }
+}
+
+function updateIdle(delta) {
+  if (!currentVrm) return;
+
+  // Add blinking update
+  updateBlinking(delta);
+
+  // Calculate cursor proximity for mouth and eye coverage
+  const normX = (pointerState.x / window.innerWidth - 0.5) * 2;
+  const normY = (pointerState.y / window.innerHeight - 0.5) * 2;
+  mouthState.cursorProximity = Math.hypot(normX, normY);
+
+  // Mouth stays open while cursor nearby
+  mouthState.targetAmount = (mouthState.cursorProximity < 0.2) ? 0.8 : 0;
+  mouthState.openAmount += (mouthState.targetAmount - mouthState.openAmount) * mouthState.speed * delta * 60;
+  if (currentVrm.expressionManager) {
+    const mouthExpressions = ['aa', 'ih', 'ou', 'ee'];
+    mouthExpressions.forEach(exp => {
+      currentVrm.expressionManager.setValue(exp, mouthState.openAmount * 0.65);
+    });
+  }
+
+  updateEyeMovements(delta);
+
+  breathState.elapsed += delta;
+  const yOff = Math.sin(breathState.elapsed * breathState.speed) * breathState.amplitude;
+  currentVrmContainer.position.y = breathBaseY + yOff;
+
+  lookState.elapsed += delta;
+  if (lookState.elapsed > lookState.nextChange) {
+    lookState.elapsed = 0;
+    lookState.nextChange = 1 + Math.random() * 3;
+    lookState.targetYaw = (Math.random() * 2 - 1) * 0.3;
+    lookState.targetPitch = (Math.random() * 2 - 1) * 0.15;
+  }
+  lookState.yaw += (lookState.targetYaw - lookState.yaw) * 0.05;
+  lookState.pitch += (lookState.targetPitch - lookState.pitch) * 0.05;
+
+  const neck = currentVrm.humanoid?.getRawBoneNode(VRMHumanBoneName.Neck);
+  if (neck) {
+    const pointerYaw = normX * 0.3;
+    const pointerPitch = normY * 0.15;
+    neck.rotation.y = lookState.yaw + pointerYaw * 0.5;
+    neck.rotation.x = lookState.pitch + pointerPitch * 0.5;
+    if (neck.rotation.x < 0.5) {
+      neck.rotation.x = (pointerPitch * 0.65) + 0.5;
+    }
+  }
+}
+
+
+ let lastFrameTime = 0;
+let shouldRender = true;
+
+function animate(currentTime = performance.now()) {
+  requestAnimationFrame(animate);
+  
+  // Check if enough time has passed for the next frame
+  const timeSinceLastFrame = currentTime - lastFrameTime;
+  if (timeSinceLastFrame < RENDER_INTERVAL && !shouldRender) {
+    return; // Skip this frame - last frame stays frozen on screen
+  }
+  
+  shouldRender = false;
+  
+  const renderStartTime = performance.now();
+  const delta = clock.getDelta();
+
+  // Only animate if VRM is ready and visible
+  if (currentVrm && vrmCurrentState === VRMState.READY && currentVrmContainer?.visible) {
+    const normX = (pointerState.x / window.innerWidth - 0.5) * 2;
+    const normY = (pointerState.y / window.innerHeight - 0.5) * 2;
+    const targetYaw = normX * 0.3;
+    currentVrmContainer.rotation.y += (targetYaw - currentVrmContainer.rotation.y) * 0.05;
+
+    const windTarget = new THREE.Vector3(normX, -normY, 0).multiplyScalar(physicsManager.baseWindStrength);
+    physicsManager.cursorWind.lerp(windTarget, 0.1);
+
+    physicsManager.applyPhysics(currentVrm, delta);
+    updateIdle(delta);
+    if (currentVrm.expressionManager) {
+      currentVrm.expressionManager.update(delta);
+    } else if (currentVrm.blendShapeProxy?.update) {
+      currentVrm.blendShapeProxy.update();
+    }
+  }
+  
+  renderer.render(scene, camera);
+  
+  const renderEndTime = performance.now();
+  const actualRenderTime = renderEndTime - renderStartTime;
+  
+  perfManager.update(actualRenderTime);
+  
+  lastFrameTime = currentTime;
+}
+
+
+
+
+initScene();
+setupFileHandling();
+animate();
+
+  </script>
+</body>
+</html>
