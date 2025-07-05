@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Horde test.</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script type="importmap">
+    {
+      "imports": {
+        "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+      }
+    }
+  </script>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f5;
+    }
+
+    #app {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .chat-container {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .messages {
+      height: 60vh;
+      overflow-y: auto;
+      margin-bottom: 20px;
+      padding: 10px;
+    }
+
+    .message {
+      margin: 10px 0;
+      padding: 10px 15px;
+      border-radius: 15px;
+      max-width: 80%;
+    }
+
+    .user-message {
+      background: #007AFF;
+      color: white;
+      margin-left: auto;
+    }
+
+    .ai-message {
+      background: #E9E9EB;
+      color: black;
+    }
+
+    .input-container {
+      display: flex;
+      gap: 10px;
+    }
+
+    textarea {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      resize: none;
+      font-family: inherit;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 12px 24px;
+      background: #007AFF;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .status {
+      text-align: center;
+      margin: 10px 0;
+      color: #666;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .status-item {
+      padding: 5px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .model-selection-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background: #f0f0f0;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .model-info {
+      font-size: 14px;
+      color: #333;
+      flex-grow: 1;
+      text-align: left;
+    }
+
+    .model-selection-container button {
+      padding: 8px 16px;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .status button {
+      margin-top: 10px;
+      background: #dc3545;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="chat-container">
+      <div class="messages" ref="messagesContainer">
+        <div v-for="message in messages" :class="['message', message.isUser ? 'user-message' : 'ai-message']">
+          {{ message.text }}
+        </div>
+      </div>
+      <div class="model-selection-container">
+        <div class="model-info">
+          <div v-if="isFindingModel">Searching for the best model...</div>
+          <div v-else-if="selectedModel">
+            <strong>Selected Model:</strong> {{ selectedModel.name }}<br>
+            <small>Est. Time: {{ selectedModel.eta }}s, Queue: {{ selectedModel.queued }}</small>
+          </div>
+          <div v-else>Could not find any suitable models. Please refresh.</div>
+        </div>
+        <button @click="findBestWorker" :disabled="isFindingModel || isGenerating">Refresh</button>
+      </div>
+      <div class="status" v-if="isGenerating">
+        <div class="status-item">{{ statusMessage }}</div>
+        <div class="status-item" v-if="workerInfo">Model: {{ workerInfo }}</div>
+        <div class="status-item" v-if="queuePosition !== null && queuePosition !== ''">Queue Position: {{ queuePosition }}</div>
+        <button @click="cancelGeneration">Cancel</button>
+      </div>
+      <div class="input-container">
+        <textarea 
+          v-model="userInput" 
+          @keyup.enter.prevent="sendMessage"
+          :disabled="isGenerating"
+          placeholder="Type a message..."
+          rows="3"
+        ></textarea>
+        <button @click="sendMessage" :disabled="isGenerating || !userInput.trim() || !selectedModel">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createApp, ref, nextTick, onMounted } from 'vue'
+
+    createApp({
+      setup() {
+        const messages = ref([])
+        const userInput = ref('')
+        const isGenerating = ref(false)
+        const statusMessage = ref('')
+        const workerInfo = ref('')
+        const queuePosition = ref('')
+        const messagesContainer = ref(null)
+        const selectedModel = ref(null)
+        const isFindingModel = ref(false)
+        const generationId = ref(null)
+
+        const scrollToBottom = async () => {
+          await nextTick()
+          messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+        }
+
+        const findBestWorker = async () => {
+          isFindingModel.value = true
+          selectedModel.value = null
+          workerInfo.value = 'Searching for the best available model...'
+          try {
+            const response = await fetch('https://stablehorde.net/api/v2/status/models?type=text')
+            if (!response.ok) {
+              throw new Error(`Failed to fetch model status: ${response.statusText}`)
+            }
+            const allModels = await response.json()
+            const onlineModels = allModels.filter(m => m.count > 0 && m.name.indexOf('sd_') !== 0)
+
+            if (onlineModels.length === 0) {
+              throw new Error('No models are currently online.')
+            }
+            
+            const preferredKeywords = ['Llama-3', 'Instruct', 'Llama', 'Chat']
+            
+            let bestModel = null;
+            for (const keyword of preferredKeywords) {
+                const preferredModels = onlineModels.filter(m => m.name.toLowerCase().includes(keyword.toLowerCase()));
+                if(preferredModels.length > 0) {
+                    preferredModels.sort((a, b) => a.eta - b.eta);
+                    bestModel = preferredModels[0];
+                    break;
+                }
+            }
+
+            if (!bestModel) {
+                onlineModels.sort((a, b) => a.eta - b.eta);
+                bestModel = onlineModels[0];
+            }
+            
+            selectedModel.value = bestModel
+            
+          } catch (error) {
+            console.error(error)
+            messages.value.push({ text: `Could not find a model: ${error.message}`, isUser: false })
+            await scrollToBottom()
+          } finally {
+            isFindingModel.value = false
+          }
+        }
+
+        const formatLlama3Prompt = (conversation) => {
+          let prompt = "<|begin_of_text|>";
+          for (const message of conversation) {
+            prompt += `<|start_header_id|>${message.role}<|end_header_id|>\n\n${message.content.trim()}<|eot_id|>`;
+          }
+          prompt += `<|start_header_id|>assistant<|end_header_id|>\n\n`;
+          return prompt;
+        };
+
+        const generateResponse = async () => {
+          if (!selectedModel.value) {
+            throw new Error("No model has been selected. Please refresh the model list.");
+          }
+
+          const conversationHistory = messages.value.map(msg => ({
+            role: msg.isUser ? 'user' : 'assistant',
+            content: msg.text
+          }));
+
+          conversationHistory.unshift({
+            role: 'system',
+            content: 'You are an AI assistant named Akari, part of an AkariNet test app.'
+          });
+
+          const formattedPrompt = formatLlama3Prompt(conversationHistory);
+
+          const payload = {
+            prompt: formattedPrompt,
+            models: [selectedModel.value.name],
+            trusted_workers: false,
+            params: {
+              max_length: 300,
+              min_length: 1,
+              temperature: 0.7,
+              top_p: 0.9,
+              top_k: 50,
+              repetition_penalty: 1.2,
+              stop_sequence: ['<|eot_id|>']
+            }
+          }
+
+          statusMessage.value = 'Submitting request...'
+          const generateResp = await fetch('https://stablehorde.net/api/v2/generate/text/async', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': '0000000000' // Using anonymous key
+            },
+            body: JSON.stringify(payload)
+          })
+
+          if (!generateResp.ok) {
+              const errorBody = await generateResp.json().catch(() => ({ message: 'Could not parse error JSON.' }));
+              throw new Error(`API Error: ${errorBody.message || generateResp.statusText}`);
+          }
+
+          const { id, message } = await generateResp.json()
+          generationId.value = id;
+
+          if (!id) {
+              throw new Error(`Failed to start generation: ${message || 'Unknown error'}`);
+          }
+          
+          while (isGenerating.value) {
+            await new Promise(resolve => setTimeout(resolve, 2500))
+            if (!isGenerating.value) break;
+
+            const statusResponse = await fetch(`https://stablehorde.net/api/v2/generate/text/status/${id}`)
+            if (!statusResponse.ok) {
+                console.warn(`Could not get status for ${id}, retrying...`);
+                continue;
+            }
+
+            const status = await statusResponse.json()
+            
+            if (status.faulted) {
+                throw new Error('The worker faulted processing this request. Please try again.');
+            }
+            
+            if (status.done) {
+              if (status.generations && status.generations.length > 0) {
+                return status.generations[0].text.trim()
+              } else {
+                throw new Error('Generation finished but no text was returned.')
+              }
+            }
+            
+            statusMessage.value = `Processing request...`
+            queuePosition.value = status.queue_position > 0 
+              ? `${status.queue_position} requests ahead`
+              : status.wait_time > 0 ? `Est. wait: ${status.wait_time}s` : 'Processing...'
+          }
+          return null; // Generation was cancelled
+        }
+
+        const cancelGeneration = async () => {
+            if (!generationId.value) return;
+
+            statusMessage.value = "Cancelling request...";
+            // Optimistically set generating to false
+            isGenerating.value = false; 
+            
+            try {
+                const response = await fetch(`https://stablehorde.net/api/v2/generate/text/status/${generationId.value}`, {
+                    method: 'DELETE',
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({message: "Unknown cancellation error"}));
+                    throw new Error(errorData.message);
+                }
+
+                const result = await response.json();
+                console.log('Cancellation result:', result);
+                messages.value.push({
+                    text: `Generation cancelled.`,
+                    isUser: false,
+                });
+
+            } catch (error) {
+                console.error('Cancellation failed:', error);
+                messages.value.push({
+                    text: `Could not cancel generation: ${error.message}`,
+                    isUser: false,
+                });
+            } finally {
+                generationId.value = null;
+                statusMessage.value = '';
+                queuePosition.value = '';
+                workerInfo.value = '';
+                await scrollToBottom();
+            }
+        };
+
+        const sendMessage = async () => {
+          const messageText = userInput.value.trim()
+          if (!messageText || isGenerating.value || !selectedModel.value) return
+
+          messages.value.push({ text: messageText, isUser: true })
+          userInput.value = ''
+          await scrollToBottom()
+
+          isGenerating.value = true
+          workerInfo.value = selectedModel.value.name
+          queuePosition.value = null
+          
+          try {
+            const response = await generateResponse()
+            if (response !== null) { // Null indicates cancellation
+                messages.value.push({ text: response.trim(), isUser: false })
+                await scrollToBottom()
+            }
+          } catch (error) {
+            messages.value.push({ 
+              text: "Sorry, I encountered an error: " + error.message, 
+              isUser: false 
+            })
+            console.error(error)
+            await scrollToBottom()
+          } finally {
+            if (isGenerating.value) { // If not cancelled
+              isGenerating.value = false
+            }
+            statusMessage.value = ''
+            workerInfo.value = ''
+            queuePosition.value = ''
+            generationId.value = null
+          }
+        }
+        
+        onMounted(() => {
+            findBestWorker();
+        });
+
+        return {
+          messages,
+          userInput,
+          isGenerating,
+          statusMessage,
+          workerInfo,
+          queuePosition,
+          messagesContainer,
+          selectedModel,
+          isFindingModel,
+          findBestWorker,
+          cancelGeneration,
+          sendMessage
+        }
+      }
+    }).mount('#app')
+  </script>
+</body>
+</html>
