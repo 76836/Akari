@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AkariNet UI90</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="./app.webmanifest">
+    <meta charset="utf-8" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+    <link rel="shortcut icon" href="./favicon.ico">
+    <meta name="msapplication-TileColor" content="#603cba">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: black;
+      width: 100vw;
+      height: 100vh;
+    }
+    iframe {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100vh;
+      height: 100vw;
+      border: none;
+      transform: rotate(90deg) translate(-50vw, 50vh);
+      transform-origin: center;
+      overflow: hidden;
+      display: block;
+    }
+  </style>
+<body>
+    <iframe src="https://76836.github.io/Akari" allowfullscreen></iframe>
+    <script>
+        function requestFullscreen() {
+            try {
+                const el = document.documentElement;
+                if (el.requestFullscreen) {
+                    el.requestFullscreen().catch(() => {});
+                } else if (el.webkitRequestFullscreen) {
+                    el.webkitRequestFullscreen();
+                } else if (el.mozRequestFullScreen) {
+                    el.mozRequestFullScreen();
+                } else if (el.msRequestFullscreen) {
+                    el.msRequestFullscreen();
+                }
+            } catch (e) {}
+        }
+
+        // Try fullscreen on load
+        window.addEventListener('load', requestFullscreen);
+
+        // Try fullscreen on any possible user interaction
+        [
+            'click', 'dblclick', 'mousedown', 'mouseup', 'mousemove', 'keydown', 'keyup', 'keypress',
+            'touchstart', 'touchend', 'touchmove', 'wheel', 'contextmenu', 'pointerdown', 'pointerup',
+            'pointermove', 'focus', 'blur', 'mouseenter', 'mouseleave', 'mouseover', 'mouseout'
+        ].forEach(evt => {
+            window.addEventListener(evt, requestFullscreen, { once: false });
+        });
+    </script>
+</body>
+</html>
