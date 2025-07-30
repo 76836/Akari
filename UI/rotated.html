@@ -15,7 +15,6 @@
     html, body {
       margin: 0;
       padding: 0;
-      overflow: hidden;
       background: black;
       width: 100vw;
       height: 100vh;
@@ -29,7 +28,6 @@
       border: none;
       transform: rotate(90deg) translate(-50vw, 50vh);
       transform-origin: center;
-      overflow: hidden;
       display: block;
     }
   </style>
@@ -62,6 +60,89 @@
         ].forEach(evt => {
             window.addEventListener(evt, requestFullscreen, { once: false });
         });
+
+        /**
+ * Fake Media Player Keep-Alive Script
+ * Creates a hidden video element and simulates playback to prevent page inactivity
+ */
+
+(function() {
+    // Check if we're already running
+    if (window._fakeMediaPlayerActive) {
+        console.log('Fake media player is already active');
+        return;
+    }
+    
+    window._fakeMediaPlayerActive = true;
+    
+    // Create a minimal video element
+    const video = document.createElement('video');
+    video.id = 'fakeMediaPlayerKeepAlive';
+    video.style.display = 'none';
+    video.muted = true;
+    video.loop = true;
+    
+    // Create a tiny video source (1px black frame)
+    const canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, 1, 1);
+    
+    // Convert canvas to video source
+    const stream = canvas.captureStream(0.1); // Very low frame rate
+    video.srcObject = stream;
+    
+    // Add to document
+    document.body.appendChild(video);
+    
+    // Play/pause logic
+    let isPlaying = false;
+    const togglePlayback = () => {
+        if (isPlaying) {
+            video.pause();
+            isPlaying = false;
+        } else {
+            video.play()
+                .then(() => {
+                    isPlaying = true;
+                })
+                .catch(err => {
+                    console.error('Fake media player error:', err);
+                });
+        }
+    };
+    
+    // Start with playback
+    togglePlayback();
+    
+    // Set up interval to toggle playback periodically
+    const intervalTime = 30000; // 30 seconds
+    let keepAliveInterval = setInterval(togglePlayback, intervalTime);
+    
+    // Clean up function
+    const cleanup = () => {
+        clearInterval(keepAliveInterval);
+        video.pause();
+        if (video.srcObject) {
+            video.srcObject.getTracks().forEach(track => track.stop());
+        }
+        video.remove();
+        window._fakeMediaPlayerActive = false;
+    };
+    
+    // Clean up when page unloads
+    window.addEventListener('beforeunload', cleanup);
+    
+    // Expose cleanup method if needed
+    window.fakeMediaPlayerKeepAlive = {
+        stop: cleanup
+    };
+    
+    console.log('Fake media player keep-alive activated');
+})();
+    //DeepSeek gave me the keep alive script, do you think it will work?
     </script>
 </body>
 </html>
