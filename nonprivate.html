@@ -3,69 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Notice!</title>
     <style>
+        :root {
+            --bg-color: #050505;
+            --cyber-pink: #ff007a;
+            --cyber-cyan: #00f3ff;
+            --glass-bg: rgba(10, 10, 15, 0.9);
+            --text-main: #e2e8f0;
+            --text-dim: #94a3b8;
+        }
+
         body {
             margin: 0;
-            padding: 0;
-            background-color: rgba(255, 255, 255, 0.25);
-            color: #fff;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
         }
-        .container {
-            width: 60vw;
-            height: 60vh;
-            margin-top: 10vh;
-            margin-left: 10vw;
-            padding-left: 10vw;
-            padding-right: 10vw;
-            padding-top: 10vh;
-            padding-bottom:10vh;
-            background-color: #1a1a1a;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-            text-align: center;
+
+        main {
+            width: 100vw;
+            height: 100vh;
+            padding: 10% 15%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border-left: 10px solid var(--cyber-pink);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            box-sizing: border-box;
         }
+
+        main::after {
+            content: "アカリです。";
+            position: absolute;
+            top: 40px;
+            right: 60px;
+            font-size: 1rem;
+            color: var(--cyber-pink);
+            letter-spacing: 4px;
+            opacity: 0.6;
+            font-weight: bold;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 4rem;
+        }
+
+        .status-line {
+            width: 80px;
+            height: 4px;
+            background: var(--cyber-cyan);
+            box-shadow: 0 0 20px var(--cyber-cyan);
+        }
+
         h1 {
-            color: #ff4500;
-            font-size: 28px;
-            margin: 0px;
+            font-size: 4rem;
+            font-weight: 900;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: -2px;
+            background: linear-gradient(to right, #fff, var(--text-dim));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
+
+        .message-grid {
+            border-left: 2px solid rgba(255, 255, 255, 0.1);
+            padding-left: 4rem;
+            margin-bottom: 4rem;
+            max-width: 900px;
+        }
+
         p {
-            font-size: 16px;
-            line-height: 1;
-            font-weight:bold;
+            font-size: 1.5rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
         }
-        .button {
-            font-family: 'Press Start 2P', sans-serif;
-            display: inline-block;
-            padding: 15px 30px;
-            background-color: #ff4500;
-            color: #000;
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 18px;
+
+        .highlight {
+            color: var(--cyber-cyan);
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+            font-weight: bold;
+        }
+
+        .pro-tip {
+            display: inline-flex;
+            padding: 12px 24px;
+            background: rgba(0, 243, 255, 0.05);
+            border: 1px dashed var(--cyber-cyan);
+            color: var(--cyber-cyan);
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .action-area {
+            padding-left: 4rem;
+        }
+
+        .cb-container {
+            display: flex;
+            align-items: center;
             cursor: pointer;
-            transition-duration: .5s;
+            gap: 20px;
         }
-        .button:hover {
-            background-color: cyan;
-            padding: 15px 200px;
-            transition-duration: .5s;
+
+        .cb-container input { display: none; }
+
+        .cb-custom {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--text-dim);
+            position: relative;
+        }
+
+        .cb-container:hover .cb-custom {
+            border-color: var(--cyber-pink);
+            box-shadow: 0 0 20px var(--cyber-pink);
+        }
+
+        .cb-container input:checked + .cb-custom {
+            background: var(--cyber-pink);
+            border-color: var(--cyber-pink);
+        }
+
+        .cb-container input:checked + .cb-custom::after {
+            content: "✓";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .cb-label {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        @media (max-width: 900px) {
+            main { padding: 2rem; }
+            h1 { font-size: 2.5rem; }
+            .message-grid, .action-area { padding-left: 1.5rem; }
         }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <h1>Privacy Notice</h1>
-        <p>Messages sent to Google Gemini free tier or to the Pickaxe Project are not private and may be reviewed by humans.</p>
-        <p>On-device AI information will never be intentionally shared.</p>
-        <br>
-        <p>Pro tip: You can ask Akari if your current chat is private.</p>
-        <button class="button" onclick="setPrivacyNotice()">Don't show again.</button>
-    </div>
+    <main id="main-content">
+        <header>
+            <div class="status-line"></div>
+            <h1>Security Alert</h1>
+        </header>
+
+        <div class="message-grid">
+            <p>When using <span class="highlight">Google Gemini, Pollinations.ai, or other free AI providers,</span> your chats are not private and may be reviewed by humans.</p>
+            <p>On-device AI information will never be intentionally shared.</p>
+            
+            <div class="pro-tip">
+                <span>Pro tip: You can ask Akari if your current chat is private.</span>
+            </div>
+        </div>
+
+        <div class="action-area">
+            <label class="cb-container">
+                <input type="checkbox" onchange="dismiss()">
+                <div class="cb-custom"></div>
+                <span class="cb-label">Acknowledge & Hide Notice</span>
+            </label>
+        </div>
+    </main>
 
     <script>
-        function setPrivacyNotice() {
+        function dismiss() {
             localStorage.setItem('privacynotice', 'hide');
         }
     </script>
