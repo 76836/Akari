@@ -1,5 +1,10 @@
-say('Gemini API connected (adapter v1.6)');
+say('Gemini API connected (adapter v1.6b)');
 var CloudAI = true;
+if (localStorage.getItem('privacynotice') == 'hide') {
+  console.log('Privacy notice hidden!');
+}else{
+  newwindow('https://76836.github.io/Akari/nonprivate');
+};
 (function () {
   // Function to prompt for API key and save to local storage
   function promptForApiKey() {
@@ -43,7 +48,7 @@ var CloudAI = true;
             const genAI = new GoogleGenerativeAI(API_KEY);
             async function run() {
                 const model = genAI.getGenerativeModel({
-                    model: "gemini-2.5-flash-latest",
+                    model: "gemini-2.5-flash",
                     safetySettings,
                     systemInstruction: \`
                         Your name is Akari, an AI girl with a vibrant and cheerful personality.
