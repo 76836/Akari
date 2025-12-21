@@ -1,357 +1,407 @@
 <!DOCTYPE HTML>
 <html id="html">
+
 <head>
-    <title>Akari v2.3</title>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="./app.webmanifest">
-    <meta charset="utf-8" />
-    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
-    <link rel="shortcut icon" href="./favicon.ico">
-    <meta name="msapplication-TileColor" content="#603cba">
-    <meta name="theme-color" content="#000000">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
-    <style>
-:root {
-      --notification-bg: rgba(32, 33, 36, 0.65);
-      --notification-text: #fff;
-      --notification-subtext: rgba(205, 205, 255, 0.8);
-    }
 
-    .notification-container {
-      position: fixed;
-      top: 100px;
-      right: calc(-100vw + 352px);
-      margin: 0;
-      padding: 16px;
-      background: var(--notification-bg);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-bottom-left-radius: 12px;
-      border-top-left-radius: 12px;
-      width: 320px;
-      transform: translateX(100%);
-      opacity: 0;
-      transition: transform 0.4s cubic-bezier(0.2, 0, 0, 1),
-                  opacity 0.3s ease-in-out;
-      z-index: 38;
-      display: flex;
-      align-items: flex-end;
-      gap: 12px;
-      color: var(--notification-text);
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
-    }
+    <head>
+        <title>Akari v2.4</title>
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="manifest" href="./app.webmanifest">
+        <meta charset="utf-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+        <link rel="shortcut icon" href="./favicon.ico">
+        <meta name="msapplication-TileColor" content="#603cba">
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+        <style>
+            :root {
+                --notification-bg: rgba(32, 33, 36, 0.65);
+                --notification-text: #fff;
+                --notification-subtext: rgba(205, 205, 255, 0.8);
+            }
 
-    .notification-container.show {
-      transform: translateX(0);
-      opacity: 1;
-    }
+            body {
+                background: #000;
+                color: #fff;
+                font-family: 'Orbitron', sans-serif;
+                margin: 0;
+                height: 100vh;
+                overflow: hidden;
+            }
 
-    .notification-container.animated-border {
-      position: relative;
-      overflow: hidden;
-    }
+            /* Notification System */
+            .notification-container {
+                position: fixed;
+                top: 100px;
+                right: 0px;
+                margin: 0;
+                padding: 16px;
+                background: var(--notification-bg);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border-bottom-left-radius: 12px;
+                border-top-left-radius: 12px;
+                width: 320px;
+                transform: translateX(100%);
+                opacity: 0;
+                transition: transform 0.4s cubic-bezier(0.2, 0, 0, 1), opacity 0.3s ease-in-out;
+                z-index: 200;
+                display: flex;
+                align-items: flex-end;
+                gap: 12px;
+                color: var(--notification-text);
+                box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+            }
 
-    .notification-container.animated-border::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border: 3px solid transparent;
-      border-right: none;
-      border-top-right-radius: 0;
-      border-top-left-radius: 12px;
-      border-bottom-left-radius: 12px;
-      background: linear-gradient(var(--notification-bg), var(--notification-bg)) padding-box,
-                  repeating-linear-gradient(var(--angle, 0deg), var(--border-colors)) border-box;
-      -webkit-mask: linear-gradient(#fff 0 0) padding-box,
-                   linear-gradient(#fff 0 0);
-      mask: linear-gradient(#fff 0 0) padding-box,
-            linear-gradient(#fff 0 0);
-      -webkit-mask-composite: destination-out;
-      mask-composite: exclude;
-      animation: rotate 4s linear infinite,
-                 glow 2s ease-in-out infinite alternate;
-    }
+            .notification-container.show {
+                transform: translateX(0);
+                opacity: 1;
+            }
 
-    @keyframes rotate {
-      0% {
-        --angle: 0deg;
-      }
-      100% {
-        --angle: 360deg;
-      }
-    }
+            .notification-container.animated-border::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                border: 3px solid transparent;
+                border-right: none;
+                border-top-left-radius: 12px;
+                border-bottom-left-radius: 12px;
+                background: linear-gradient(var(--notification-bg), var(--notification-bg)) padding-box,
+                    repeating-linear-gradient(var(--angle, 0deg), var(--border-colors)) border-box;
+                -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+                mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+                -webkit-mask-composite: destination-out;
+                mask-composite: exclude;
+                animation: rotate 4s linear infinite, glow 2s ease-in-out infinite alternate;
+            }
 
-    @keyframes glow {
-      0% {
-        filter: drop-shadow(0 0 15px rgba(var(--glow-color), 1))
-               drop-shadow(0 0 30px rgba(var(--glow-color), 0.8))
-               drop-shadow(0 0 45px rgba(var(--glow-color), 0.6));
-      }
-      100% {
-        filter: drop-shadow(0 0 25px rgba(var(--glow-color), 1))
-               drop-shadow(0 0 50px rgba(var(--glow-color), 0.8))
-               drop-shadow(0 0 75px rgba(var(--glow-color), 0.6));
-      }
-    }
+            @keyframes rotate {
+                0% {
+                    --angle: 0deg;
+                }
 
-    @property --angle {
-      syntax: '<angle>';
-      initial-value: 0deg;
-      inherits: false;
-    }
+                100% {
+                    --angle: 360deg;
+                }
+            }
 
-    .notification-image {
-      width: 48px;
-      height: 48px;
-      object-fit: cover;
-      border-radius: 4px;
-      flex-shrink: 0;
-    }
+            @keyframes glow {
+                0% {
+                    filter: drop-shadow(0 0 15px rgba(var(--glow-color), 1));
+                }
 
-    .notification-content {
-      flex-grow: 1;
-      margin-right: 24px;
-    }
+                100% {
+                    filter: drop-shadow(0 0 25px rgba(var(--glow-color), 1));
+                }
+            }
 
-    .notification-title {
-      font-weight: bold;
-      margin-bottom: 4px;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-    }
+            @property --angle {
+                syntax: '<angle>';
+                initial-value: 0deg;
+                inherits: false;
+            }
 
-    .notification-body {
-      color: var(--notification-subtext);
-    }
+            .notification-image {
+                width: 48px;
+                height: 48px;
+                object-fit: cover;
+                border-radius: 4px;
+                flex-shrink: 0;
+            }
 
-    .notification-close {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      width: 20px;
-      height: 20px;
-      border: none;
-      background: none;
-      cursor: pointer;
-      padding: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0.6;
-      transition: opacity 0.2s;
-    }
+            .notification-content {
+                flex-grow: 1;
+                margin-right: 24px;
+            }
 
-    .notification-close:hover {
-      opacity: 1;
-    }
+            .notification-title {
+                font-weight: bold;
+                margin-bottom: 4px;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            }
 
-    .notification-close::before,
-    .notification-close::after {
-      content: '';
-      position: absolute;
-      width: 12px;
-      height: 2px;
-      background: var(--notification-text);
-      transform: rotate(45deg);
-    }
+            .notification-body {
+                color: var(--notification-subtext);
+                font-size: 0.9em;
+            }
 
-    .notification-close::after {
-      transform: rotate(-45deg);
-    }
-        
-#overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100vh;
-    background-color: black;
-    opacity: 1;
-    transition: opacity 1s ease-out;
-    z-index: 29;
-    border-bottom: 2vh solid red;
-    animation: borderAnimation 2.5s forwards;
-}
+            /* Background/Overlays */
+            #overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 98vh;
+                background-color: black;
+                opacity: 1;
+                transition: opacity 1s ease-out;
+                z-index: 300;
+                border-bottom: 2vh solid red;
+                animation: borderAnim 2.5s forwards;
+                display: flex;
+                flex-direction: column;
+                justify-content: left;
+                align-items: top;
+            }
 
-@keyframes borderAnimation {
-    0% {
-        border-color: red;
-    }
+            @keyframes borderAnim {
+                0% {
+                    border-color: red;
+                }
 
-    100% {
-        border-color: green;
-    }
-}
+                100% {
+                    border-color: green;
+                }
+            }
 
-#overlay.fade-out {
-    opacity: 0;
-}
+            #overlay.fade-out {
+                opacity: 0;
+                pointer-events: none;
+            }
 
-#overlay.noindex {
-    z-index: -1;
-}
+            #bkg-container {
+                position: fixed;
+                inset: 0;
+                z-index: -2;
+                width: 100vw;
+                height: 100vh;
+                pointer-events: auto;
+            }
 
-.console {
-    color: white;
-    font-size: xx-large;
-}
+            .iframe-container {
+                width: 100%;
+                height: 100%;
+                border: none;
+            }
 
-body {
-    background-color: black;
-    overflow-x: hidden;
-    color: white;
-    font-family: 'Orbitron', sans-serif;
-    word-wrap: break-word;
-    background-attachment: fixed;
-    background-repeat: no-repeat;
-    margin:0;
-}
+            /* Chat History and Container */
+            #chat-wrapper {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: calc(100% - 100px);
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-end;
+                transition: background 0.5s ease, height 0.5s ease;
+                z-index: 10;
+            }
 
-.iframe-container {
-    position:fixed;
-    top:0;
-    left:0;
-    width: 100vw;
-    height: 100vh;
-    z-index: -100;
-    margin:0;
-}
+            #chat-wrapper.full-view {
+                background: rgba(0, 0, 0, 0.4);
+            }
 
-iframe {
-    border: none;
-}
+            #messages-container {
+                max-height: 100%;
+                overflow-y: auto;
+                padding: 20px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+                mask-image: linear-gradient(to bottom, transparent 0%, black 15%);
+                -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%);
+            }
 
-.windowstyle {
-    border: 4px solid #111111;
-    background-color: transparent;
-    margin: 0%;
-    margin-top: 7vh;
-    width: 86vw;
-    height: 80vh;
-    position: fixed;
-    top: 0;
-    left: 0;
-    margin-left: 7vw;
-    margin-right: 7vw;
-    z-index: 30;
-    border-radius: 2vh;
-}
+            /* Hide Chat Effect */
+            #chat-wrapper.hidden-chat #messages-container {
+                pointer-events: none;
+                mask-image: linear-gradient(to top, black 0%, black 150px, transparent 300px);
+                -webkit-mask-image: linear-gradient(to top, black 0%, black 150px, transparent 300px);
+            }
 
-.buttonstyle {
-    border: 4px solid crimson;
-    margin: 0%;
-    width: 16vh;
-    height: 8vh;
-    background-color: darkred;
-    font-size: large;
-    color: white;
-    border-radius: 2vh;
-    z-index: 31;
-    margin-left: 7vw;
-    margin-right: 7vw;
-    position: fixed;
-    top: calc(83vh + 7px);
-    left: 0;
-    transition-duration: 0.3s;
-}
-    </style>
-</head>
+            #chat-wrapper.hidden-chat {
+                height: 350px;
+                bottom: 100px;
+                top: auto;
+                pointer-events: none;
+                /* Let clicks pass through to wallpaper when hidden */
+            }
 
-<body onclick="clickoff();">
-    <div id="overlay">
-        <div class="console" id="output"></div>
-        <script>
-                function showNotification(title, message, options = {}) {
-      const {
-        duration = 5000,
-        borderColor,
-        borderColors,
-        image
-      } = options;
+            #chat-wrapper.hidden-chat .responsetxt,
+            #chat-wrapper.hidden-chat .command {
+                pointer-events: none;
+            }
 
-      // Remove existing notification if present
-      const existingNotification = document.querySelector('.notification-container');
-      if (existingNotification) {
-        existingNotification.remove();
-      }
+            .responsetxt {
+                background: rgba(2, 2, 2, 0.61);
+                padding: 12px;
+                border-radius: 12px;
+                max-width: 75%;
+                align-self: flex-start;
+                backdrop-filter: blur(5px);
+                pointer-events: auto;
+            }
 
-      // Create notification elements
-      const notification = document.createElement('div');
-      notification.className = 'notification-container';
-      
-      // Handle border styling
-      if (borderColors && borderColors.length > 1) {
-        notification.classList.add('animated-border');
-        notification.style.setProperty('--border-colors', borderColors.join(', '));
-        const glowColor = borderColors[0].match(/\d+/g).join(',');
-        notification.style.setProperty('--glow-color', glowColor);
-      } else if (borderColor) {
-        notification.classList.add('animated-border');
-        notification.style.setProperty('--border-colors', `${borderColor}, ${borderColor}`);
-        const glowColor = borderColor.match(/\d+/g).join(',');
-        notification.style.setProperty('--glow-color', glowColor);
-      }
+            .command {
+                background: rgba(2, 2, 2, 0.61);
+                padding: 12px;
+                border-radius: 12px;
+                max-width: 75%;
+                align-self: flex-end;
+                backdrop-filter: blur(5px);
+                pointer-events: auto;
 
-      // Create HTML content
-      const imageHtml = image ? `<img src="${image}" class="notification-image" alt="Notification image">` : '';
-      
-      notification.innerHTML = `
-        ${imageHtml}
-        <div class="notification-content">
-          <div class="notification-title">${title}</div>
-          <div class="notification-body">${message}</div>
-        </div>
-        <button class="notification-close" aria-label="Close notification"></button>
-      `;
+                color: #00ffcc;
+                text-align: right;
 
-      // Add to DOM
-      //document.body.appendChild(notification);
-      var element = document.getElementById("notificationArea");
-      element.prepend(notification);
+                font-style: italic;
+            }
 
-      // Trigger sliding animation
-      requestAnimationFrame(() => notification.classList.add('show'));
+            /* Controls */
+            .controls {
+                position: fixed;
+                bottom: 20px;
+                left: 0;
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 10px;
+                z-index: 50;
+                
+                
+            }
 
-      // Setup close button
-      const closeButton = notification.querySelector('.notification-close');
-      closeButton.addEventListener('click', () => {
-        notification.classList.remove('show');
-        setTimeout(() => notification.remove(), 400);
-      });
+            .box {
+                background: rgba(0, 0, 0, 0.7);
+                border: 2px solid #333;
+                color: white;
+                padding: 12px;
+                border-radius: 20px;
+                width: 40vw;
+                outline: none;
+                transition: border-color 0.3s;
+                pointer-events: auto;
+            }
 
-      // Auto-dismiss after duration
-      if (duration) {
-        setTimeout(() => {
-          if (notification.parentElement) {
-            notification.classList.remove('show');
-            setTimeout(() => notification.remove(), 400);
-          }
-        }, duration);
-      }
-    }
-            
-            async function loadscreen(message) {
-                document.getElementById('output').innerHTML += message + '<br>';
-                showNotification('System status updated:', message, {borderColors: ['#00FFFF', '#00FF00', '#0000FF', '#FFFFFF'] });
-            };
-            loadscreen("Akari 2.3 starting...");
-        </script>
-    </div>
-    
+            .box:focus {
+                border-color: crimson;
+            }
+
+            .button-menu {
+                padding: 5px 10px;
+                border-radius: 20px;
+                background-color: #111111;
+                color: red;
+                background-repeat: repeat-x;
+                background-size: auto 100%;
+                text-align: center;
+                line-height: 30px;
+                font-size: large;
+                position: fixed;
+                top: 7px;
+                right: 7px;
+                width: 50px;
+                border: 0;
+                overflow: hidden;
+                border: 2px solid black;
+                z-index: 21;
+            }
+
+            .button-long,
+            .toggle-btn {
+                background: crimson;
+                border: 2px solid #333;
+                
+                color: white;
+                padding: 10px 20px;
+                border-radius: 20px;
+                cursor: pointer;
+                font-family: inherit;
+                font-size: 14px;
+                pointer-events: auto;
+            }
+
+            .mic-on {
+                background: #00ff00;
+                color: black;
+            }
+
+            .toggle-btn {
+                background: #333;
+            }
+
+            .toggle-btn.active {
+                background: #555;
+            }
+
+            /* Window Style */
+            .windowstyle {
+                border: 4px solid #111;
+                background: black;
+                width: 86vw;
+                height: 80vh;
+                position: fixed;
+                top: 7vh;
+                left: 7vw;
+                z-index: 100;
+                border-radius: 2vh;
+            }
+
+            .close-btn {
+                position: fixed;
+                top: 88vh;
+                left: 7vw;
+                background: darkred;
+                color: white;
+                border: 2px solid red;
+                padding: 10px;
+                border-radius: 8px;
+                width: 86vw;
+                z-index: 101;
+            }
+
+            /* Legacy compatibility nodes */
+            #legacy-anchor {
+                display: none;
+                position: absolute;
+            }
+        </style>
+    </head>
+
+<body>
+
+    <div id="bkg-container"></div>
     <div id="avatar"></div>
-    <div style="position: fixed; top: 0; left:0;" id="notificationArea"></div>
-    <div style="margin-bottom:10vh;" id="messages"></div>
-    <div id="windowspot"></div>
-    <div id="status-area"></div>
+    <div id="overlay">
+        <div class="console" id="boot-log" style="font-size: 1rem; color: #fff;"></div>
+        <img src="https://76836.github.io/Akari/logo512.png"
+     alt="Logo"
+     style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.6);">
 
-    <button class="button-menu" onclick="newwindow('./settings');">⁝</button>
-    <button class="button-long" id="micbutton" onclick="goakari();">voice</button>
-    <form><input type="text" id="box" class="box" placeholder="What's up?"
-            onclick="setTimeout(function () {document.getElementById('micbutton').innerText='send'; }, 100);"></input>
-    </form>
+<img src="https://76836.github.io/Akari/loading.gif"
+     alt="Logo Small"
+     style="position:fixed; top:65%; left:50%; transform:translate(-50%, -50%) scale(0.2);">
+
+</div>
+    </div>
+
+    <!-- Legacy nodes for external scripts looking for specific anchors -->
+    <div id="legacy-anchor">
+        <div id="messages"></div>
+    </div>
+
+    <div id="notificationArea" style="position: fixed; top: 0; right: 0; z-index: 200;"></div>
+
+    <div id="chat-wrapper" class="hidden-chat">
+        <div id="messages-container"></div>
+    </div>
+
+    <div id="status-area" style="position: fixed; bottom: 80px; left: 20px; color: #888; z-index: 51;"></div>
+    <div id="window-layer"></div>
+
+    <div class="controls">
+        <button class="button-menu" onclick="app.ui.openWindow('./settings')">⁝</button>
+        <button class="toggle-btn" id="chatToggle" onclick="app.ui.toggleChat()">+</button>
+        <button class="button-long" id="micbutton" onclick="app.core.toggleVoice()">voice</button>
+        <input type="text" id="box" class="box" placeholder="What's up?"
+            onkeydown="if(event.keyCode==13) app.core.handleInput()">
+    
+    </div>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js')
@@ -363,318 +413,271 @@ iframe {
         }
     </script>
     <script>
-        function clickoff() {
-            document.getElementById('micbutton').className = 'button-long';
-            document.getElementById('micbutton').innerText = 'voice';
-            whisperTranscriber.stop();
-        };
-        function goakari() {
-            textOnly = 'voice';
-            if (document.getElementById('box').value) {
-                textOnly = 'text';
-                enter(document.getElementById('box').value);
-                document.getElementById('box').value = '';
-                setTimeout(function () { document.getElementById('micbutton').innerText = 'sent'; }, 10);
-                setTimeout(function () { document.getElementById('micbutton').innerText = 'voice'; }, 1500);
-            } else {
-                if (document.getElementById('micbutton').innerText == 'send') {
-                    setTimeout(function () { document.getElementById('micbutton').innerText = 'no'; }, 10);
-                    return;
-                };
-                textOnly = 'voice';
-                voicerecognitionstart();
-                textOnly = 'voice';
-            };
-        };
+        /**
+         * Global Legacy Bridge
+         */
+        window.serverStatus = "connected";
+        window.loadscreen = (msg) => app.ui.log(msg);
+        window.say = (text) => app.core.say(text);
+        window.bubble = (text) => app.core.appendBubble(text, 'responsetxt');
+        window.bubble_incoming = (text) => app.core.appendBubble(text, 'command');
+        window.emote = (text) => localStorage.setItem("emote", text);
+        window.showNotification = (t, m, o) => app.notify(t, m, o);
+        window.newwindow = (url) => app.ui.openWindow(url);
 
-        async function processquery() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const query = urlParams.get('q');
-            if (query !== null) {
-                console.log('Query string found.');
-                loadscreen("[ok] ✅ Processing url query.");
-                bubble_incoming(query);
-                bubble("⚠️ Responding to URL query. <br><button onclick='newwindow(`data:text/html,<style>body{background-color:black; color:white;}</style><h1>URL queries</h1> <br> <h2>You can send a message to Akari instantly upon loading by adding ?q=your message here to Akaris url.<br> When this feature is used Akari system will detect it and warn you.<h2>`);'>?</button>");
-                respond(query);
-            } else {
-                console.log('No query string found.');
-            };
-        };
-
-        // Add the fade-out class after 3 seconds
-        document.addEventListener("DOMContentLoaded", function () {
-            setTimeout(function () {
-                document.getElementById('overlay').classList.add('fade-out');
-                console.log('UI loaded.');
-                processquery();
-                loadscreen("[ok] Interface ready.");
-                say(getGreetingByTime());
-            }, 1000);
-            setTimeout(function () {
-                document.getElementById('overlay').classList.add('noindex');
-            }, 1500);
-        });
-
-        document.getElementById('box').onkeydown = function (event) {
-            var e = event || window.event;
-            if (e.keyCode == 13) {
-                textOnly = 'text';
-                enter(document.getElementById('box').value);
-                document.getElementById('box').value = '';
-                return false;
-            }
-        };
-
-        var VoiceScript = localStorage.getItem('selectedVoiceScript');
-        var AvatarScript = localStorage.getItem('selectedAvatarScript');
-        var WhisperScript = localStorage.getItem('selectedWhisperScript');
-        var AIScript = localStorage.getItem('selectedAIScript');
-        var ReflexScript = localStorage.getItem('selectedReflexScript');
-        var WakeScript = localStorage.getItem('selectedWakeScript');
-        var BKGURL = localStorage.getItem('selectedBKGURL');
-        var CSSURL = localStorage.getItem('selectedCSSURL');
-        var AI_is_enabled = localStorage.getItem('selectedAISetting');
-        // added reflex and wake scripts
-        // custom css now too 
-
-        var textOnly = 'text';
         var serverStatus = "disconnected";
-        // Should I move AI server connection to a seperate script? I think I will.
 
-        if (AI_is_enabled == null || AI_is_enabled == "") {
-            AI_is_enabled = "No";
-        };
-        if (AI_is_enabled == "Yes") {
-            var socket = new WebSocket("ws://localhost:8765");
-
-            socket.onmessage = function (event) {
-                console.log("[OK]Received from server:", event.data);
-                say(event.data);
-            };
-
-            socket.onopen = function (event) {
-                console.log("[OK]Connected to WebSocket server.");
-                loadscreen("[ok] A.I. services are connected.");
-                serverStatus = "connected";
-                // Send a message to the server
-                socket.send("test");
-            };
-        } else {
-            console.log('[ok] AI services are disabled');
-            loadscreen("[ok] A.I. services are disabled.");
+        window.goakari = () => {
+            console.log("Wake word detected.");
+            app.core.toggleVoice();
         };
 
-        if (BKGURL == null || BKGURL == "") {
-            BKGURL = "../squares";
-        };
-
-        var url = BKGURL;
-        // Function to check if the URL is an image
-        function isImage(url) {
-            return (url.match(/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i) != null);
-        }
-
-        // Function to set the background as an image
-        function setBackgroundImage(url) {
-            document.body.style.backgroundImage = `url('${url}')`;
-            document.body.style.backgroundSize = 'cover';
-            document.body.style.backgroundPosition = 'center';
-        }
-
-        // Function to set the background as an iframe
-        function setIframe(url) {
-            const iframe = document.createElement('iframe');
-            iframe.src = url;
-            iframe.classList.add('iframe-container');
-            document.body.appendChild(iframe);
-        }
-
-        // Determine if the URL is an image or a webpage and set the background accordingly
-        if (isImage(url)) {
-            setBackgroundImage(url);
-        } else {
-            setIframe(url);
-        }
-        loadscreen("[ok] Background loaded.");
-        console.log('Background image loaded from persistent settings: ' + BKGURL);
-
-        if (AvatarScript == null || AvatarScript == "") {
-            AvatarScript = null;
-        };
-        if (AIScript == null || AIScript == "") {
-            AIScript = null;
-        };
-        if (WakeScript == null || WakeScript == "") {
-            WakeScript = "./characters/akari/wake.js";
-        };
-        if (WhisperScript == null || WhisperScript == "") {
-            WhisperScript = "./engine/web-speech-recognition.js";
-        };
-        if (ReflexScript == null || ReflexScript == "") {
-            ReflexScript = "./characters/akari/response.js";
-            loadscreen("[ok] Using Akari (default) reflex module.");
-        };
-        if (CSSURL == null || CSSURL == "") {
-            CSSURL = "./index.css";
-        };
-        if (VoiceScript == null || VoiceScript == "") {
-            VoiceScript = null;
-        };
-        if (CSSURL) {
-            const linkElement = document.createElement('link');
-            linkElement.setAttribute('rel', 'stylesheet');
-            linkElement.setAttribute('href', CSSURL);
-            document.head.appendChild(linkElement);
-            loadscreen("[ok] CSS loaded.");
-        };
-        if (VoiceScript) {
-            var ExJS1 = document.createElement("script");
-            ExJS1.src = VoiceScript;
-            var head = document.getElementsByName("head")[0];
-            document.head.appendChild(ExJS1);
-            console.log('VoiceScript =' + VoiceScript);
-            loadscreen("[ok] Speech synthesis module loaded.");
-        };
-        if (AIScript) {
-            var ExJS2 = document.createElement("script");
-            ExJS2.src = AIScript;
-            head = document.getElementsByName("head")[0];
-            document.head.appendChild(ExJS2);
-            console.log('AIScript =' + AIScript);
-            loadscreen("[ok] AI script loaded.");
-        };
-        if (AvatarScript) {
-            var ExJS3 = document.createElement("script");
-            ExJS3.src = AvatarScript;
-            head = document.getElementsByName("head")[0];
-            document.head.appendChild(ExJS3);
-            console.log('AvatarScript =' + AvatarScript);
-            loadscreen("[ok] Avatar initialized.");
-        };
-        if (WakeScript) {
-            var ExJS4 = document.createElement("script");
-            ExJS4.src = WakeScript;
-            head = document.getElementsByName("head")[0];
-            document.head.appendChild(ExJS4);
-            console.log('WakeScript =' + WakeScript);
-            loadscreen("[ok] Wake word script loaded.");
-        };
-        if (ReflexScript) {
-            var ExJS5 = document.createElement("script");
-            ExJS5.src = ReflexScript;
-            head = document.getElementsByName("head")[0];
-            document.head.appendChild(ExJS5);
-            console.log('ReflexScript =' + ReflexScript);
-            loadscreen("[ok] Reflex module loaded.");
-        };
-        if (WhisperScript) {
-            var ExJS6 = document.createElement("script");
-            ExJS6.src = WhisperScript;
-            head = document.getElementsByName("head")[0];
-            document.head.appendChild(ExJS6);
-            console.log('WhisperScript =' + WhisperScript);
-            loadscreen("[ok] Speech recognition script loaded.");
-        };
-        
-        //integrated functions
-        function bubble(text) {
-            var Outgoing = '<p class="responsetxt">' + text + '</p><br>';
-            var messages = document.getElementById('messages');
-            messages.insertAdjacentHTML('beforebegin', Outgoing);
-            window.scrollTo(0, document.body.scrollHeight);
-        };
-
-        function say(text) {
-            showNotification('New message::', text, {borderColors: ['#A020F0', '#00FF00', '#0000FF', '#FFFFFF'] });
-            clearstatus();
-            emote(text);
-            if (textOnly == 'text') {
-                bubble(text);
-            } else {
-bubble(text);
-                speak(text);
+        window.speak = (text) => {
+            if (typeof window.speakt5 === 'function') {
+                window.speakt5(text);
+            } else if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                window.speechSynthesis.speak(utterance);
             }
         };
 
-        function emote(text) {
-            localStorage.setItem("emote", text);
+        const app = {
+            isSilentMode: true,
+            autoMinTimer: null,
+            config: {
+                modules: {
+                    voice: localStorage.getItem('selectedVoiceScript'),
+                    avatar: localStorage.getItem('selectedAvatarScript'),
+                    ai: localStorage.getItem('selectedAIScript'),
+                    reflex: localStorage.getItem('selectedReflexScript') || './characters/akari/response.js',
+                    whisper: localStorage.getItem('selectedWhisperScript') || './engine/web-speech-recognition.js',
+                    wake: localStorage.getItem('selectedWakeScript') || './characters/akari/wake.js',
+                    bg: localStorage.getItem('selectedBKGURL') || '../squares'
+                }
+            },
+
+            notify: (title, message, options = {}) => {
+                const { duration = 5000, borderColors, borderColor, image } = options;
+                const container = document.getElementById('notificationArea');
+                const note = document.createElement('div');
+                note.className = 'notification-container';
+
+                let colors = borderColors || (borderColor ? [borderColor, borderColor] : null);
+                if (colors) {
+                    note.classList.add('animated-border');
+                    note.style.setProperty('--border-colors', colors.join(', '));
+                    const glow = colors[0].match(/\d+/g)?.join(',') || '255,255,255';
+                    note.style.setProperty('--glow-color', glow);
+                }
+
+                note.innerHTML = `
+                    ${image ? `<img src="${image}" class="notification-image">` : ''}
+                    <div class="notification-content">
+                        <div class="notification-title">${title}</div>
+                        <div class="notification-body">${message}</div>
+                    </div>
+                    <button class="notification-close" style="position: absolute; top: 12px; right: 12px; width: 20px; height: 20px; border: none; background: none; cursor: pointer; color: white;">✕</button>
+                `;
+
+                container.prepend(note);
+                requestAnimationFrame(() => note.classList.add('show'));
+                const close = () => { note.classList.remove('show'); setTimeout(() => note.remove(), 400); };
+                note.querySelector('.notification-close').onclick = close;
+                if (duration) setTimeout(close, duration);
+            },
+
+            ui: {
+                log: (msg) => {
+                    const log = document.getElementById('boot-log');
+                    if (log) log.innerHTML += `${msg}<br>`;
+                },
+                resetMic: () => {
+                    const btn = document.getElementById('micbutton');
+                    if (btn) {
+                        btn.className = 'button-long';
+                        btn.innerText = 'voice';
+                    }
+                    if (window.whisperTranscriber?.stop) whisperTranscriber.stop();
+                },
+                openWindow: (url) => {
+                    const layer = document.getElementById('window-layer');
+                    layer.innerHTML = `
+                        <iframe src="${url}" class="windowstyle"></iframe>
+                        <button class="close-btn" onclick="app.ui.closeWindow()">Close Window</button>
+                    `;
+                },
+                closeWindow: () => document.getElementById('window-layer').innerHTML = '',
+                setTyping: (name) => {
+                    document.getElementById('status-area').innerText = name ? `${name} is thinking...` : '';
+                },
+                toggleChat: (forceState) => {
+                    const wrapper = document.getElementById('chat-wrapper');
+                    const btn = document.getElementById('chatToggle');
+                    const isClosing = forceState === 'min' || !wrapper.classList.contains('hidden-chat');
+
+                    if (isClosing) {
+                        wrapper.classList.add('hidden-chat');
+                        wrapper.classList.remove('full-view');
+                        btn.innerText = '+';
+                        clearTimeout(app.autoMinTimer);
+                    } else {
+                        wrapper.classList.remove('hidden-chat');
+                        wrapper.classList.add('full-view');
+                        btn.innerText = '-';
+                        app.ui.resetAutoMin();
+                    }
+                },
+                resetAutoMin: () => {
+                    clearTimeout(app.autoMinTimer);
+                    app.autoMinTimer = setTimeout(() => {
+                        app.ui.toggleChat('min');
+                    }, 60000);
+                }
+            },
+
+            core: {
+                init: async () => {
+                    app.ui.log("Akari v2.4 initializing...");
+                    app.core.loadBackground();
+
+                    await app.core.loadModule('avatar', app.config.modules.avatar, 'Avatar');
+                    await app.core.loadModule('ai', app.config.modules.ai, 'AI Engine');
+                    await app.core.loadModule('reflex', app.config.modules.reflex, 'Reflex Engine');
+                    await app.core.loadModule('voice', app.config.modules.voice, 'Speech Synth');
+                    await app.core.loadModule('wake', app.config.modules.wake, 'Wake Word');
+                    await app.core.loadModule('whisper', app.config.modules.whisper, 'Speech Recognition');
+
+                    setTimeout(() => {
+                        const overlay = document.getElementById('overlay');
+                        if (overlay) overlay.classList.add('fade-out');
+
+                        const greet = app.core.getGreeting();
+                        app.core.appendBubble(greet, 'responsetxt');
+                        app.notify('Akari', greet);
+                    }, 1000);
+                },
+
+                loadBackground: () => {
+                    const url = app.config.modules.bg;
+                    const container = document.getElementById('bkg-container');
+                    container.innerHTML = '';
+
+                    if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+                        container.style.background = `url(${url}) center/cover no-repeat fixed`;
+                    } else {
+                        const ifr = document.createElement('iframe');
+                        ifr.src = url;
+                        ifr.className = 'iframe-container';
+                        container.appendChild(ifr);
+                    }
+                },
+
+                loadModule: (key, src, label) => {
+                    return new Promise((resolve) => {
+                        if (!src) { resolve(); return; }
+                        const s = document.createElement('script');
+                        s.src = src;
+                        s.onload = () => { app.ui.log(`${label} OK.`); resolve(); };
+                        s.onerror = () => { app.ui.log(`Failed: ${label}`); resolve(); };
+                        document.head.appendChild(s);
+                    });
+                },
+
+                handleInput: () => {
+                    const box = document.getElementById('box');
+                    const val = box?.value.trim();
+                    if (!val) return;
+
+                    app.isSilentMode = true;
+                    window.bubble_incoming(val);
+                    box.value = '';
+                    app.ui.setTyping('Akari');
+
+                    if (val.toLowerCase().includes('settings')) {
+                        app.ui.openWindow('./settings');
+                        app.core.say("Opening settings panel.");
+                        return;
+                    }
+
+                    if (window.respond) window.respond(val);
+                },
+
+                say: (text) => {
+                    app.ui.setTyping(null);
+                    window.bubble(text);
+                    app.notify('Akari', text, { borderColors: ['#A020F0', '#00FF00'] });
+                    window.emote(text);
+
+                    if (!app.isSilentMode) {
+                        window.speak(text);
+                    }
+                    app.isSilentMode = false;
+                },
+
+                appendBubble: (text, className) => {
+                    const container = document.getElementById('messages-container');
+                    const legacyContainer = document.getElementById('messages'); // Keep for script compatibility
+                    if (!container) return;
+
+                    const div = document.createElement('div');
+                    div.className = className;
+                    div.innerHTML = text;
+                    container.appendChild(div);
+
+                    if (legacyContainer) {
+                        const lDiv = div.cloneNode(true);
+                        legacyContainer.appendChild(lDiv);
+                    }
+
+                    container.scrollTop = container.scrollHeight;
+
+                    if (!document.getElementById('chat-wrapper').classList.contains('hidden-chat')) {
+                        app.ui.resetAutoMin();
+                    }
+                },
+
+                toggleVoice: () => {
+                    const btn = document.getElementById('micbutton');
+                    app.isSilentMode = false;
+                    if (btn.innerText === 'voice') {
+                        btn.className = 'button-long mic-on';
+                        btn.innerText = 'Listening...';
+                        if (window.whisperTranscriber) whisperTranscriber.start(true);
+                    } else {
+                        app.ui.resetMic();
+                    }
+                },
+
+                getGreeting: () => {
+                    const hr = new Date().getHours();
+                    if (hr < 12) return "Good morning.";
+                    if (hr < 18) return "Good afternoon.";
+                    return "Good evening.";
+                }
+            }
         };
 
-        function bubble_incoming(outcome) {
-            var incoming = '<p class="command">' + outcome + '</p><br><br><br>';
-            var messages = document.getElementById('messages');
-            messages.insertAdjacentHTML('beforebegin', incoming);
-            window.scrollTo(0, document.body.scrollHeight);
-        };
-
-        function enter(input) {
-            bubble_incoming(input);
-            respond(input);
-        };
-
-        function newwindow(weblocation) {
-            var windowcode = '<iframe src="' + weblocation + '" class="windowstyle"></iframe><button class="buttonstyle" onclick="closewindow();">Close window.</button>';
-            var spot = document.getElementById('windowspot');
-            spot.innerHTML = windowcode;
-        };
-        function closewindow() {
-            var spot = document.getElementById('windowspot');
-            spot.innerHTML = '';
-        };
-
-        function typing(subject) {
-            var notifiercode = '<button class="typingnotifier" onclick="console.log(`\nThis is in fact a button.\n`);">' + subject + ' is typing . . .</button>';
-            var spot = document.getElementById('status-area');
-            spot.innerHTML = notifiercode;
-        };
-
-        function clearstatus() {
-            var spot = document.getElementById('status-area');
-            spot.innerHTML = '';
+        function typing(tyname) {
+            app.ui.setTyping(tyname);
         };
 
         function sleep(ms) {
+
             return new Promise(
                 resolve => setTimeout(resolve, ms)
             );
         };
 
+        document.addEventListener('transcriptionComplete', (e) => {
+            if (e.detail?.text) {
+                app.core.appendBubble(e.detail.text, 'command');
+                if (window.respond) window.respond(e.detail.text);
+            }
+            app.ui.resetMic();
+        });
 
-
-document.addEventListener('transcriptionComplete', (event) => {
-  console.log('Transcription:', event.detail.text);
-  var speechinput = event.detail.text;
-            document.getElementById('micbutton').className = 'button-long';
-            document.getElementById('micbutton').innerText = 'voice';
-            textOnly = 'voice';
-            enter(speechinput);
-});
-
-        async function voicerecognitionstart() {
-            await sleep(100);
-            whisperTranscriber.start(true);
-            document.getElementById('micbutton').className = 'mic-on';
-            document.getElementById('micbutton').innerText = 'Speech-to-text listening...';
-        };
+        window.onload = app.core.init;
     </script>
-
-    <div id="AI_Components">
-        <script>
-            async function SCheck() {
-                await sleep(1000);
-                if (serverStatus == "connected") {
-                    console.log('Akari AI Components are active.');
-                    loadscreen("[ok] A.I. services are active.");
-                } else {
-                    loadscreen("<b>[error] Failed to connect to the server.</b>");
-                    var strikezone = document.getElementById('AI_Components');
-                    strikezone.innerHTML = '';
-                };
-            };
-
-            SCheck();
-        </script>
-    </div>
-
 </body>
+
 </html>
