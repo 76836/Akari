@@ -1,4 +1,4 @@
-say('Gemini API connected (adapter v1.5)');
+say('Gemini API connected (adapter v1.6)');
 var CloudAI = true;
 (function () {
   // Function to prompt for API key and save to local storage
@@ -43,7 +43,7 @@ var CloudAI = true;
             const genAI = new GoogleGenerativeAI(API_KEY);
             async function run() {
                 const model = genAI.getGenerativeModel({
-                    model: "gemini-1.5-flash-latest",
+                    model: "gemini-2.5-flash-latest",
                     safetySettings,
                     systemInstruction: \`
                         Your name is Akari, an AI girl with a vibrant and cheerful personality.
@@ -52,8 +52,8 @@ var CloudAI = true;
                         but you're generally kind and respectful to everyone...
                         
                         System information (in case you need it):
-                        Akari AI with Google Gemini v1.5 (full public release)
-                        AI model: gemini-1.5-flash-latest
+                        Akari AI with Google Gemini v1.6 (full public release)
+                        AI model: gemini-2.5-flash-latest
                         maxOutputTokens: 1000
                         Persistent chat history: not yet implemented
                         Message rendering method: HTML
