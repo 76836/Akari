@@ -4,7 +4,7 @@
 <head>
 
     <head>
-        <title>Akari v2.4</title>
+        <title>Akari v2.4b</title>
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -448,7 +448,7 @@
                 modules: {
                     voice: localStorage.getItem('selectedVoiceScript'),
                     avatar: localStorage.getItem('selectedAvatarScript'),
-                    ai: localStorage.getItem('selectedAIScript'),
+                    ai: localStorage.getItem('selectedAIScript') || './characters/akari/pollinations.js',
                     reflex: localStorage.getItem('selectedReflexScript') || './characters/akari/response.js',
                     whisper: localStorage.getItem('selectedWhisperScript') || './engine/web-speech-recognition.js',
                     wake: localStorage.getItem('selectedWakeScript') || './characters/akari/wake.js',
@@ -514,6 +514,7 @@
                     const wrapper = document.getElementById('chat-wrapper');
                     const btn = document.getElementById('chatToggle');
                     const isClosing = forceState === 'min' || !wrapper.classList.contains('hidden-chat');
+                    const container = document.getElementById('messages-container');
 
                     if (isClosing) {
                         wrapper.classList.add('hidden-chat');
@@ -526,6 +527,7 @@
                         btn.innerText = '-';
                         app.ui.resetAutoMin();
                     }
+                    container.scrollTop = container.scrollHeight;
                 },
                 resetAutoMin: () => {
                     clearTimeout(app.autoMinTimer);
