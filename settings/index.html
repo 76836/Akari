@@ -17,7 +17,7 @@
 <body>
 
     <p class="title" style="color:darkcyan;">SETTINGS</p>
-    <button class="updatebutton" onclick="installupdates();">Check for and install updates. (up to 20MB download)</button>
+    <button class="updatebutton" onclick="installupdates();">Check for and install updates. (potentially large download)</button>
 
     <p class="smallertext">Background image:</p>
     <button class="setbutton" onclick="document.getElementById('bkgurl').value = './wallpapers/luna.png';">Luna</button>
@@ -53,13 +53,13 @@
     <br><br>
     <p class="title">Select preconfigured Character:</p>
     <button class="setbutton" onclick="CharacterAkari();">Akari (76836) (default)</button>
-    <button class="setbutton" onclick="CharacterAkariPickaxe();">Akari on Pickaxe Project (76836 and Pickaxe)</button>
+    <!-- <button class="setbutton" onclick="CharacterAkariPickaxe();">Akari on Pickaxe Project (76836 and Pickaxe)</button> 
     <button class="setbutton" onclick="alert('coming soon');">Luna (76836)</button>
-    <button class="setbutton" onclick="alert('coming soon');">Gemini (Google)</button>
+    <button class="setbutton" onclick="alert('coming soon');">Gemini (Google)</button> -->
     <button class="setbutton" onclick="CharacterHiyori();">Hiyori Momose (Live2D)</button>
 
     <br><br><br><br>
-    <p class="smallertext">Settings 2.3</p>
+    <p class="smallertext">Settings 2.4</p>
 
 </body>
 
@@ -241,7 +241,7 @@ function CharacterAkari() {
 
         localStorage.setItem('selectedAIScript', '');
 
-        localStorage.setItem('selectedAvatarScript', './characters/akari/avatar.js');
+        localStorage.setItem('selectedAvatarScript', './characters/akari/VRM4.js');
 
         localStorage.setItem('selectedWakeScript', './characters/akari/wake.js');
 };
