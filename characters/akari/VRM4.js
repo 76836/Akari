@@ -10,7 +10,7 @@ var thehtml =`
     border:0;
 }
 </style>
-<iframe src="./engine/expressive-VRM.html?modelUrl=https://76836.github.io/Akari/characters/akari/VRM/Akarilite.vrm&debug=false" class="avatariframe"></iframe>
+<iframe src="./engine/expressive-VRM.html?modelUrl=https://76836.github.io/Akari/characters/akari/VRM/1192842823581716627.vrm&debug=false" class="avatariframe"></iframe>
 `;
-loadscreen('Loading AkariNet VRM...');
+loadscreen("Loading Akari's VRM...");
 document.getElementById('avatar').innerHTML = thehtml;
