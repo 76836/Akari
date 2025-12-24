@@ -1,283 +1,481 @@
 <!DOCTYPE html>
 <html id="html" lang="en">
-
 <head>
     <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width" />
-    <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
-    <link rel="shortcut icon" href="../favicon.ico">
-    <meta name="msapplication-TileColor" content="#603cba">
-    <meta name="theme-color" content="#00ffff">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cyan: darkcyan;
+            --bg: #1a1a1a;
+            --card: #2a3333;
+            --input-bg: rgba(0, 0, 0, 0.3);
+            --danger: #933;
+            --accent-glow: rgba(0, 139, 139, 0.3);
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: var(--bg);
+        }
+
+        body {
+            font-family: 'Orbitron', sans-serif;
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Full Viewport Stretch */
+        .viewport-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            display: flex;
+            flex-direction: column;
+        }
+        .scroll-area::-webkit-scrollbar { display: none; }
+
+        .container {
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 100px;
+        }
+
+        .title {
+            font-size: clamp(1.2rem, 6vw, 2.2rem);
+            color: var(--cyan);
+            margin: 20px 0;
+            text-align: center;
+            text-shadow: 0 0 10px var(--accent-glow);
+            flex-shrink: 0;
+        }
+
+        /* Full-Width Menus */
+        details, .link-menu {
+            background: var(--card);
+            margin: 2px 0; /* Tightened stack */
+            width: 100%;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        summary, .link-menu-header {
+            padding: 18px 24px;
+            cursor: pointer;
+            font-size: clamp(0.9rem, 4vw, 1.2rem);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.02);
+            transition: 0.2s;
+        }
+
+        summary:hover, .link-menu-header:hover {
+            background: rgba(255,255,255,0.08);
+        }
+
+        summary::-webkit-details-marker { display: none; }
+        summary::after { content: '⮛'; font-size: 0.8rem; opacity: 0.5; transition: 0.3s; }
+        details[open] summary::after { transform: rotate(180deg); color: var(--cyan); }
+        .link-menu-header::after { content: 'Go ▶'; font-size: 0.8rem; color: var(--cyan); }
+
+        .content {
+            padding: 24px;
+            background: rgba(0,0,0,0.25);
+            animation: slideDown 0.2s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Organized Sections */
+        .script-group {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .group-avatar { border-left: 4px solid var(--cyan); }
+        .group-wake { border-left: 4px solid #777; }
+
+        .group-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2.5px;
+            margin-bottom: 15px;
+            display: block;
+            color: var(--cyan);
+            font-weight: bold;
+        }
+
+        /* Controls */
+        .setbutton, .box, .select-input {
+            font-size: 1rem;
+            width: 100%;
+            margin: 8px 0;
+            background-color: #3d4747;
+            border: 0;
+            color: white;
+            border-radius: 8px;
+            padding: 14px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        .box { background-color: var(--input-bg); border: 1px solid rgba(255,255,255,0.1); }
+        .setbutton:hover { background-color: #4d5757; cursor: pointer; }
+        .setbutton:active { filter: brightness(1.2); }
+ 
+
+        /* Floating Scroll Buttons */
+        .scroll-controls {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 100;
+        }
+
+        .scroll-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 15px;
+            background: var(--card);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+            transition: 0.2s;
+        }
+
+        .scroll-btn:hover { background: var(--cyan); color: white; transform: translateY(-2px); }
+
+        /* Switches */
+        .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #111; transition: .4s; border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px;
+            left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--cyan); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* Overlay */
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.92);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .preview-container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card);
+            border-radius: 24px;
+            padding: 25px;
+            border: 1px solid var(--cyan);
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        }
+
+        .preview-frame {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #000;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .preview-frame img, .preview-frame iframe {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border: none;
+        }
+
+        .link-menu{
+            background: linear-gradient(90deg, rgba(55, 55, 55, 0.15), rgba(77, 255, 255, 0.15));
+            color: white;
+            border: 0px solid rgba(255,255,255,0.15);
+        }
+
+         .update{
+            background: linear-gradient(90deg, rgba(54, 1, 63, 0.45), rgba(55, 255, 55, 0.15), rgba(77, 255, 255, 0.15));
+            color: white;
+            border: 2px solid rgba(255,255,255,1);
+            margin-bottom: 10px;
+        }
+
+        .danger-zone { border-top: 2px solid var(--danger) !important; margin-top: 10px; }
+        .danger-zone summary { color: #ff6b6b; }
+
+        @media (min-width: 600px) {
+            .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        }
+    </style>
 </head>
 
 <body>
 
-    <p class="title" style="color:darkcyan;">SETTINGS</p>
-    <button class="updatebutton" onclick="installupdates();">Check for and install updates. (potentially large download)</button>
+    <div class="viewport-wrapper">
+        <div class="scroll-area" id="mainScroll">
+            <div class="container">
+                <p class="title">Settings 2.5</p>
 
-    <p class="smallertext">Background image:</p>
-    <button class="setbutton" onclick="document.getElementById('bkgurl').value = './wallpapers/luna.png';">Luna</button>
-    <button class="setbutton" onclick="document.getElementById('bkgurl').value = './wallpapers/colors.jpg';">Colors</button>
-    <button class="setbutton" onclick="document.getElementById('bkgurl').value = './wallpapers/backdrop.png';">Backdrop</button>
-    <button class="setbutton" onclick="document.getElementById('bkgurl').value = '../bubbles';">Bubbles (live)</button>
-    <button class="setbutton" onclick="document.getElementById('bkgurl').value = './wallpapers/Foreshadowing.jpg';">Foreshadowing</button>
-    <input class="box" id="bkgurl" placeholder="./wallpapers/horizon.jpg" type=text>
-    <button class="setbutton" onclick="setBKG()">Set wallpaper</button>
-    
-    <br><br>
-    <p class="smallertext">Voice settings:</p>
-    <button class="setbutton" onclick="window.location.href = './voice';">Open voice configuration panel.</button>
-    
-    <p class="smallertext">AI settings:</p>
-    <button class="setbutton" onclick="window.location.href = './AI';">Open IQ configuration panel.</button>
+  
+                <div class="update" onclick="installupdates();">
+                    <div class="link-menu-header">Check for and install updates. (potentially large download)</div>
+                </div>
+                
+                <div class="link-menu" onclick="window.location.href = './voice';">
+                    <div class="link-menu-header">Voice configuration panel.</div>
+                </div>
 
-
-    <p class="smallertext">Avatar script:</p>
-    <input class="box" id="avatarurl" placeholder="./avatar/hiyori.js" type=text>
-    <button class="setbutton" onclick="setavatar()">Save Changes</button>
+                <div class="link-menu" onclick="window.location.href = './AI';">
+                    <div class="link-menu-header">IQ configuration panel.</div>
+                </div>
 
 
-    <p class="smallertext">Wake word/summoning script:</p>
-    <input class="box" id="wakeurl" placeholder="./WakeOnCamera.js" type=text>
-    <button class="setbutton" onclick="setwake()">Save Changes</button>
+                <details>
+                    <summary>Choose a wallpaper.</summary>
+                    <div class="content">
+                        <div class="grid-2">
+                            <button class="setbutton" onclick="handlePreview('https://76836.github.io/Akari/wallpapers/luna.png')">Luna</button>
+                            <button class="setbutton" onclick="handlePreview('https://76836.github.io/Akari/wallpapers/colors.jpg')">Colors</button>
+                            <button class="setbutton" onclick="handlePreview('https://76836.github.io/Akari/wallpapers/backdrop.png')">Backdrop</button>
+                            <button class="setbutton" onclick="handlePreview('https://76836.github.io/Akari/wallpapers/Foreshadowing.jpg')">Foreshadowing</button>
+                            <button class="setbutton" onclick="handlePreview('https://76836.github.io/bubbles')">Bubbles (live)</button>
+                            <button class="setbutton" onclick="handlePreview('https://76836.github.io/squares')">Squares (live)</button>
+                        </div>
+                        <p style="font-size: 0.7rem; opacity: 0.5; margin-top: 15px; margin-bottom: 5px;">Or enter your own URL to an image, gif, or webpage.</p>
+                        <input class="box" id="bkgurl" placeholder="https://..." type="text">
+                        <button class="setbutton" onclick="handlePreview(document.getElementById('bkgurl').value)" style="background:var(--cyan); color:white; font-weight:bold; margin-top:10px;">PREVIEW & APPLY</button>
+                    </div>
+                </details>
 
-    <br><br>
-    <button class="setbutton" onclick="localStorage.removeItem('defaultAssistant');">Reset default assistant in PWA.</button>
-    <button class="setbutton" onclick="localStorage.removeItem('chatHistory');">Delete local chat history.</button>
-    
-    
-    <br><br>
-    <p class="title">Select preconfigured Character:</p>
-    <button class="setbutton" onclick="CharacterAkari();">Akari (76836) (default)</button>
-    <!-- <button class="setbutton" onclick="CharacterAkariPickaxe();">Akari on Pickaxe Project (76836 and Pickaxe)</button> 
-    <button class="setbutton" onclick="alert('coming soon');">Luna (76836)</button>
-    <button class="setbutton" onclick="alert('coming soon');">Gemini (Google)</button> -->
-    <button class="setbutton" onclick="CharacterHiyori();">Hiyori Momose (Live2D)</button>
+             
 
-    <br><br><br><br>
-    <p class="smallertext">Settings 2.4</p>
+                <details>
+                    <summary>AkariNet system scripts. </summary>
+                    <div class="content">
+                        <div class="script-group group-avatar">
+                            <span class="group-label">Character avatar.</span>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                                <span style="font-size:0.85rem">Enable this feature?</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="toggle_avatar" onchange="toggleScript('avatar')">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <select class="select-input" onchange="document.getElementById('avatarurl').value = this.value">
+                                <option value="">-- Select Preset --</option>
+                                <option value="./avatar/hiyori.js">Hiyori (Live2D)</option>
+                                <option value="./characters/akari/VRM4.js">Akari (VRM)</option>
+                            </select>
+                            <input class="box" id="avatarurl" type="text" placeholder="Custom Script Path...">
+                            <button class="setbutton" onclick="setScript('avatar')">SAVE</button>
+                        </div>
 
+                        <div class="script-group group-wake">
+                            <span class="group-label">Enviornmental awareness (wake word, etc.)</span>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                                <span style="font-size:0.85rem">Enable this feature?</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="toggle_wake" onchange="toggleScript('wake')">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <select class="select-input" onchange="document.getElementById('wakeurl').value = this.value">
+                                <option value="">-- Select Preset --</option>
+                                <!--<option value="./WakeOnCamera.js">Wake On Camera</option>-->
+                                <option value="./characters/akari/wake.js">Akari Default</option>
+                            </select>
+                            <input class="box" id="wakeurl" type="text" placeholder="Custom Script Path...">
+                            <button class="setbutton" onclick="setScript('wake')">SAVE</button>
+                        </div>
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Settings presets.</summary>
+                    <div class="content">
+                        <div class="grid-2">
+                            <button class="setbutton" onclick="confirmCharacter('Akari')">Akari (default)</button>
+                            <button class="setbutton" onclick="confirmCharacter('Hiyori')">Hiyori</button>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="danger-zone">
+                    <summary>DEBUG & RESET</summary>
+                    <div class="content">
+                        <button class="setbutton" onclick="localStorage.removeItem('defaultAssistant');" style="background:var(--danger)">Reset default assistant in PWA.</button>
+                        <button class="setbutton" onclick="if(confirm('Clear history?')) localStorage.removeItem('chatHistory');" style="background:transparent; border:1px solid var(--danger); color:#f88">Delete local chat history.</button>
+                    </div>
+                </details>
+            </div>
+        </div>
+
+        <!-- Integrated Scroll Buttons -->
+        <div class="scroll-controls">
+            <div class="scroll-btn" onclick="document.getElementById('mainScroll').scrollBy(0, -200)">▲</div>
+            <div class="scroll-btn" onclick="document.getElementById('mainScroll').scrollBy(0, 200)">▼</div>
+        </div>
+    </div>
+
+    <!-- UI Overlay -->
+    <div id="overlay" onclick="if(event.target == this) closeOverlay()"></div>
+
+    <script>
+        window.onload = () => {
+            const avatar = localStorage.getItem('selectedAvatarScript');
+            const wake = localStorage.getItem('selectedWakeScript');
+            
+            document.getElementById('avatarurl').value = (avatar === "off") ? "" : (avatar || "");
+            document.getElementById('wakeurl').value = (wake === "off") ? "" : (wake || "");
+            document.getElementById('bkgurl').value = localStorage.getItem('selectedBKGURL') || "";
+
+            document.getElementById('toggle_avatar').checked = (avatar !== "off" && avatar !== null && avatar !== "");
+            document.getElementById('toggle_wake').checked = (wake !== "off" && wake !== null && wake !== "");
+            
+            updateVisuals('avatar');
+            updateVisuals('wake');
+        };
+
+        function updateVisuals(type) {
+            const isChecked = document.getElementById(`toggle_${type}`).checked;
+            document.querySelector(`.group-${type}`).style.filter = isChecked ? "grayscale(0)" : "grayscale(1) opacity(0.4)";
+        }
+
+        function toggleScript(type) {
+            const isChecked = document.getElementById(`toggle_${type}`).checked;
+            if (!isChecked) {
+                localStorage.setItem(`selected${type.charAt(0).toUpperCase() + type.slice(1)}Script`, "off");
+            }
+            updateVisuals(type);
+        }
+
+        function setScript(type) {
+            const val = document.getElementById(`${type}url`).value;
+            localStorage.setItem(`selected${type.charAt(0).toUpperCase() + type.slice(1)}Script`, val || "off");
+            alert("Changes saved.");
+        }
+
+        function handlePreview(url) {
+            if(!url) return;
+            const overlay = document.getElementById('overlay');
+            overlay.style.display = 'flex';
+            
+            const isLive = url.includes('bubbles') || url.includes('.html');
+            const previewContent = isLive 
+                ? `<iframe src="${url}"></iframe>` 
+                : `<img src="${url}" onerror="this.outerHTML='<div style=\'padding:40px; color:#f88\'>[Media Unavailable]</div>'">`;
+
+            overlay.innerHTML = `
+                <div class="preview-container" onclick="event.stopPropagation()">
+                    <p style="font-size:0.75rem; color:var(--cyan); margin-bottom:15px; letter-spacing:2px; font-weight:bold;">Wallpaper preview...</p>
+                    <div class="preview-frame">${previewContent}</div>
+                    <div style="display:flex; gap:12px;">
+                        <button class="setbutton" onclick="applyBKG('${url}')" style="background:var(--cyan); color:white; font-weight:bold;">Apply.</button>
+                        <button class="setbutton" onclick="closeOverlay()" style="background:transparent; border:1px solid #555;">Cancel.</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function applyBKG(url) {
+            localStorage.setItem('selectedBKGURL', url);
+            closeOverlay();
+            alert("Wallpaper set.");
+        }
+
+        function closeOverlay() {
+            document.getElementById('overlay').style.display = 'none';
+        }
+
+        function confirmCharacter(name) {
+            const overlay = document.getElementById('overlay');
+            overlay.style.display = 'flex';
+            overlay.innerHTML = `
+                <div class="preview-container" onclick="event.stopPropagation()">
+                    <h2 style="margin:0 0 10px 0; color:var(--cyan)">Use ${name.toUpperCase()}'s defaults?</h2>
+                    <p style="font-size:0.85rem; opacity:0.8; line-height:1.6;">This will replace all your settings with ${name}'s default configuration.</p>
+                    <div style="margin-top:25px; display:flex; flex-direction:column; gap:8px;">
+                        <button class="setbutton" onclick="applyPreset('${name}')" style="background:var(--cyan); color:white; font-weight:bold; padding:18px;">Continue.</button>
+                        <button class="setbutton" onclick="closeOverlay()" style="background:transparent; border:1px solid #555;">Cancel.</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function applyPreset(name) {
+            if(name === 'Akari') {
+                localStorage.setItem('selectedReflexScript', './characters/akari/response.js');
+                localStorage.setItem('selectedAvatarScript', './characters/akari/VRM4.js');
+                localStorage.setItem('selectedWakeScript', './characters/akari/wake.js');
+                localStorage.setItem('selectedBKGURL', "./wallpapers/backdrop.png");
+                localStorage.setItem('selectedAIScript', '');
+            } else {
+                localStorage.setItem('selectedBKGURL', "./wallpapers/backdrop.png");
+                localStorage.setItem('selectedReflexScript', './characters/hiyori/response.js');
+                localStorage.setItem('selectedAIScript', './characters/hiyori/Gemini.js');
+                localStorage.setItem('selectedAvatarScript', './characters/hiyori/avatar.js');
+                localStorage.setItem('selectedWakeScript', 'off');
+            }
+            if (window.parent) {
+        window.parent.location.reload();
+    }else{location.reload();}
+        }
+
+        function installupdates() {
+            if (navigator.onLine) {
+                alert('System: Sent update command, reload to apply update.');
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.ready.then(reg => reg.active.postMessage({ action: 'updateCache' }));
+                }
+            } else alert('System: Internet is required to download updates...');
+        }
+    </script>
 </body>
-
-
-<style>
-    .title {
-        font-size: 2rem;
-        padding-left: 75px;
-        width: 100vw;
-        margin-right: 0;
-        text-align: left;
-        font-family: 'Orbitron', sans-serif;
-        word-wrap: break-word;
-        background-color: transparent;
-        color: darkcyan;
-        border-radius: 10px;
-        padding-bottom: 10px;
-        padding-top: 10px;
-    }
-
-    .box,
-    .setbutton,
-    .smallertext {
-        font-size: 1.2rem;
-        width: calc(100vw - 50px);
-        max-width: 100vw;
-        text-align: center;
-        margin: 5px;
-        margin-left: 25px;
-        background-color: #344;
-        border: 0;
-        color: white;
-        border-radius: 30px;
-        padding-top: 10px;
-        padding-bottom: 10px;
-        transition-duration: 0.2s;
-        line-height: 30px;
-    }
-
-
-
-    .updatebutton {
-        font-size: 0.8rem;
-        width: calc(100vw - 50px);
-        max-width: 100vw;
-        text-align: center;
-        margin: 5px;
-        margin-left: 25px;
-        border: 0;
-        color: white;
-        border-radius: 30px;
-        padding-top: 10px;
-        padding-bottom: 10px;
-        transition-duration: 0.2s;
-        line-height: 30px;
-        background-color: transparent;
-        background-image: linear-gradient(to right, rgba(55, 255, 55, 0.5), rgba(255, 55, 55, 0.5), rgba(77, 255, 255, 0.4), rgba(128, 0, 128, 0.3), rgba(9, 9, 9, 0.2));
-        background-repeat: repeat-x;
-        background-size: auto 100%;
-    }
-    
-    .setbutton:hover {
-        background-color: #544;
-    }
-
-    .box{
-        width: calc(100vw - 103px);
-        background-color: rgba(3, 3, 3, 0.2);
-        text-align: left;
-        padding-left: 50px;
-    }
-
-    .box:hover {
-        max-width: 100vw;
-        margin: 5px;
-        margin-left: 25px;
-        background-color: #333;
-        border: 0;
-        color: white;
-        border-radius: 10px;
-        padding-top: 10px;
-        padding-bottom: 10px;
-        transition-duration: 0.2s;
-    }
-
-    .smallertext {
-        border-radius: 10px;
-        background-color: #252525;
-    }
-
-    .smallertext:hover {
-        color:#9ff;
-        transition-duration: 0.2s;
-        background-color: #272727;
-    }
-
-    body {
-        font-family: 'Orbitron', sans-serif;
-        background-color: #222;
-        color: white;
-        margin: 0;
-        overflow-x: hidden;
-    }
-</style>
-
-
-<script>
-    var VoiceScript = localStorage.getItem('selectedVoiceScript');
-    document.getElementById('voiceurl').value = VoiceScript;
-
-    var AIScript = localStorage.getItem('selectedAIScript');
-    document.getElementById('AIurl').value = AIScript;
-
-    var ReflexScript = localStorage.getItem('selectedReflexScript');
-    document.getElementById('reflexurl').value = ReflexScript;
-
-    var AvatarScript = localStorage.getItem('selectedAvatarScript');
-    document.getElementById('avatarurl').value = AvatarScript;
-
-    var WakeScript = localStorage.getItem('selectedWakeScript');
-    document.getElementById('wakeurl').value = WakeScript;
-
-    var BKGURL = localStorage.getItem('selectedBKGURL');
-    document.getElementById('bkgurl').value = BKGURL;
-
-
-    function setvoice() {
-        var Url = document.getElementById('voiceurl').value;
-        localStorage.setItem('selectedVoiceScript', Url);
-    };
-
-    function setBKG() {
-        var Url = document.getElementById('bkgurl').value;
-        localStorage.setItem('selectedBKGURL', Url);
-    };
-
-    function setAI() {
-        var Url = document.getElementById('AIurl').value;
-        localStorage.setItem('selectedAIScript', Url);
-    };
-
-    function setreflex() {
-        var Url = document.getElementById('reflexurl').value;
-        localStorage.setItem('selectedReflexScript', Url);
-    };
-
-    function setavatar() {
-        var Url = document.getElementById('avatarurl').value;
-        localStorage.setItem('selectedAvatarScript', Url);
-    };
-
-    function setwake() {
-        var Url = document.getElementById('wakeurl').value;
-        localStorage.setItem('selectedWakeScript', Url);
-    };
-
-function installupdates() {          
-if (navigator.onLine) {
-    alert('System: Sent update command, reload to apply update.');
-    if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.ready.then((registration) => {
-    registration.active.postMessage({ action: 'updateCache' });
-  });
-};
-} else {
-    alert('System: Internet is required to download updates.');
-};
-};
-    
-function CharacterAkari() {
-    
-        localStorage.setItem('selectedCSSURL', '');
-    
-        localStorage.setItem('selectedVoiceScript', '');
-  
-        localStorage.setItem('selectedBKGURL', '');
-
-        localStorage.setItem('selectedReflexScript', './characters/akari/response.js');
-
-        localStorage.setItem('selectedAIScript', '');
-
-        localStorage.setItem('selectedAvatarScript', './characters/akari/VRM4.js');
-
-        localStorage.setItem('selectedWakeScript', './characters/akari/wake.js');
-};
-
-function CharacterAkariPickaxe() {
-        
-        localStorage.setItem('selectedVoiceScript', '');
-  
-        localStorage.setItem('selectedBKGURL', '');
-
-        localStorage.setItem('selectedReflexScript', './characters/PickaxeProjectAkari/reflex.js');
-
-        localStorage.setItem('selectedCSSURL', './characters/PickaxeProjectAkari/style.css');
-
-        localStorage.setItem('selectedAIScript', '');
-
-        localStorage.setItem('selectedAvatarScript', '');
-
-        localStorage.setItem('selectedWakeScript', './characters/PickaxeProjectAkari/wake.js');
-};
-    
-function CharacterHiyori() {
-    
-        localStorage.setItem('selectedCSSURL', '');
-    
-        localStorage.setItem('selectedVoiceScript', '');
-    
-        localStorage.setItem('selectedBKGURL', "./wallpapers/backdrop.png");
-  
-        localStorage.setItem('selectedReflexScript', './characters/hiyori/response.js');
-
-        localStorage.setItem('selectedAIScript', './characters/hiyori/Gemini.js');
-
-        localStorage.setItem('selectedAvatarScript', './characters/hiyori/avatar.js');
-
-        localStorage.setItem('selectedWakeScript', '');
-};
-
-</script>
+</html>
