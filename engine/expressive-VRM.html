@@ -100,7 +100,7 @@
 <body>
     <div id="container"></div>
     <div id="ui">
-        <h1>AkariNet VRM Plugin v4.2</h1>
+        <h1>AkariNet VRM Plugin v4.2.1</h1>
     </div>
 
     <div id="dropZone" class="drop-zone">
@@ -360,7 +360,7 @@
             if (!currentVrm || !currentVrm.expressionManager) return;
 
             // 1. Poll LocalStorage
-            const requestedEmote = localStorage.getItem('emote') || 'neutral';
+            const requestedEmote = localStorage.getItem('v2emote') || 'neutral';
             const key = requestedEmote.toLowerCase().trim();
 
             // 2. State Change Check
