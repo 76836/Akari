@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AkariNet VRM v4.5</title>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+                "@pixiv/three-vrm": "https://unpkg.com/@pixiv/three-vrm@3.0.0/lib/three-vrm.module.js"
+            }
+        }
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: transparent;
+            font-family: sans-serif;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            pointer-events: none;
+            z-index: 10;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .drop-zone {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 0px dashed rgba(255, 255, 255, 0.2);
+            margin: 20px;
+            border-radius: 20px;
+            background: transparent;
+            transition: all 0.3s;
+            z-index: 5;
+        }
+
+        .drop-zone.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .drop-zone.active {
+            border-color: #77aaff;
+            background: transparent;
+        }
+
+        button {
+            pointer-events: auto;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            background: #77aaff;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        #loading {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: #77aaff;
+            display: none;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        #debug {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 12px;
+            pointer-events: none;
+            font-family: monospace;
+        }
+
+
+
+
+
+
+
+
+        .content {
+            opacity: 0;
+        }
+
+        .white-flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: darkcyan;
+            opacity: 0;
+            pointer-events: none;
+
+        }
+
+        .teleport-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        .energy-pill {
+            width: 30px;
+            height: 80px;
+            background: rgb(255, 255, 0);
+            border-radius: 15px;
+            position: absolute;
+            will-change: transform;
+            z-index: 1000;
+            bottom: -80px;
+        }
+
+        @keyframes pillFloat {
+            0% {
+                transform: translateY(0);
+            }
+
+            100% {
+                transform: translateY(calc(-100vh - 160px));
+            }
+        }
+
+        @keyframes overlayFadeIn {
+            0% {
+                opacity: 0;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes overlayFadeOut {
+            0% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+            }
+        }
+
+        @keyframes fadeToWhite {
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes revealContent {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="content">
+
+
+
+        <div id="container"></div>
+        <div id="ui">
+            <h1>AkariNet VRM Plugin v4.5</h1>
+        </div>
+
+        <div id="dropZone" class="drop-zone">
+            <p>Drop a .VRM file here</p>
+            <p>or</p>
+            <button onclick="document.getElementById('fileInput').click()">Select File</button>
+            <input type="file" id="fileInput" accept=".vrm" style="display: none">
+        </div>
+
+        <div id="loading">init</div>
+        <div id="debug">System Standby</div>
+
+
+
+    </div>
+    <div class="white-flash"></div>
+    <div class="teleport-overlay" id="teleportOverlay"></div>
+
+
+    <script>
+        const overlay = document.getElementById('teleportOverlay');
+        const content = document.querySelector('.content');
+        const flash = document.querySelector('.white-flash');
+        let pillLoop;
+
+        const spawnPill = (phase) => {
+            const pill = document.createElement('div');
+            pill.className = 'energy-pill';
+
+            const currentOpacity = parseFloat(getComputedStyle(overlay).opacity) || 0;
+            const baseSpeed = (phase === 1) ? 4 : 10.5;
+            const speed = baseSpeed + (currentOpacity * 2);
+            const duration = (2000 + Math.random() * 1000) / speed;
+
+            Object.assign(pill.style, {
+                left: `${Math.random() * (window.innerWidth - 30)}px`,
+                height: `${60 + Math.random() * 600}px`,
+                animation: `pillFloat ${duration}ms linear forwards`
+            });
+
+            overlay.appendChild(pill);
+
+            setTimeout(() => pill.remove(), duration);
+        };
+
+        const startPart1 = () => {
+            content.style.opacity = '0';
+            overlay.innerHTML = '';
+            overlay.style.animation = 'overlayFadeIn 3s ease-out forwards';
+
+            pillLoop = setInterval(() => {
+                const count = 3 + Math.floor(Math.random() * 3);
+                for (let i = 0; i < count; i++) spawnPill(1);
+            }, 120);
+        };
+
+        const startPart2 = () => {
+            clearInterval(pillLoop);
+
+            for (let offset = 0; offset < 500; offset += 40) {
+                setTimeout(() => {
+                    const count = 5 + Math.floor(Math.random() * 4);
+                    for (let i = 0; i < count; i++) spawnPill(2);
+                }, offset);
+            }
+
+            flash.style.animation = 'fadeToWhite 300ms ease-out forwards';
+
+            setTimeout(() => {
+                overlay.style.animation = 'overlayFadeOut 1s ease-out forwards';
+                flash.style.animation = 'overlayFadeOut 1s ease-out forwards';
+
+                setTimeout(() => {
+                    overlay.innerHTML = '';
+                    content.style.animation = 'revealContent 100ms ease-out forwards';
+                }, 100);
+            }, 500);
+        };
+
+        startPart1();
+        //setTimeout(startPart2, 6000);
+        window.startPart2 = startPart2;
+    </script>
+
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+
+        // ==========================================
+        // CONFIGURATION
+        // ==========================================
+        // Read URL query parameters
+        const params = new URLSearchParams(window.location.search);
+
+        // Base config
+        const CONFIG = {
+            modelUrl: "",
+            debug: true
+        };
+
+        // Apply query overrides if present
+        if (params.has("modelUrl")) {
+            CONFIG.modelUrl = params.get("modelUrl");
+        }
+
+        if (params.has("debug")) {
+            // Accepts: true, false, 1, 0
+            const val = params.get("debug").toLowerCase();
+            CONFIG.debug = (val === "true" || val === "1");
+        }
+
+        console.log("CONFIG:", CONFIG);
+
+
+        const PARAMS = {
+            performance: {
+                pixelRatio: window.devicePixelRatio || 0.5,
+                fpsLimit: 24,
+                antialias: true
+            },
+            motion: {
+                lookSpeed: 1.2,
+                idleTimeout: 1.5,
+                maxNeckY: 0.8,
+                maxNeckX: 0.4,
+                maxSpineY: 0.25,
+                microMovementIntensity: 0.02
+            },
+            eye: {
+                minIntensity: 0.125,
+                maxIntensity: 0.248,
+                minSpeed: 0.1,
+                maxSpeed: 2.0,
+                limit: 0.5 // Strict physical limit for eyes
+            },
+            idle: {
+                rangeX: 0.6, // Slightly reduced to prevent extreme looking
+                rangeY: 0.35,
+                minHold: 2.0,
+                maxHold: 5.0,
+                transitionSpeed: [0.1, 0.8]
+            },
+            sway: {
+                intensity: 0.032,
+                baseFrequency: 0.4,
+                randomness: 1,
+                armRelaxation: 1.375, // Standard A-pose to relaxed angle
+            },
+            hair: {
+                gravityPower: 0.01,
+                stiffness: 0.25,
+                drag: 2.5,
+                physicsDeltaLimit: 0.05 // HARD LIMIT: Physics will never calculate more than 50ms at once
+            }
+        };
+
+        // ==========================================
+        // EMOTION SYSTEM (VRoid Standard)
+        // ==========================================
+        const EMOTIONS = {
+            neutral: { neutral: 1.0 },
+            happy: { ih: 0.8, aa: 0.2, relaxed: 0.2, blink: 0.0 },
+            sad: { sad: 0.8, lookDown: 0.2, blink: 0.0 },
+            angry: { angry: 1.0, lookDown: 0.1, blink: 0.0 },
+            fear: { surprised: 0.5, sad: 0.5, happy: 0, blink: 0.0 },
+            surprise: { surprised: 1.0, blink: 0.0 },
+            confused: { angry: 0.2, sad: 0.3, neutral: 0.5, blink: 0.0 },
+            love: { happy: 0.3, ou: 0.4, sad: 0.1 },
+            disgust: { angry: 0.6, sad: 0.2, happy: 0, blink: 0.0 },
+            trust: { neutral: 1.0, angry: 0.2, aa: 0.1, ou: 0.6 },
+            anticipation: { surprised: 0.3, ee: 0.0, ih: 0.5, happy: 0.1, blink: 0.0 },
+            contempt: { happy: 0.0, angry: 0.7, relaxed: 0.3, blink: 0.0 },
+
+            bored: { neutral: 0.6, sad: 0.3, lookDown: 0.6, relaxed: 0.1 },
+            pride: { ee: 0.3, relaxed: 0.7, neutral: 0.1 },
+            shame: { angry: 0.2, sad: 0.6, lookDown: 0.8, blink: 0.2 },
+            curious: { surprised: 0.3, neutral: 0.4, ih: 0.3, blink: 0.0 },
+            embarrassed: { surprised: 0.3, sad: 0.2, relaxed: 0.7, lookDown: 0.7, happy: 0.1, blink: 0.0 }
+        };
+
+        // ==========================================
+        // GLOBALS
+        // ==========================================
+        let scene, camera, renderer, currentVrm, lookAtTarget;
+        const mouse = new THREE.Vector2();
+
+        let lastMouseMoveTime = 0;
+        let lastFrameTime = 0;
+        let totalElapsed = 0;
+
+        const state = {
+            idleTargetX: 0,
+            idleTargetY: 1.45,
+            nextIdleSwitch: 0,
+            currentSwayFreq: PARAMS.sway.baseFrequency,
+
+            lookAtPos: new THREE.Vector3(0, 1.45, 1),
+            eyePos: new THREE.Vector2(0, 1.45),
+
+            currentEyeMultiplier: 0.3,
+            currentEyeSpeed: 2.0,
+            currentIdleSpeed: 0.1,
+
+            // Emotion Tracking
+            currentEmotionName: 'neutral',
+            blinkBlocked: false, // If true, auto-blink is disabled (for closed-eye emotes)
+            requestedBlink: 0,    // Target blink value requested by emotion system
+            isVrm1: false         // Set true for VRM 1.x models (used to invert Y behavior)
+        };
+
+        const container = document.getElementById('container');
+        const loader = new GLTFLoader();
+        loader.register((parser) => new VRMLoaderPlugin(parser));
+
+        // ==========================================
+        // INITIALIZATION
+        // ==========================================
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.1, 20);
+            camera.position.set(0, 1.4, 3.5);
+
+            renderer = new THREE.WebGLRenderer({ antialias: PARAMS.performance.antialias, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(PARAMS.performance.pixelRatio);
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            container.appendChild(renderer.domElement);
+
+            // Lighting
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            dirLight.position.set(1, 2, 3);
+            scene.add(dirLight);
+
+            // Invisible target for math calculations
+            lookAtTarget = new THREE.Object3D();
+            scene.add(lookAtTarget);
+
+            // Events
+            window.addEventListener('resize', onResize);
+            window.addEventListener('mousemove', onMouseMove, { passive: true });
+
+            setupFileHandling();
+
+            // Auto-load check
+            if (CONFIG.modelUrl && CONFIG.modelUrl.length > 0) {
+                loadVRM(CONFIG.modelUrl);
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // ==========================================
+        // CORE LOGIC
+        // ==========================================
+        function loadVRM(url) {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('dropZone').classList.add('hidden');
+
+            loader.load(url, (gltf) => {
+                const vrm = gltf.userData.vrm;
+                if (currentVrm) {
+                    scene.remove(currentVrm.scene);
+                    VRMUtils.deepDispose(currentVrm.scene);
+                }
+                currentVrm = vrm;
+                scene.add(vrm.scene);
+
+                // --- 1. VRM 1.0 COMPATIBILITY CHECK ---
+                // VRM0 is usually +Z facing (needs rotation). VRM1 is usually -Z facing (needs 0 rotation).
+                const metaVersion = vrm.meta.metaVersion;
+                if (metaVersion === '0' || metaVersion === undefined) {
+                    vrm.scene.rotation.y = Math.PI;
+                } else {
+                    vrm.scene.rotation.y = 0;
+                }
+
+                // Record whether this is a VRM 1.x model (used for a few compatibility adjustments)
+                const isVrm1 = String(metaVersion).startsWith('1');
+                state.isVrm1 = isVrm1;
+
+                console.log(`AkariNet: Loaded VRM version ${metaVersion}`);
+                setTimeout(window.startPart2, 1000);
+
+                // --- 2. SETUP ---
+                // Disable internal lookAt to use our custom AkariNet engine
+                if (vrm.lookAt) vrm.lookAt.autoUpdate = false;
+
+                applyPhysicsSettings(vrm);
+                relaxArms(vrm, isVrm1);
+
+                document.getElementById('loading').style.display = 'none';
+
+                // If we're not in debug mode, hide UI elements so the embed is clean
+                if (!CONFIG.debug) {
+                    ['loading', 'status', 'ui', 'debug'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.style.display = 'none';
+                    });
+                }
+            },
+                (progress) => { /* Optional loading bar logic here */ },
+                (error) => {
+                    console.error(error);
+                    document.getElementById('loading').innerText = 'LOAD ERROR: Check Console';
+                    document.getElementById('dropZone').classList.remove('hidden');
+                });
+        }
+
+        function relaxArms(vrm, isVrm1) {
+            const lA = vrm.humanoid.getNormalizedBoneNode('leftUpperArm');
+            const rA = vrm.humanoid.getNormalizedBoneNode('rightUpperArm');
+
+            // VRM 1.0 often inverts the Z-axis for arms compared to VRM 0.0
+            // If character arms fly up, we flip the sign.
+            let angle = PARAMS.sway.armRelaxation;
+            if (isVrm1) angle = -angle;
+
+            if (lA) lA.rotation.z = angle;
+            if (rA) rA.rotation.z = -angle;
+        }
+
+        function applyPhysicsSettings(vrm) {
+            if (!vrm.springBoneManager) return;
+            vrm.springBoneManager.springBones.forEach(spring => {
+                // VRM 1.0 and 0.0 use slightly different spring structures, 
+                // but three-vrm abstracts this mostly. 
+                if (spring.stiffnessForce) spring.stiffnessForce *= PARAMS.hair.stiffness;
+                if (spring.dragForce) spring.dragForce *= PARAMS.hair.drag;
+                if (spring.gravityDir) spring.gravityPower = PARAMS.hair.gravityPower;
+            });
+        }
+
+        function updateEmotions(dt) {
+            if (!currentVrm || !currentVrm.expressionManager) return;
+
+            // 1. Poll LocalStorage
+            const requestedEmote = localStorage.getItem('v2emote') || 'neutral';
+            const key = requestedEmote.toLowerCase().trim();
+
+            // 2. State Change Check
+            if (state.currentEmotionName !== key) {
+                state.currentEmotionName = key;
+                document.getElementById('debug').innerText = `STATUS: ${key.toUpperCase()}`;
+            }
+
+            const targetMap = EMOTIONS[key] || EMOTIONS['neutral'];
+
+            // Handle blink target (some emotes purposely close the eyes)
+            const targetBlink = targetMap['blink'] || targetMap['happy'] || 0;
+            if (targetBlink > 0.01) {
+                state.blinkBlocked = true;
+                state.requestedBlink = 0;
+            } else {
+                state.blinkBlocked = false;
+                state.requestedBlink = 0;
+            }
+
+            // 3. Apply Morphs (Lerped)
+            // We iterate a known list to ensure unused morphs fade back to 0
+
+            // Complete VRM 1.0 preset expression names
+            const trackableMorphs = [
+                // Neutral
+                'neutral',
+
+                // Lip sync (Japanese vowels)
+                'aa', 'ih', 'ou', 'ee', 'oh',
+
+                // Emotions
+                'joy', 'angry', 'sorrow', 'fun', 'sad', 'happy', 'relaxed', 'surprised', 'confused',
+
+                // Eye blink
+                'blink', 'blinkLeft', 'blinkRight',
+
+                // Look direction
+                'lookUp', 'lookDown', 'lookLeft', 'lookRight'
+            ];
+
+            trackableMorphs.forEach(morphName => {
+                // Skip blink if we are doing auto-blink later, UNLESS emotion forces it (like 'sleep')
+                // For this implementation, we handle blink additively in the animate loop
+                if (morphName === 'blink') return;
+
+                const targetValue = targetMap[morphName] || 0;
+                const currentValue = currentVrm.expressionManager.getValue(morphName) || 0;
+
+                const newValue = THREE.MathUtils.lerp(currentValue, targetValue, 5.0 * dt);
+                currentVrm.expressionManager.setValue(morphName, newValue);
+            });
+        }
+
+        function animate(now) {
+            requestAnimationFrame(animate);
+
+            // --- EXTREMES PROTECTION: TIME ---
+            // Calculate raw dt
+            let dt = (now - lastFrameTime) / 1000;
+            lastFrameTime = now;
+
+            // Cap dt at 0.05 (20fps). If the PC freezes for 1 second, 
+            // the model will only advance 0.05s in logic. 
+            // This prevents "explosions" where the physics engine tries to simulate 1 second of force in 1 frame.
+            const safeDt = Math.min(dt, 0.05);
+            totalElapsed += safeDt;
+
+            if (currentVrm) {
+                updateEmotions(safeDt);
+
+                const timeSinceMouse = (now - lastMouseMoveTime) / 1000;
+                let tx, ty;
+                let currentSpeed = PARAMS.motion.lookSpeed;
+
+                // --- 1. TARGET DETERMINATION ---
+                if (timeSinceMouse < PARAMS.motion.idleTimeout) {
+                    // MOUSE TRACKING
+                    tx = mouse.x * 1.0;
+                    // VRM 1.x models have an inverted Y axis for some rigs — flip the sign when needed
+                    ty = 1.45 + (mouse.y * (state.isVrm1 ? 0.5 : -0.5));
+                } else {
+                    // IDLE BEHAVIOR
+                    if (totalElapsed > state.nextIdleSwitch) {
+                        state.idleTargetX = (Math.random() - 0.5) * 2 * PARAMS.idle.rangeX;
+                        state.idleTargetY = 1.45 + (Math.random() - 0.5) * 2 * PARAMS.idle.rangeY;
+                        state.nextIdleSwitch = totalElapsed + PARAMS.idle.minHold + Math.random() * (PARAMS.idle.maxHold - PARAMS.idle.minHold);
+
+                        // Randomize personality for this glance
+                        const [minSpd, maxSpd] = PARAMS.idle.transitionSpeed;
+                        state.currentIdleSpeed = minSpd + Math.random() * (maxSpd - minSpd);
+                        state.currentEyeMultiplier = PARAMS.eye.minIntensity + Math.random() * (PARAMS.eye.maxIntensity - PARAMS.eye.minIntensity);
+                        state.currentEyeSpeed = PARAMS.eye.minSpeed + Math.random() * (PARAMS.eye.maxSpeed - PARAMS.eye.minSpeed);
+                    }
+                    tx = state.idleTargetX;
+                    ty = state.idleTargetY;
+                    currentSpeed = state.currentIdleSpeed;
+                }
+
+                // --- EXTREMES PROTECTION: COORDINATES ---
+                // Clamp target coordinates so the model never breaks neck trying to look at infinity
+                tx = THREE.MathUtils.clamp(tx, -1.0, 1.0);
+                ty = THREE.MathUtils.clamp(ty, 0.5, 2.5); // Floor to Ceiling limits relative to model height
+
+                // --- 2. EYE LOGIC (Fast Saccades) ---
+                const eyeAlpha = 1.0 - Math.pow(0.0001, safeDt * state.currentEyeSpeed);
+                state.eyePos.x = THREE.MathUtils.lerp(state.eyePos.x, tx, eyeAlpha);
+                state.eyePos.y = THREE.MathUtils.lerp(state.eyePos.y, ty, eyeAlpha);
+
+                const finalEyeX = THREE.MathUtils.clamp(state.eyePos.x * state.currentEyeMultiplier, -PARAMS.eye.limit, PARAMS.eye.limit);
+                const finalEyeY = THREE.MathUtils.clamp(-(state.eyePos.y - 1.45) * state.currentEyeMultiplier, -PARAMS.eye.limit, PARAMS.eye.limit);
+
+                // Apply to Morphs
+                if (currentVrm.expressionManager) {
+                    currentVrm.expressionManager.setValue('lookLeft', finalEyeX > 0 ? finalEyeX : 0);
+                    currentVrm.expressionManager.setValue('lookRight', finalEyeX < 0 ? Math.abs(finalEyeX) : 0);
+                    currentVrm.expressionManager.setValue('lookUp', finalEyeY > 0 ? finalEyeY : 0);
+                    currentVrm.expressionManager.setValue('lookDown', finalEyeY < 0 ? Math.abs(finalEyeY) : 0);
+                }
+
+                // Apply to Bones (Manual Fallback for models without eye morphs)
+                const leftEye = currentVrm.humanoid.getNormalizedBoneNode('leftEye');
+                const rightEye = currentVrm.humanoid.getNormalizedBoneNode('rightEye');
+                if (leftEye && rightEye) {
+                    leftEye.rotation.y = finalEyeX;
+                    leftEye.rotation.x = finalEyeY;
+                    rightEye.rotation.y = finalEyeX;
+                    rightEye.rotation.x = finalEyeY;
+                }
+
+                // --- 3. HEAD & BODY LOGIC (Smooth Follow) ---
+                const lerpAlpha = 1.0 - Math.pow(0.001, safeDt * currentSpeed);
+                state.lookAtPos.x = THREE.MathUtils.lerp(state.lookAtPos.x, tx, lerpAlpha);
+                state.lookAtPos.y = THREE.MathUtils.lerp(state.lookAtPos.y, ty, lerpAlpha);
+
+                const spine = currentVrm.humanoid.getNormalizedBoneNode('spine');
+                const neck = currentVrm.humanoid.getNormalizedBoneNode('neck');
+
+                // Breathing/Sway sway
+                const swayVal = Math.sin(totalElapsed * PARAMS.sway.baseFrequency) * PARAMS.sway.intensity;
+
+                if (spine) {
+                    spine.rotation.z = swayVal; // Breathing
+
+                    const sY = THREE.MathUtils.clamp(state.lookAtPos.x * 0.15, -PARAMS.motion.maxSpineY, PARAMS.motion.maxSpineY);
+                    spine.rotation.y = THREE.MathUtils.lerp(spine.rotation.y, sY, lerpAlpha * 0.5);
+                }
+
+                if (neck) {
+                    const nY = THREE.MathUtils.clamp(state.lookAtPos.x * 0.45, -PARAMS.motion.maxNeckY, PARAMS.motion.maxNeckY);
+                    const nX = THREE.MathUtils.clamp(-(state.lookAtPos.y - 1.45) * 0.45, -PARAMS.motion.maxNeckX, PARAMS.motion.maxNeckX);
+
+                    neck.rotation.y = THREE.MathUtils.lerp(neck.rotation.y, nY, lerpAlpha);
+                    neck.rotation.x = THREE.MathUtils.lerp(neck.rotation.x, nX, lerpAlpha);
+                }
+
+                // --- 4. AUTO-BLINK ---
+                if (currentVrm.expressionManager) {
+                    const blinkCycle = totalElapsed % 4.0;
+                    const bVal = blinkCycle < 0.15 ? Math.sin((blinkCycle / 0.15) * Math.PI) : 0;
+
+                    // Current blink weight
+                    const currentBlinkWeight = currentVrm.expressionManager.getValue('blink') || 0;
+
+                    if (!state.blinkBlocked) {
+                        // Decay towards 0 smoothly, but let the instantaneous auto-blink override when active
+                        const decayed = THREE.MathUtils.lerp(currentBlinkWeight, 0, 2.5 * safeDt);
+                        const newBlink = Math.max(bVal, decayed);
+                        currentVrm.expressionManager.setValue('blink', newBlink);
+                    } else {
+                        // Emotion requests eye closure: smoothly interpolate towards the requested blink
+                        const newBlink = THREE.MathUtils.lerp(currentBlinkWeight, state.requestedBlink || 0, 5.0 * safeDt);
+                        currentVrm.expressionManager.setValue('blink', newBlink);
+                    }
+                }
+
+                // --- 5. PHYSICS UPDATE ---
+                // We use safeDt here to prevent hair exploding on tab switch
+                currentVrm.update(Math.min(safeDt, PARAMS.hair.physicsDeltaLimit));
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // ==========================================
+        // INPUT HANDLERS
+        // ==========================================
+        function onMouseMove(event) {
+            // Normalize mouse position (-1 to +1)
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            lastMouseMoveTime = performance.now();
+        }
+
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function setupFileHandling() {
+            const dz = document.getElementById('dropZone');
+            const input = document.getElementById('fileInput');
+
+            // File Input Click
+            input.addEventListener('change', (e) => {
+                const f = e.target.files[0];
+                if (f) loadVRM(URL.createObjectURL(f));
+            });
+
+            // Drag Over
+            window.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dz.classList.add('active');
+            });
+
+            // Drag Leave
+            window.addEventListener('dragleave', () => {
+                dz.classList.remove('active');
+            });
+
+            // Drop
+            window.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dz.classList.remove('active');
+                const f = e.dataTransfer.files[0];
+                if (f && f.name.toLowerCase().endsWith('.vrm')) {
+                    loadVRM(URL.createObjectURL(f));
+                }
+            });
+        }
+
+        // Start System
+        init();
+    </script>
+</body>
+
+</html>
