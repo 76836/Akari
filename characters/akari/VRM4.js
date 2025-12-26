@@ -1,4 +1,4 @@
-loadscreen("(4th revision) Loading Akari's VRM...");
+loadscreen("(5th revision) Loading Akari's VRM...");
 
 (function () {
   var SENTENCE_DISPLAY_TIME = 3000; // 3 seconds per sentence
@@ -8,8 +8,8 @@ loadscreen("(4th revision) Loading Akari's VRM...");
 
   var thehtml = `
   <style>.avatariframe { width:100%; height:100%; position:fixed; left:0; top:0; z-index:1; border:0; }</style>
-  <iframe src="./engine/expressive-VRM.html?modelUrl=https://76836.github.io/Akari/characters/akari/VRM/1192842823581716627.vrm&debug=false" class="avatariframe"></iframe>
-  `;
+  <iframe src="./engine/AkariNet-VRM?modelUrl=https://76836.github.io/Akari/characters/akari/VRM/1192842823581716627.vrm&debug=false" class="avatariframe"></iframe>
+  `;//weird that it seemed to work last time with the .html extension, i wonder if i'm breaking it now...
   if (document.getElementById('avatar')) document.getElementById('avatar').innerHTML = thehtml;
 
   let lastValue = localStorage.getItem('emote');
