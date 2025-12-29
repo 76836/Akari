@@ -261,7 +261,7 @@
     <div class="viewport-wrapper">
         <div class="scroll-area" id="mainScroll">
             <div class="container">
-                <p class="title">Settings 2.5b</p>
+                <p class="title">Settings 2.5c</p>
 
   
                 <div class="update" onclick="installupdates();">
@@ -312,7 +312,7 @@
                                 <option value="">-- Select Preset --</option>
                                 <option value="./characters/hiyori/avatar.js">Hiyori (Live2D)</option>
                                 <option value="./characters/akari/VRM4.js">Akari (VRM)</option>
-                                <option value="./characters/winter.js">Akari (Winter outfit)</option>
+                                <option value="./characters/akari/winter.js">Akari (Winter outfit)</option>
                             </select>
                             <input class="box" id="avatarurl" type="text" placeholder="Custom Script Path...">
                             <button class="setbutton" onclick="setScript('avatar')">SAVE</button>
@@ -343,6 +343,7 @@
                     <div class="content">
                         <div class="grid-2">
                             <button class="setbutton" onclick="confirmCharacter('Akari')">Akari (default)</button>
+                            <button class="setbutton" onclick="confirmCharacter('Akari-winter')">Akari Winter 2025</button>
                             <button class="setbutton" onclick="confirmCharacter('Hiyori')">Hiyori</button>
                         </div>
                     </div>
@@ -456,6 +457,12 @@
                 localStorage.setItem('selectedAvatarScript', './characters/akari/VRM4.js');
                 localStorage.setItem('selectedWakeScript', './characters/akari/wake.js');
                 localStorage.setItem('selectedBKGURL', "./wallpapers/backdrop.png");
+                localStorage.setItem('selectedAIScript', '');
+            } else if(name === 'Akari-winter') {
+                localStorage.setItem('selectedReflexScript', './characters/akari/response.js');
+                localStorage.setItem('selectedAvatarScript', './characters/akari/winter.js');
+                localStorage.setItem('selectedWakeScript', './characters/akari/wake.js');
+                localStorage.setItem('selectedBKGURL', "./wallpapers/winter.png");
                 localStorage.setItem('selectedAIScript', '');
             } else {
                 localStorage.setItem('selectedBKGURL', "./wallpapers/backdrop.png");
