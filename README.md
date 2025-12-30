@@ -1,9 +1,7 @@
-# ℹ️ Notice:
-**I am splitting the Digita project from the Akari repository, as I am focusing on tidying up Digita the AkariNET project might fall into disrepair. I aim to clean up the AkariNET project soon after I've cleaned up Digita.**
 
 <br>
 
-# Akari 
+# AkariNet 
 **Fully customizable AI assistant with voice commands, serverless AI, interactive avatars, device control, and more.**
 
 <br>
@@ -16,11 +14,17 @@
 
 
 
-Akari Voice Assistant v2.3.
+Akari Voice Assistant v2.4.
 Full support on chrome-based browsers.
 Use at: https://76836.github.io/Akari
 Support for safari is not tested and features on firefox may be limited.
-Integrate Akari into your iPhone with the Shortcuts app by entering commands into the url: `https://76836.github.io/Akari?q=Your%20Input%20Here` Make sure to url encode the input.
+URL query support is currently depreciated as I think of safer ways to let other programs trigger AkariNet functions.
+
+Version 2.4: <br>
+New redesigned UI that works across mobile and desktop without compromise.
+Improved settings app with preconfigured options and toggles.
+Full release of the AkariNet VRM avatar module powered by emotionEngine.
+New AI provider: pollinations.ai. New instances of AkariNet will default to pollinations for LLM inference without needing an API key or account.
 
 Version 2.3: <br>
 New local speech synthesis with speechT5.
