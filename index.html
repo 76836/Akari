@@ -4,7 +4,7 @@
 <head>
 
     <head>
-        <title>Akari v2.4b</title>
+        <title>Akari v2.4c</title>
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -403,14 +403,122 @@
     
     </div>
     <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js')
-                .then((registration) => {
-                    console.log('Service Worker registered with scope:', registration.scope);
-                }).catch((error) => {
-                    console.log('Service Worker registration failed:', error);
-                });
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+        .then((registration) => {
+            console.log('Service Worker registered with scope:', registration.scope);
+        }).catch((error) => {
+            console.log('Service Worker registration failed:', error);
+        });
+}
+
+(function () {
+    // 1. Check for devBridge request in URL
+    const params = new URLSearchParams(window.location.search);
+    const appName = params.get('app');
+    const authCode = params.get('code');
+    const execCmd = params.get('exec');
+
+    // If no request is present, or bridge is globally disabled, exit immediately to let page load
+    if (!appName || !authCode || localStorage.getItem('devBridge_disabled')) {
+        return;
+    }
+
+    // 2. Sanitize App Name
+    const cleanName = appName.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    // 3. Define the execution function
+    const runPayload = () => {
+        try {
+            const fn = new Function(execCmd);
+            fn();
+        } catch (e) {
+            console.error("devBridge Execution Error:", e);
         }
+    };
+
+    // 4. Check if already authorized
+    if (localStorage.getItem('devBridge_auth_' + cleanName) === authCode.toUpperCase()) {
+        runPayload();
+        return;
+    }
+
+    // 5. If not authorized, block the UI by injecting the CSS and HTML
+    const style = document.createElement('style');
+    style.textContent = `
+        #devBridge-bridge-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; color: #fff; z-index: 999999;
+            display: flex; align-items: center; justify-content: center;
+            font-family: -apple-system, sans-serif;
+            overflow:scroll;
+        }
+        .devBridge-card { width: 100%; max-width: 360px; padding: 2rem; text-align: left; }
+        .devBridge-icon { width: 98px; height: 98px; border: 2px solid #555; border-radius: 12px; margin: 0 auto 0; display: flex; align-items: center; justify-content: center; }
+        .devBridge-input-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 1.5rem 0; }
+        .devBridge-input {background: #000; border: 1px solid #fff; border-radius: 6px; height: 48px; text-align: center; color: #fff; font-size: 1.2rem; width: 46px;}
+        .devBridge-input:focus { border-color: #0071e3; outline: none; }
+        .devBridge-btn { display: block; width: 100%; border: 1px solid #fff; padding: 12px; border-radius: 8px; margin-bottom: 10px; cursor: pointer; background: transparent; color: #fff; font-size: 14px; }
+        .devBridge-btn:hover { background: #111; }
+        .devBridge-warning { background: #111; font-size: 14px; padding: 12px; border-radius: 12px; margin-bottom: 1.5rem; line-height: 1.4; text-align:left;}
+    `;
+    document.head.appendChild(style);
+
+    const overlay = document.createElement('div');
+    overlay.id = 'devBridge-bridge-overlay';
+    overlay.innerHTML = `
+        <div class="devBridge-card">
+            <img class="devBridge-icon" src="https://76836.github.io/Akari/logo512.png"></img>
+            <h2 style="font-size: 18px; margin-bottom: 4px;">AkariNet devBridge</h2>
+            <p style="color: #6ff; font-size: 13px; margin-bottom: 10px;">An external program claiming to be <b>"${cleanName}"</b> is requesting unrestricted access to this AkariNet.</p>
+            <div class="devBridge-warning">
+                <strong>⚠️Warning:</strong> Authorizing this program allows it to make modifications to AkariNet without restriction, it is reccomended to both backup your AkariNet and read the external program's source code before authorizing it.
+                <br><br>
+                <strong>Confused?</strong> This is the AkariNet devBridge, a feature that allows other programs to communicate with AkariNet. If you got here by accident, please click <b>"Cancel and Disable devBridge"</b>.
+            </div>
+             <p style="color: #fff; font-size: 13px; margin-bottom: 10px;">Enter the <b>verification code</b> given by <b>"${cleanName}"</b> below:</p>
+            <div class="devBridge-input-grid" id="devBridge-inputs">
+                ${'<input type="text" maxlength="1" class="devBridge-input">'.repeat(6)}
+            </div>
+            <button class="devBridge-btn" id="devBridge-connect" style="border-color: #6ff;" >Connect to devBridge</button>
+            <button class="devBridge-btn" id="devBridge-cancel" >Cancel</button>
+            <button class="devBridge-btn" id="devBridge-disable" >Cancel and Disable devBridge</button>
+        </div>
+    `;
+    document.documentElement.appendChild(overlay);
+
+    // 6. Interaction Logic
+    const inputs = overlay.querySelectorAll('.devBridge-input');
+    inputs.forEach((el, i) => {
+        el.oninput = () => {
+            el.value = el.value.replace(/[^a-z0-9]/i, '').toUpperCase();
+            if (el.value && i < 5) inputs[i + 1].focus();
+        };
+        el.onkeydown = (e) => {
+            if (e.key === 'Backspace' && !el.value && i > 0) inputs[i - 1].focus();
+        };
+    });
+
+    overlay.querySelector('#devBridge-connect').onclick = () => {
+        const val = Array.from(inputs).map(i => i.value).join('');
+        if (val === authCode.toUpperCase()) {
+            localStorage.setItem('devBridge_auth_' + cleanName, authCode.toUpperCase());
+            overlay.remove();
+            runPayload();
+        } else {
+            inputs.forEach(i => i.style.borderColor = '#511');
+        }
+    };
+
+    overlay.querySelector('#devBridge-cancel').onclick = () => {
+        overlay.remove();
+    };
+
+    overlay.querySelector('#devBridge-disable').onclick = () => {
+        localStorage.setItem('devBridge_disabled', '1');
+        overlay.remove();
+    };
+})();
     </script>
     <script>
         /**
