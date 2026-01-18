@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AkariNet AIM</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui; overflow: hidden; }
+        
+        #setup { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; align-items: center; 
+                 justify-content: center; z-index: 9999; }
+        #setup.hide { display: none; }
+        .panel { background: rgba(40,40,40,0.95); padding: 30px; border-radius: 12px; color: white; 
+                 max-width: 400px; width: 90%; }
+        .panel h2 { margin-bottom: 20px; }
+        .panel label { display: block; margin: 12px 0; }
+        .panel input[type="checkbox"] { margin-right: 8px; }
+        .panel input[type="number"], .panel select { width: 100%; padding: 8px; margin-top: 4px; 
+                                                      background: #555; border: 1px solid #777; 
+                                                      border-radius: 4px; color: white; }
+        .panel button { width: 100%; padding: 12px; margin-top: 20px; background: #0a0; color: white; 
+                        border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .panel button:hover { background: #0c0; }
+        .group { margin: 15px 0; padding-top: 15px; border-top: 1px solid #555; }
+        .group:first-child { border: none; padding-top: 0; }
+        
+        #app { position: fixed; inset: 0; }
+        #iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; background: white; }
+        #video { position: absolute; top: 10px; right: 10px; width: 200px; border-radius: 8px; 
+                 border: 2px solid rgba(255,255,255,0.3); transform: scaleX(-1); z-index: 100; }
+        #video.hide { display: none; }
+        #canvas { position: absolute; top: 10px; right: 10px; width: 200px; border-radius: 8px; z-index: 101; 
+                  pointer-events: none; }
+        #canvas.hide { display: none; }
+        #cursor { position: absolute; width: 20px; height: 20px; border-radius: 50%; 
+                  background: rgba(255,255,255,0.9); border: 3px solid #44f; z-index: 1000; 
+                  pointer-events: none; box-shadow: 0 0 20px rgba(255,255,255,0.6); 
+                  transition: transform 0.1s; }
+        #cursor.pinch { background: #0f0; border-color: #0a0; transform: scale(0.7); }
+        #status { position: absolute; top: 10px; left: 10px; padding: 10px 15px; background: rgba(0,0,0,0.8); 
+                  color: white; border-radius: 8px; font-size: 12px; z-index: 200; }
+        .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: #f00; }
+        .dot.on { background: #0f0; box-shadow: 0 0 8px #0f0; }
+    </style>
+</head>
+<body>
+    <div id="setup">
+        <div class="panel">
+            <h2>AkariNet AIM: Hand Tracking</h2>
+            <p>A lternate<br> I nput<br> M ethod    (v1.0)</p>
+            <div class="group">
+                <label>Tracking Point:
+                    <select id="track">
+                        <option value="0">Wrist (Stable)</option>
+                        <option value="8">Index Finger</option>
+                        <option value="12">Middle Finger</option>
+                    </select>
+                </label>
+            </div>
+            <div class="group">
+                <label><input type="checkbox" id="invX"> Invert X Axis</label>
+                <label><input type="checkbox" id="invY"> Invert Y Axis</label>
+                <label><input type="checkbox" id="palm" checked> Require Palm Up</label>
+                <label><input type="checkbox" id="showCam" checked> Show Camera Feed</label>
+            </div>
+            <div class="group">
+                <label>Camera Zoom (crop %):
+                    <input type="number" id="zoom" value="33" min="0" max="40" step="5">
+                </label>
+                <label>Cursor Speed:
+                    <input type="number" id="speed" value="1.5" min="0.5" max="5" step="0.1">
+                </label>
+                <label>Acceleration:
+                    <input type="number" id="accel" value="1.5" min="1" max="3" step="0.1">
+                </label>
+                <label>Smoothing:
+                    <input type="number" id="smooth" value="0.7" min="0" max="0.95" step="0.05">
+                </label>
+            </div>
+            <button onclick="start()">Start AIM</button>
+        </div>
+    </div>
+
+    <div id="app">
+        <iframe id="iframe"></iframe>
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas"></canvas>
+        <div id="cursor"></div>
+        <div id="status"><span class="dot" id="dot"></span><span id="text">Initializing...</span></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+
+    <script>
+        const demoHTML = "../";
+
+        let cfg, el, hands, cam;
+        // Cursor state: cx/cy = current position, sx/sy = smoothed position
+        let cx, cy, sx, sy, pinch;
+        // Camera tracking: last hand position in camera space (0-1)
+        let lastX, lastY;
+
+        function start() {
+            // Collect config from UI
+            cfg = {
+                track: parseInt(document.getElementById('track').value),
+                invX: document.getElementById('invX').checked,
+                invY: document.getElementById('invY').checked,
+                palm: document.getElementById('palm').checked,
+                showCam: document.getElementById('showCam').checked,
+                zoom: parseFloat(document.getElementById('zoom').value) / 100,
+                speed: parseFloat(document.getElementById('speed').value),
+                accel: parseFloat(document.getElementById('accel').value),
+                smooth: parseFloat(document.getElementById('smooth').value)
+            };
+
+            document.getElementById('setup').classList.add('hide');
+            init();
+        }
+
+        function init() {
+            // Get DOM elements
+            el = {
+                video: document.getElementById('video'),
+                canvas: document.getElementById('canvas'),
+                cursor: document.getElementById('cursor'),
+                dot: document.getElementById('dot'),
+                text: document.getElementById('text'),
+                iframe: document.getElementById('iframe')
+            };
+
+            // Setup iframe
+            el.iframe.src = demoHTML;
+            el.iframe.onload = () => el.iframeDoc = el.iframe.contentDocument;
+
+            // Hide camera if requested
+            if (!cfg.showCam) {
+                el.video.classList.add('hide');
+                el.canvas.classList.add('hide');
+            }
+
+            // Initialize cursor at center
+            cx = cy = window.innerWidth / 2;
+            sx = sy = cx;
+            lastX = lastY = null;
+            pinch = false;
+
+            // Setup MediaPipe Hands
+            hands = new Hands({
+                locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
+            });
+            hands.setOptions({
+                maxNumHands: 1,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5,
+                selfieMode: true
+            });
+            hands.onResults(onHands);
+
+            // Start camera
+            navigator.mediaDevices.getUserMedia({
+                video: { width: 1280, height: 720, facingMode: 'user' }
+            }).then(stream => {
+                el.video.srcObject = stream;
+                el.video.onloadedmetadata = () => {
+                    cam = new Camera(el.video, {
+                        onFrame: async () => await hands.send({ image: el.video }),
+                        width: 1280,
+                        height: 720
+                    });
+                    cam.start();
+                };
+            }).catch(() => el.text.textContent = "AkariNet can't communicate with your camera.");
+        }
+
+        function onHands(res) {
+            const ctx = el.canvas.getContext('2d');
+            el.canvas.width = el.video.videoWidth;
+            el.canvas.height = el.video.videoHeight;
+            ctx.clearRect(0, 0, el.canvas.width, el.canvas.height);
+
+            if (!res.multiHandLandmarks || !res.multiHandLandmarks.length) {
+                el.dot.classList.remove('on');
+                el.text.textContent = "AkariNet can't see your hand.";
+                lastX = lastY = null;
+                return;
+            }
+
+            const lm = res.multiHandLandmarks[0];
+
+            // Check palm orientation: is palm facing up/forward?
+            const palmOk = checkPalm(lm);
+            el.dot.classList.add('on');
+            el.text.textContent = palmOk ? '' : 'Turn your palm towards the camera.';
+
+            // Draw hand skeleton
+            drawConnectors(ctx, lm, HAND_CONNECTIONS, {color: palmOk ? '#0f0' : '#fa0', lineWidth: 2});
+            drawLandmarks(ctx, lm, {color: '#f00', lineWidth: 1, radius: 3});
+
+            // Get tracking point and pinch detection
+            const pt = lm[cfg.track];
+            const pinchDist = Math.hypot(lm[8].x - lm[4].x, lm[8].y - lm[4].y);
+
+            // CURSOR MOVEMENT LOGIC:
+            // 1. Get hand position in camera space (0-1)
+            let hx = pt.x;
+            let hy = pt.y;
+
+            // 2. Apply inversions first
+            if (cfg.invX) hx = 1 - hx;
+            if (cfg.invY) hy = 1 - hy;
+
+            // 3. Calculate delta in camera space (before any clamping)
+            if (lastX !== null && lastY !== null) {
+                let dx = hx - lastX;
+                let dy = hy - lastY;
+
+                // 4. Calculate velocity for acceleration
+                const vel = Math.hypot(dx, dy);
+                const accel = 1 + vel * 10 * (cfg.accel - 1);
+
+                // 5. Convert camera delta to screen delta
+                // The crop zone should map 1:1 to the display
+                // So we scale by: screenSize / cropZoneSize
+                const zRange = (1 - cfg.zoom * 2); // Crop zone size (e.g., 0.6 for 20% zoom)
+                
+                // Adjust for aspect ratio: crop zone aspect vs display aspect
+                const cropAspect = el.video.videoWidth / el.video.videoHeight;
+                const screenAspect = window.innerWidth / window.innerHeight;
+                
+                let scaleX = (window.innerWidth / zRange);
+                let scaleY = (window.innerHeight / zRange);
+                
+                // Compensate for aspect ratio difference
+                if (screenAspect > cropAspect) {
+                    scaleX *= screenAspect / cropAspect;
+                } else {
+                    scaleY *= cropAspect / screenAspect;
+                }
+
+                const sdx = dx * scaleX * cfg.speed * accel;
+                const sdy = dy * scaleY * cfg.speed * accel;
+
+                // 6. Apply to cursor position
+                let nx = cx + sdx;
+                let ny = cy + sdy;
+
+                // 7. Clamp to screen bounds (cursor stops at display edge)
+                nx = Math.max(0, Math.min(window.innerWidth, nx));
+                ny = Math.max(0, Math.min(window.innerHeight, ny));
+
+                // 8. Apply smoothing
+                sx = sx * cfg.smooth + nx * (1 - cfg.smooth);
+                sy = sy * cfg.smooth + ny * (1 - cfg.smooth);
+
+                cx = sx;
+                cy = sy;
+            }
+
+            // 9. Store camera position for next frame (unclamped, so hand can move beyond edges)
+            lastX = hx;
+            lastY = hy;
+
+            // Update cursor visual
+            el.cursor.style.left = cx + 'px';
+            el.cursor.style.top = cy + 'px';
+
+            // Pinch detection
+            const wasPinch = pinch;
+            pinch = pinchDist < 0.05 && (!cfg.palm || palmOk);
+            el.cursor.classList.toggle('pinch', pinch);
+
+            // Handle iframe interaction
+            interact(wasPinch, pinch);
+        }
+
+        function checkPalm(lm) {
+            // Check if palm is facing up/forward using cross product
+            const w = lm[0], ib = lm[5], pb = lm[17];
+            const v1 = {x: ib.x - w.x, y: ib.y - w.y, z: ib.z - w.z};
+            const v2 = {x: pb.x - ib.x, y: pb.y - ib.y, z: pb.z - ib.z};
+            const nz = v1.x * v2.y - v1.y * v2.x;
+            const nx = v1.y * v2.z - v1.z * v2.y;
+            return Math.abs(nz) > 0.01 && nz > 0 && Math.abs(nx) < 0.5;
+        }
+
+        function interact(wasPinch, isPinch) {
+            if (!el.iframeDoc) return;
+
+            const rect = el.iframe.getBoundingClientRect();
+            const x = cx - rect.left;
+            const y = cy - rect.top;
+
+            if (x < 0 || y < 0 || x > rect.width || y > rect.height) return;
+
+            const target = el.iframeDoc.elementFromPoint(x, y);
+            if (!target) return;
+
+            // Dispatch mouse events
+            target.dispatchEvent(new MouseEvent('mousemove', {bubbles: true, clientX: x, clientY: y}));
+
+            if (isPinch && !wasPinch) {
+                target.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, clientX: x, clientY: y}));
+                target.dispatchEvent(new MouseEvent('click', {bubbles: true, clientX: x, clientY: y}));
+            } else if (!isPinch && wasPinch) {
+                target.dispatchEvent(new MouseEvent('mouseup', {bubbles: true, clientX: x, clientY: y}));
+            }
+
+            // Handle range inputs specially
+            if (target.tagName === 'INPUT' && target.type === 'range' && isPinch) {
+                const r = target.getBoundingClientRect();
+                const pct = (x - r.left) / r.width;
+                target.value = Math.round(pct * (target.max - target.min) + parseFloat(target.min));
+                target.dispatchEvent(new Event('input', {bubbles: true}));
+            }
+        }
+    </script>
+</body>
+</html>
