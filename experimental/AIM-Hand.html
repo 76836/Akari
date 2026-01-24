@@ -2,92 +2,328 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AkariNet AIM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AkariNet AIM v2.0</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: system-ui; overflow: hidden; }
+        :root {
+            --bg-glass: rgba(15, 15, 20, 0.95);
+            --border-glass: rgba(255, 255, 255, 0.12);
+            --accent: #00ff9d;
+            --accent-dim: rgba(0, 255, 157, 0.15);
+            --text-main: #f0f0f0;
+            --text-dim: #888;
+            --danger: #ff4444;
+            --warn: #ffaa00;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Inter, system-ui, sans-serif; user-select: none; -webkit-user-select: none; }
+        body { overflow: hidden; background: #050505; color: var(--text-main); }
+
+        /* --- Main App Layer --- */
+        #app { position: fixed; inset: 0; z-index: 0; }
+        #iframe { position: absolute; width: 100%; height: 100%; border: none; background: #fff; }
         
-        #setup { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; align-items: center; 
-                 justify-content: center; z-index: 9999; }
-        #setup.hide { display: none; }
-        .panel { background: rgba(40,40,40,0.95); padding: 30px; border-radius: 12px; color: white; 
-                 max-width: 400px; width: 90%; }
-        .panel h2 { margin-bottom: 20px; }
-        .panel label { display: block; margin: 12px 0; }
-        .panel input[type="checkbox"] { margin-right: 8px; }
-        .panel input[type="number"], .panel select { width: 100%; padding: 8px; margin-top: 4px; 
-                                                      background: #555; border: 1px solid #777; 
-                                                      border-radius: 4px; color: white; }
-        .panel button { width: 100%; padding: 12px; margin-top: 20px; background: #0a0; color: white; 
-                        border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
-        .panel button:hover { background: #0c0; }
-        .group { margin: 15px 0; padding-top: 15px; border-top: 1px solid #555; }
-        .group:first-child { border: none; padding-top: 0; }
+        /* --- HUD Elements --- */
+        #cam-container { 
+            position: absolute; top: 20px; right: 20px; width: 240px; height: 135px; 
+            border-radius: 12px; overflow: hidden; 
+            border: 1px solid var(--border-glass); 
+            background: #000;
+            z-index: 100; pointer-events: none; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            transition: opacity 0.3s, transform 0.3s;
+            transform-origin: top right;
+        }
+        #cam-container.hidden { opacity: 0; pointer-events: none; transform: scale(0.8); }
+
+        #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); opacity: 0.7; }
+        #canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); }
+
+        #cursor { 
+            position: absolute; width: 24px; height: 24px; border-radius: 50%; 
+            background: rgba(255, 255, 255, 0.15); border: 2px solid #fff; 
+            transform: translate(-50%, -50%); pointer-events: none; z-index: 1000;
+            transition: width 0.1s, height 0.1s, background 0.15s, border-color 0.15s;
+            box-shadow: 0 0 15px rgba(0,0,0,0.3); 
+            backdrop-filter: invert(1);
+        }
         
-        #app { position: fixed; inset: 0; }
-        #iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; background: white; }
-        #video { position: absolute; top: 10px; right: 10px; width: 200px; border-radius: 8px; 
-                 border: 2px solid rgba(255,255,255,0.3); transform: scaleX(-1); z-index: 100; }
-        #video.hide { display: none; }
-        #canvas { position: absolute; top: 10px; right: 10px; width: 200px; border-radius: 8px; z-index: 101; 
-                  pointer-events: none; }
-        #canvas.hide { display: none; }
-        #cursor { position: absolute; width: 20px; height: 20px; border-radius: 50%; 
-                  background: rgba(255,255,255,0.9); border: 3px solid #44f; z-index: 1000; 
-                  pointer-events: none; box-shadow: 0 0 20px rgba(255,255,255,0.6); 
-                  transition: transform 0.1s; }
-        #cursor.pinch { background: #0f0; border-color: #0a0; transform: scale(0.7); }
-        #status { position: absolute; top: 10px; left: 10px; padding: 10px 15px; background: rgba(0,0,0,0.8); 
-                  color: white; border-radius: 8px; font-size: 12px; z-index: 200; }
-        .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: #f00; }
-        .dot.on { background: #0f0; box-shadow: 0 0 8px #0f0; }
+        #cursor.pinch { background: var(--accent); border-color: var(--accent); width: 12px; height: 12px; box-shadow: 0 0 12px var(--accent); }
+        #cursor.calibrating { border-color: var(--warn); border-style: dashed; animation: spin 2s linear infinite; width: 40px; height: 40px; }
+
+        /* --- Smart Button (Floating) --- */
+        #smart-btn {
+            position: fixed; top: 20px; left: 20px; z-index: 10001;
+            height: 48px; min-width: 48px;
+            background: var(--bg-glass); border: 1px solid var(--border-glass);
+            border-radius: 24px; color: var(--text-main);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            transition: width 0.3s, background 0.3s, border-color 0.3s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            padding: 0 14px; gap: 8px; overflow: hidden;
+            white-space: nowrap;
+        }
+        #smart-btn:hover { background: rgba(30, 30, 40, 0.95); transform: scale(1.05); }
+        #smart-btn:active { transform: scale(0.95); }
+        
+        #smart-btn .icon { font-size: 20px; flex-shrink: 0; line-height: 1; }
+        #smart-btn .hint-text { 
+            font-size: 13px; font-weight: 500; opacity: 1; 
+            max-width: 0; overflow: hidden; transition: max-width 0.4s ease, opacity 0.3s;
+        }
+        
+        /* Hint State active */
+        #smart-btn.has-hint { border-color: var(--warn); background: rgba(30, 20, 10, 0.95); }
+        #smart-btn.has-hint .icon { color: var(--warn); }
+        #smart-btn.has-hint .hint-text { max-width: 200px; padding-right: 4px; }
+
+        /* --- Settings Panel --- */
+        #setup { 
+            position: fixed; top: 0; left: 0; bottom: 0; width: 340px; 
+            background: var(--bg-glass); 
+            border-right: 1px solid var(--border-glass); 
+            z-index: 9999; display: flex; flex-direction: column; 
+            backdrop-filter: blur(20px); 
+            transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1); 
+            box-shadow: 10px 0 40px rgba(0,0,0,0.5);
+        }
+        #setup.collapsed { transform: translateX(-105%); }
+        
+        .header { 
+            padding: 24px; border-bottom: 1px solid var(--border-glass); 
+            display: flex; justify-content: space-between; align-items: center; 
+        }
+        .header h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; color: #fff; display: flex; align-items: center; gap: 10px; }
+        .header h2::before { content: ''; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; display: block; box-shadow: 0 0 10px var(--accent); }
+
+        .content { flex: 1; overflow-y: auto; padding: 24px; scrollbar-width: thin; scrollbar-color: #444 transparent; }
+        .content::-webkit-scrollbar { width: 4px; }
+        .content::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+
+        .section { margin-bottom: 32px; animation: fadeIn 0.4s ease backwards; }
+        .section-header { margin-bottom: 16px; }
+        .section h3 { font-size: 11px; text-transform: uppercase; color: var(--text-dim); letter-spacing: 1.5px; font-weight: 700; }
+
+        /* Controls */
+        .control-group { margin-bottom: 16px; }
+        .label-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #ccc; }
+        .val-display { font-family: monospace; color: var(--accent); background: var(--accent-dim); padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+
+        input[type="range"] { width: 100%; -webkit-appearance: none; background: transparent; height: 20px; cursor: pointer; display: block; }
+        input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #333; border-radius: 2px; }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; 
+            background: #fff; margin-top: -6px; box-shadow: 0 2px 6px rgba(0,0,0,0.5); transition: 0.2s;
+        }
+        input[type="range"]:hover::-webkit-slider-thumb { background: var(--accent); transform: scale(1.1); }
+
+        select { 
+            width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); 
+            color: #eee; padding: 10px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer; 
+        }
+        select:focus { border-color: var(--accent); }
+
+        /* Semantic Checkbox Row */
+        .checkbox-row {
+            display: flex; align-items: center; justify-content: space-between; 
+            padding: 14px 12px; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 8px; 
+            cursor: pointer; transition: 0.2s; border: 1px solid transparent; user-select: none;
+        }
+        .checkbox-row:hover { background: rgba(255,255,255,0.06); border-color: var(--border-glass); }
+        .label-text { font-size: 13px; flex: 1; }
+        
+        input[type="checkbox"] { 
+            appearance: none; width: 44px; height: 24px; background: #333; 
+            border-radius: 12px; position: relative; transition: 0.3s; cursor: pointer; flex-shrink: 0;
+        }
+        input[type="checkbox"]::after {
+            content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; 
+            background: #fff; border-radius: 50%; transition: 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+        input[type="checkbox"]:checked { background: var(--accent-dim); border: 1px solid var(--accent); }
+        input[type="checkbox"]:checked::after { transform: translateX(20px); background: var(--accent); }
+
+        button { 
+            width: 100%; padding: 12px; margin-top: 8px; 
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); 
+            color: #eee; border-radius: 8px; cursor: pointer; 
+            transition: 0.2s; font-size: 13px; font-weight: 500; 
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        button:hover { background: rgba(255,255,255,0.1); border-color: #666; }
+        button:active { transform: translateY(1px); }
+        
+        button.primary { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+        button.primary:hover { background: var(--accent); color: #000; }
+        
+        button.danger { border-color: #522; color: #f88; opacity: 0.8; }
+        button.danger:hover { background: rgba(255, 68, 68, 0.15); opacity: 1; }
+
+        /* --- Overlays --- */
+        #msg-overlay { 
+            position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; 
+            background: rgba(0,0,0,0.6); z-index: 2000; pointer-events: none; 
+            opacity: 0; transition: opacity 0.3s; backdrop-filter: blur(4px);
+        }
+        #msg-overlay.show { opacity: 1; }
+        #msg-box { 
+            background: rgba(20,20,25,0.95); border: 1px solid var(--accent); 
+            padding: 24px 40px; border-radius: 16px; color: var(--accent); 
+            font-size: 18px; font-weight: 600; text-align: center; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5); transform: translateY(20px); transition: 0.3s;
+        }
+        #msg-overlay.show #msg-box { transform: translateY(0); }
+
+        /* Live Depth Stats in Menu */
+        .live-stat-box {
+            margin-bottom: 15px; padding: 10px; border-radius: 6px;
+            background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass);
+            text-align: center; font-size: 12px; color: #aaa; display: flex; justify-content: space-around;
+        }
+        .live-stat-box b { color: var(--accent); font-size: 14px; }
+
+        @keyframes spin { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            #setup { width: 85%; max-width: 320px; }
+            #cam-container { width: 100px; height: 56px; top: 10px; right: 10px; }
+        }
     </style>
 </head>
 <body>
-    <div id="setup">
-        <div class="panel">
-            <h2>AkariNet AIM: Hand Tracking</h2>
-            <p>A lternate<br> I nput<br> M ethod    (v1.0)</p>
-            <div class="group">
-                <label>Tracking Point:
-                    <select id="track">
-                        <option value="0">Wrist (Stable)</option>
-                        <option value="8">Index Finger</option>
-                        <option value="12">Middle Finger</option>
+
+    <!-- Smart Floating Button (Draggable) -->
+    <div id="smart-btn" onmousedown="dragStart(event)" ontouchstart="dragStart(event)">
+        <span class="icon">⚙️</span>
+        <span class="hint-text" id="smart-hint"></span>
+    </div>
+
+    <!-- Settings Panel -->
+    <div id="setup" class="collapsed">
+        <div class="header">
+            <h2>AkariNet AIM v2.0</h2>
+            <button onclick="toggleSetup()" style="width: auto; padding: 8px 12px; margin:0;">✕</button>
+        </div>
+        
+        <div class="content">
+            <!-- Tracking Section -->
+            <div class="section">
+                <div class="section-header"><h3>Tracking & Sensitivity</h3></div>
+                
+                <div class="control-group">
+                    <div class="label-row"><span>Tracking Point</span></div>
+                    <select id="trackPt" onchange="updateCfg('trackPt', this.value)">
+                        <option value="0">Wrist (Most Stable)</option>
+                        <option value="9">Middle Knuckle (Balanced)</option>
+                        <option value="8">Index Tip (Precise)</option>
+                        <option value="12">Middle Tip</option>
                     </select>
+                </div>
+
+                <div class="control-group">
+                    <div class="label-row"><span>Active Hand</span></div>
+                    <select id="handSide" onchange="updateCfg('handSide', this.value)">
+                        <option value="Any">Auto (Either Hand)</option>
+                        <option value="Right">Right Hand Only</option>
+                        <option value="Left">Left Hand Only</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <div class="label-row"><span>Sensitivity</span> <span id="val-sens" class="val-display">1.0</span></div>
+                    <input type="range" id="sens" min="0.5" max="2.5" step="0.1" value="1.0" oninput="updateCfg('sensitivity', this.value)">
+                </div>
+                
+                <div class="control-group">
+                    <div class="label-row"><span>Smoothing</span> <span id="val-smooth" class="val-display">0.7</span></div>
+                    <input type="range" id="smooth" min="0" max="0.95" step="0.05" value="0.7" oninput="updateCfg('smooth', this.value)">
+                </div>
+            </div>
+
+            <!-- View Settings -->
+            <div class="section">
+                <div class="section-header"><h3>View & Zone</h3></div>
+                
+                <label class="checkbox-row" for="showCam">
+                    <span class="label-text">Show Camera View</span>
+                    <input type="checkbox" id="showCam" checked onchange="toggleCamView(this.checked)">
+                </label>
+
+                <button class="primary" onclick="startZoneCalibration()">📐 Define Air Zone</button>
+                <div style="font-size: 11px; color: #666; margin-top: 8px; line-height: 1.4;">
+                    Maps a specific physical area in the air to the full screen.
+                </div>
+                <button class="danger" onclick="resetZone()" style="margin-top: 8px;">Reset to Full Cam</button>
+            </div>
+
+            <!-- Depth Section with Live Stats -->
+            <div class="section">
+                <div class="section-header"><h3>Depth Control</h3></div>
+                
+                <div class="live-stat-box">
+                    <span>Current Dist: <b id="rt-dist">--</b>m</span>
+                </div>
+
+                <button onclick="startDepthCalibration()">📏 Calibrate Distance (1m)</button>
+                
+                <div class="control-group" style="margin-top: 16px;">
+                    <div class="label-row"><span>Ignore Closer Than (m)</span> <span id="val-minD" class="val-display">0.0</span></div>
+                    <input type="range" id="minD" min="0" max="1.5" step="0.1" value="0.0" oninput="updateCfg('minD', this.value)">
+                </div>
+                
+                <div class="control-group">
+                    <div class="label-row"><span>Ignore Further Than (m)</span> <span id="val-maxD" class="val-display">3.0</span></div>
+                    <input type="range" id="maxD" min="0.5" max="5.0" step="0.1" value="3.0" oninput="updateCfg('maxD', this.value)">
+                </div>
+
+                <label class="checkbox-row" for="ignoreFar">
+                    <span class="label-text">Prioritize Closest Hand</span>
+                    <input type="checkbox" id="ignoreFar" checked onchange="updateCfg('ignoreFar', this.checked)">
                 </label>
             </div>
-            <div class="group">
-                <label><input type="checkbox" id="invX"> Invert X Axis</label>
-                <label><input type="checkbox" id="invY"> Invert Y Axis</label>
-                <label><input type="checkbox" id="palm" checked> Require Palm Up</label>
-                <label><input type="checkbox" id="showCam" checked> Show Camera Feed</label>
+
+            <!-- Advanced Section -->
+            <div class="section">
+                <div class="section-header"><h3>Advanced</h3></div>
+                
+                <label class="checkbox-row" for="requirePalm">
+                    <span class="label-text">Require Open Palm to Move</span>
+                    <input type="checkbox" id="requirePalm" checked onchange="updateCfg('requirePalm', this.checked)">
+                </label>
+                
+                <label class="checkbox-row" for="invX">
+                    <span class="label-text">Invert X Axis</span>
+                    <input type="checkbox" id="invX" onchange="updateCfg('invX', this.checked)">
+                </label>
+                
+                <label class="checkbox-row" for="invY">
+                    <span class="label-text">Invert Y Axis</span>
+                    <input type="checkbox" id="invY" onchange="updateCfg('invY', this.checked)">
+                </label>
             </div>
-            <div class="group">
-                <label>Camera Zoom (crop %):
-                    <input type="number" id="zoom" value="33" min="0" max="40" step="5">
-                </label>
-                <label>Cursor Speed:
-                    <input type="number" id="speed" value="1.5" min="0.5" max="5" step="0.1">
-                </label>
-                <label>Acceleration:
-                    <input type="number" id="accel" value="1.5" min="1" max="3" step="0.1">
-                </label>
-                <label>Smoothing:
-                    <input type="number" id="smooth" value="0.7" min="0" max="0.95" step="0.05">
-                </label>
-            </div>
-            <button onclick="start()">Start AIM</button>
+            
+            <button onclick="saveCfg(true)" style="background: rgba(255,255,255,0.05); color: #888; border: none; font-size: 11px;">Force Save Config</button>
         </div>
     </div>
 
+    <!-- Feedback Overlay -->
+    <div id="msg-overlay">
+        <div id="msg-box">Message</div>
+    </div>
+
+    <!-- App Container -->
     <div id="app">
-        <iframe id="iframe"></iframe>
-        <video id="video" autoplay playsinline></video>
-        <canvas id="canvas"></canvas>
+        <iframe id="iframe" src="../"></iframe> 
+        
+        <div id="cam-container">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+        </div>
+        
         <div id="cursor"></div>
-        <div id="status"><span class="dot" id="dot"></span><span id="text">Initializing...</span></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -95,229 +331,426 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 
     <script>
-        const demoHTML = "../";
+        // --- State & Config ---
+        const ui = {
+            setup: document.getElementById('setup'),
+            cursor: document.getElementById('cursor'),
+            msg: document.getElementById('msg-overlay'),
+            msgBox: document.getElementById('msg-box'),
+            iframe: document.getElementById('iframe'),
+            rtDist: document.getElementById('rt-dist'),
+            smartBtn: document.getElementById('smart-btn'),
+            smartHint: document.getElementById('smart-hint'),
+            camContainer: document.getElementById('cam-container')
+        };
 
-        let cfg, el, hands, cam;
-        // Cursor state: cx/cy = current position, sx/sy = smoothed position
-        let cx, cy, sx, sy, pinch;
-        // Camera tracking: last hand position in camera space (0-1)
-        let lastX, lastY;
+        // Default Config
+        let cfg = {
+            trackPt: 0,
+            handSide: 'Any',
+            sensitivity: 1.0,
+            smooth: 0.7,
+            tilt: 0.0,
+            invX: false, invY: false,
+            zone: { x: 0, y: 0, w: 1, h: 1 },
+            refSizeAt1m: 0.15,
+            minD: 0.0,
+            maxD: 3.0,
+            ignoreFar: true,
+            requirePalm: true,
+            showCam: true
+        };
 
-        function start() {
-            // Collect config from UI
-            cfg = {
-                track: parseInt(document.getElementById('track').value),
-                invX: document.getElementById('invX').checked,
-                invY: document.getElementById('invY').checked,
-                palm: document.getElementById('palm').checked,
-                showCam: document.getElementById('showCam').checked,
-                zoom: parseFloat(document.getElementById('zoom').value) / 100,
-                speed: parseFloat(document.getElementById('speed').value),
-                accel: parseFloat(document.getElementById('accel').value),
-                smooth: parseFloat(document.getElementById('smooth').value)
-            };
+        // Runtime State
+        let state = {
+            cx: window.innerWidth / 2, cy: window.innerHeight / 2,
+            sx: window.innerWidth / 2, sy: window.innerHeight / 2,
+            isPinching: false,
+            pinchReleased: true,
+            calibratingZone: 0,
+            calibratingDepth: false,
+            lastHandX: null, lastHandY: null,
+            lastHandLabel: null,
+            btnDrag: { active: false, x: 0, y: 0, startX: 0, startY: 0, initialLeft: 20, initialTop: 20 },
+            lastHintTime: 0
+        };
 
-            document.getElementById('setup').classList.add('hide');
-            init();
+        // --- Config Management ---
+        let saveTimeout;
+        
+        function updateCfg(key, value) {
+            if (['sensitivity', 'smooth', 'minD', 'maxD', 'trackPt'].includes(key)) value = parseFloat(value);
+            cfg[key] = value;
+            
+            const displayEl = document.getElementById(key === 'sensitivity' ? 'val-sens' : 'val-' + key);
+            if (displayEl) displayEl.textContent = value;
+
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => saveCfg(false), 500);
         }
 
-        function init() {
-            // Get DOM elements
-            el = {
-                video: document.getElementById('video'),
-                canvas: document.getElementById('canvas'),
-                cursor: document.getElementById('cursor'),
-                dot: document.getElementById('dot'),
-                text: document.getElementById('text'),
-                iframe: document.getElementById('iframe')
-            };
+        function toggleCamView(visible) {
+            cfg.showCam = visible;
+            ui.camContainer.classList.toggle('hidden', !visible);
+            updateCfg('showCam', visible);
+        }
 
-            // Setup iframe
-            el.iframe.src = demoHTML;
-            el.iframe.onload = () => el.iframeDoc = el.iframe.contentDocument;
+        function saveCfg(showMsg = false) {
+            localStorage.setItem('akari_aim_cfg', JSON.stringify(cfg));
+            if (showMsg) showMessage("Configuration Saved", 1000);
+        }
 
-            // Hide camera if requested
-            if (!cfg.showCam) {
-                el.video.classList.add('hide');
-                el.canvas.classList.add('hide');
+        function loadCfg() {
+            const saved = localStorage.getItem('akari_aim_cfg');
+            if (saved) {
+                try {
+                    const loaded = JSON.parse(saved);
+                    cfg = { ...cfg, ...loaded };
+                    
+                    Object.keys(cfg).forEach(k => {
+                        const el = document.getElementById(k);
+                        const display = document.getElementById(k === 'sensitivity' ? 'val-sens' : 'val-' + k);
+                        if (el) {
+                            if (el.type === 'checkbox') el.checked = cfg[k];
+                            else el.value = cfg[k];
+                        }
+                        if (display) display.textContent = cfg[k];
+                    });
+                    
+                    // Apply visual state for cam
+                    toggleCamView(cfg.showCam);
+                    
+                } catch (e) { console.error("Config Load Error", e); }
+            }
+        }
+
+        loadCfg();
+
+        // --- Smart Button Logic (Drag & Snap) ---
+        function dragStart(e) {
+            // Check if touch or mouse
+            const evt = e.touches ? e.touches[0] : e;
+            state.btnDrag.active = true;
+            state.btnDrag.x = evt.clientX;
+            state.btnDrag.y = evt.clientY;
+            state.btnDrag.startX = evt.clientX;
+            state.btnDrag.startY = evt.clientY;
+            
+            const rect = ui.smartBtn.getBoundingClientRect();
+            state.btnDrag.initialLeft = rect.left;
+            state.btnDrag.initialTop = rect.top;
+
+            document.addEventListener('mousemove', dragMove);
+            document.addEventListener('mouseup', dragEnd);
+            document.addEventListener('touchmove', dragMove, {passive: false});
+            document.addEventListener('touchend', dragEnd);
+        }
+
+        function dragMove(e) {
+            if (!state.btnDrag.active) return;
+            e.preventDefault(); // Prevent scrolling on touch
+            const evt = e.touches ? e.touches[0] : e;
+            
+            const dx = evt.clientX - state.btnDrag.x;
+            const dy = evt.clientY - state.btnDrag.y;
+            
+            ui.smartBtn.style.left = (state.btnDrag.initialLeft + (evt.clientX - state.btnDrag.startX)) + 'px';
+            ui.smartBtn.style.top = (state.btnDrag.initialTop + (evt.clientY - state.btnDrag.startY)) + 'px';
+        }
+
+        function dragEnd(e) {
+            if (!state.btnDrag.active) return;
+            state.btnDrag.active = false;
+            document.removeEventListener('mousemove', dragMove);
+            document.removeEventListener('mouseup', dragEnd);
+            document.removeEventListener('touchmove', dragMove);
+            document.removeEventListener('touchend', dragEnd);
+
+            // Calculate distance moved to determine if Click or Drag
+            const evt = e.changedTouches ? e.changedTouches[0] : e;
+            const dist = Math.hypot(evt.clientX - state.btnDrag.startX, evt.clientY - state.btnDrag.startY);
+
+            if (dist < 5) {
+                toggleSetup(); // Treated as click
+            } else {
+                // Snap to nearest corner
+                const winW = window.innerWidth;
+                const winH = window.innerHeight;
+                const btnRect = ui.smartBtn.getBoundingClientRect();
+                const btnCX = btnRect.left + btnRect.width/2;
+                const btnCY = btnRect.top + btnRect.height/2;
+
+                const snapLeft = (btnCX < winW / 2) ? 20 : (winW - btnRect.width - 20);
+                const snapTop = (btnCY < winH / 2) ? 20 : (winH - btnRect.height - 20);
+
+                ui.smartBtn.style.left = snapLeft + 'px';
+                ui.smartBtn.style.top = snapTop + 'px';
+            }
+        }
+
+        // --- Core Loop ---
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+        
+        hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+        hands.onResults(onResults);
+
+        const camera = new Camera(video, {
+            onFrame: async () => { await hands.send({image: video}); },
+            width: 1280, height: 720
+        });
+        camera.start();
+
+        // --- Tracking Logic ---
+        function onResults(results) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Hint Logic: Check status
+            const now = Date.now();
+            let hintMsg = "Settings";
+            let showHint = false;
+
+            if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+                state.lastHandX = null;
+                ui.cursor.style.opacity = '0.2';
+                
+                // Hint: Lost hand
+                if (now - state.lastHintTime > 2000) {
+                    hintMsg = "✋ Hand Lost";
+                    showHint = true;
+                }
+            } else {
+                // We have hands, reset hint timer
+                state.lastHintTime = now;
             }
 
-            // Initialize cursor at center
-            cx = cy = window.innerWidth / 2;
-            sx = sy = cx;
-            lastX = lastY = null;
-            pinch = false;
+            if (!showHint) updateSmartBtn(false, "Settings");
+            else updateSmartBtn(true, hintMsg);
 
-            // Setup MediaPipe Hands
-            hands = new Hands({
-                locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
-            });
-            hands.setOptions({
-                maxNumHands: 1,
-                modelComplexity: 1,
-                minDetectionConfidence: 0.5,
-                minTrackingConfidence: 0.5,
-                selfieMode: true
-            });
-            hands.onResults(onHands);
+            if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) return;
 
-            // Start camera
-            navigator.mediaDevices.getUserMedia({
-                video: { width: 1280, height: 720, facingMode: 'user' }
-            }).then(stream => {
-                el.video.srcObject = stream;
-                el.video.onloadedmetadata = () => {
-                    cam = new Camera(el.video, {
-                        onFrame: async () => await hands.send({ image: el.video }),
-                        width: 1280,
-                        height: 720
-                    });
-                    cam.start();
-                };
-            }).catch(() => el.text.textContent = "AkariNet can't communicate with your camera.");
-        }
+            let activeHand = null;
+            let activeLabel = null;
+            let maxScale = -1;
+            let debugDist = 0;
 
-        function onHands(res) {
-            const ctx = el.canvas.getContext('2d');
-            el.canvas.width = el.video.videoWidth;
-            el.canvas.height = el.video.videoHeight;
-            ctx.clearRect(0, 0, el.canvas.width, el.canvas.height);
+            for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+                const lm = results.multiHandLandmarks[i];
+                const label = results.multiHandedness[i].label;
+                
+                if (cfg.handSide !== 'Any' && label !== cfg.handSide) continue;
+                
+                const currentScale = Math.hypot(lm[9].x - lm[0].x, lm[9].y - lm[0].y);
+                const estimatedDist = cfg.refSizeAt1m / currentScale;
+                
+                // For live stats, just show the first valid hand's distance
+                debugDist = estimatedDist;
 
-            if (!res.multiHandLandmarks || !res.multiHandLandmarks.length) {
-                el.dot.classList.remove('on');
-                el.text.textContent = "AkariNet can't see your hand.";
-                lastX = lastY = null;
+                if (estimatedDist < cfg.minD || estimatedDist > cfg.maxD) {
+                    if (i === 0) updateSmartBtn(true, estimatedDist < cfg.minD ? "Too Close 📏" : "Too Far 🔭");
+                    continue;
+                }
+
+                if (cfg.ignoreFar) {
+                    if (currentScale > maxScale) {
+                        maxScale = currentScale;
+                        activeHand = lm;
+                        activeLabel = label;
+                    }
+                } else {
+                    activeHand = lm;
+                    activeLabel = label;
+                    maxScale = currentScale;
+                    break;
+                }
+            }
+            
+            // Update Live Stats in Settings
+            if (ui.setup.classList.contains('collapsed') === false && debugDist > 0) {
+                 ui.rtDist.innerText = debugDist.toFixed(2);
+            }
+
+            if (!activeHand) {
+                state.lastHandX = null;
                 return;
             }
 
-            const lm = res.multiHandLandmarks[0];
+            const currentScale = maxScale;
+            drawConnectors(ctx, activeHand, HAND_CONNECTIONS, {color: '#00ff9d', lineWidth: 2});
+            drawLandmarks(ctx, activeHand, {color: '#ffffff', lineWidth: 1, radius: 2});
 
-            // Check palm orientation: is palm facing up/forward?
-            const palmOk = checkPalm(lm);
-            el.dot.classList.add('on');
-            el.text.textContent = palmOk ? '' : 'Turn your palm towards the camera.';
+            // --- Palm Calculation ---
+            const base = Math.hypot(activeHand[5].x - activeHand[17].x, activeHand[5].y - activeHand[17].y);
+            const v1 = { x: activeHand[5].x - activeHand[0].x, y: activeHand[5].y - activeHand[0].y };
+            const v2 = { x: activeHand[17].x - activeHand[0].x, y: activeHand[17].y - activeHand[0].y };
+            const zNorm = v1.x * v2.y - v1.y * v2.x;
+            const area = Math.abs(zNorm) / 2;
+            const height = (2 * area) / base;
+            const fullness = height / base;
+            const minFullness = 0.4 * (1.0 / (cfg.sensitivity || 1.0));
+            const windingOk = (activeLabel === 'Right') ? zNorm > 0 : zNorm < 0;
+            const palmOpen = windingOk && (fullness > minFullness);
 
-            // Draw hand skeleton
-            drawConnectors(ctx, lm, HAND_CONNECTIONS, {color: palmOk ? '#0f0' : '#fa0', lineWidth: 2});
-            drawLandmarks(ctx, lm, {color: '#f00', lineWidth: 1, radius: 3});
+            // Palm Hint
+            if (cfg.requirePalm && !palmOpen && !state.calibratingZone) {
+                updateSmartBtn(true, "Open Palm ✋");
+            } else if (!showHint) {
+                updateSmartBtn(false, "");
+            }
 
-            // Get tracking point and pinch detection
-            const pt = lm[cfg.track];
-            const pinchDist = Math.hypot(lm[8].x - lm[4].x, lm[8].y - lm[4].y);
+            // --- Pinch Detection ---
+            const pinchDist = Math.hypot(activeHand[4].x - activeHand[8].x, activeHand[4].y - activeHand[8].y);
+            const isPinchingNow = pinchDist < (currentScale * 0.3 * cfg.sensitivity);
+            if (!isPinchingNow) state.pinchReleased = true;
 
-            // CURSOR MOVEMENT LOGIC:
-            // 1. Get hand position in camera space (0-1)
-            let hx = pt.x;
-            let hy = pt.y;
+            // --- Calibration Modes ---
+            if (state.calibratingDepth) {
+                cfg.refSizeAt1m = currentScale;
+                updateCfg('refSizeAt1m', currentScale);
+                state.calibratingDepth = false;
+                showMessage("Distance Calibrated!", 1500);
+            }
 
-            // 2. Apply inversions first
-            if (cfg.invX) hx = 1 - hx;
-            if (cfg.invY) hy = 1 - hy;
-
-            // 3. Calculate delta in camera space (before any clamping)
-            if (lastX !== null && lastY !== null) {
-                let dx = hx - lastX;
-                let dy = hy - lastY;
-
-                // 4. Calculate velocity for acceleration
-                const vel = Math.hypot(dx, dy);
-                const accel = 1 + vel * 10 * (cfg.accel - 1);
-
-                // 5. Convert camera delta to screen delta
-                // The crop zone should map 1:1 to the display
-                // So we scale by: screenSize / cropZoneSize
-                const zRange = (1 - cfg.zoom * 2); // Crop zone size (e.g., 0.6 for 20% zoom)
-                
-                // Adjust for aspect ratio: crop zone aspect vs display aspect
-                const cropAspect = el.video.videoWidth / el.video.videoHeight;
-                const screenAspect = window.innerWidth / window.innerHeight;
-                
-                let scaleX = (window.innerWidth / zRange);
-                let scaleY = (window.innerHeight / zRange);
-                
-                // Compensate for aspect ratio difference
-                if (screenAspect > cropAspect) {
-                    scaleX *= screenAspect / cropAspect;
-                } else {
-                    scaleY *= cropAspect / screenAspect;
+            if (state.calibratingZone > 0) {
+                if (isPinchingNow && state.pinchReleased) {
+                    const pt = activeHand[8]; 
+                    if (state.calibratingZone === 1) {
+                        cfg.zone.x = pt.x; cfg.zone.y = pt.y;
+                        state.calibratingZone = 2;
+                        state.pinchReleased = false;
+                        showMessage("Pinch Bottom-Right Corner");
+                    } else if (state.calibratingZone === 2) {
+                        cfg.zone.w = Math.abs(pt.x - cfg.zone.x);
+                        cfg.zone.h = Math.abs(pt.y - cfg.zone.y);
+                        cfg.zone.x = Math.min(cfg.zone.x, pt.x);
+                        cfg.zone.y = Math.min(cfg.zone.y, pt.y);
+                        updateCfg('zone', cfg.zone);
+                        state.calibratingZone = 0;
+                        ui.cursor.classList.remove('calibrating');
+                        ui.setup.classList.remove('collapsed');
+                        showMessage("Air Zone Saved!", 1500);
+                    }
                 }
-
-                const sdx = dx * scaleX * cfg.speed * accel;
-                const sdy = dy * scaleY * cfg.speed * accel;
-
-                // 6. Apply to cursor position
-                let nx = cx + sdx;
-                let ny = cy + sdy;
-
-                // 7. Clamp to screen bounds (cursor stops at display edge)
-                nx = Math.max(0, Math.min(window.innerWidth, nx));
-                ny = Math.max(0, Math.min(window.innerHeight, ny));
-
-                // 8. Apply smoothing
-                sx = sx * cfg.smooth + nx * (1 - cfg.smooth);
-                sy = sy * cfg.smooth + ny * (1 - cfg.smooth);
-
-                cx = sx;
-                cy = sy;
+                return;
             }
 
-            // 9. Store camera position for next frame (unclamped, so hand can move beyond edges)
-            lastX = hx;
-            lastY = hy;
-
-            // Update cursor visual
-            el.cursor.style.left = cx + 'px';
-            el.cursor.style.top = cy + 'px';
-
-            // Pinch detection
-            const wasPinch = pinch;
-            pinch = pinchDist < 0.05 && (!cfg.palm || palmOk);
-            el.cursor.classList.toggle('pinch', pinch);
-
-            // Handle iframe interaction
-            interact(wasPinch, pinch);
-        }
-
-        function checkPalm(lm) {
-            // Check if palm is facing up/forward using cross product
-            const w = lm[0], ib = lm[5], pb = lm[17];
-            const v1 = {x: ib.x - w.x, y: ib.y - w.y, z: ib.z - w.z};
-            const v2 = {x: pb.x - ib.x, y: pb.y - ib.y, z: pb.z - ib.z};
-            const nz = v1.x * v2.y - v1.y * v2.x;
-            const nx = v1.y * v2.z - v1.z * v2.y;
-            return Math.abs(nz) > 0.01 && nz > 0 && Math.abs(nx) < 0.5;
-        }
-
-        function interact(wasPinch, isPinch) {
-            if (!el.iframeDoc) return;
-
-            const rect = el.iframe.getBoundingClientRect();
-            const x = cx - rect.left;
-            const y = cy - rect.top;
-
-            if (x < 0 || y < 0 || x > rect.width || y > rect.height) return;
-
-            const target = el.iframeDoc.elementFromPoint(x, y);
-            if (!target) return;
-
-            // Dispatch mouse events
-            target.dispatchEvent(new MouseEvent('mousemove', {bubbles: true, clientX: x, clientY: y}));
-
-            if (isPinch && !wasPinch) {
-                target.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, clientX: x, clientY: y}));
-                target.dispatchEvent(new MouseEvent('click', {bubbles: true, clientX: x, clientY: y}));
-            } else if (!isPinch && wasPinch) {
-                target.dispatchEvent(new MouseEvent('mouseup', {bubbles: true, clientX: x, clientY: y}));
+            // --- Cursor Movement ---
+            const rawPt = activeHand[cfg.trackPt];
+            if (state.lastHandX === null || state.lastHandLabel !== activeLabel) {
+                state.lastHandX = rawPt.x; state.lastHandY = rawPt.y;
+                state.lastHandLabel = activeLabel;
             }
 
-            // Handle range inputs specially
-            if (target.tagName === 'INPUT' && target.type === 'range' && isPinch) {
-                const r = target.getBoundingClientRect();
-                const pct = (x - r.left) / r.width;
-                target.value = Math.round(pct * (target.max - target.min) + parseFloat(target.min));
-                target.dispatchEvent(new Event('input', {bubbles: true}));
+            let dx = rawPt.x - state.lastHandX;
+            let dy = rawPt.y - state.lastHandY;
+            if (!cfg.invX) dx *= -1; 
+            if (cfg.invY) dy *= -1;
+
+            const gainX = (1 / cfg.zone.w) * window.innerWidth;
+            const gainY = (1 / cfg.zone.h) * window.innerHeight;
+
+            state.cx += dx * gainX * (1.0 / cfg.smooth);
+            state.cy += dy * gainY * (1.0 / cfg.smooth);
+            state.cx = Math.max(0, Math.min(window.innerWidth, state.cx));
+            state.cy = Math.max(0, Math.min(window.innerHeight, state.cy));
+
+            const s = parseFloat(cfg.smooth);
+            state.sx = state.sx * s + state.cx * (1 - s);
+            state.sy = state.sy * s + state.cy * (1 - s);
+
+            ui.cursor.style.left = state.sx + 'px';
+            ui.cursor.style.top = state.sy + 'px';
+
+            // --- Interaction ---
+            const wasPinch = state.isPinching;
+            state.isPinching = isPinchingNow;
+            ui.cursor.classList.toggle('pinch', isPinchingNow);
+
+            const allowClick = !cfg.requirePalm || palmOpen;
+
+            if (allowClick) {
+                ui.cursor.style.opacity = "1";
+                ui.cursor.style.borderColor = "var(--accent)";
+                interact(state.sx, state.sy, wasPinch, isPinchingNow);
+            } else {
+                ui.cursor.style.opacity = "0.4";
+                ui.cursor.style.borderColor = "#ff4444";
+            }
+
+            state.lastHandX = rawPt.x;
+            state.lastHandY = rawPt.y;
+        }
+
+        // --- Utils & UI Logic ---
+        function updateSmartBtn(isWarning, text) {
+            if (isWarning) {
+                ui.smartBtn.classList.add('has-hint');
+                ui.smartHint.innerText = text;
+                ui.smartBtn.querySelector('.icon').innerText = '⚠️';
+            } else {
+                ui.smartBtn.classList.remove('has-hint');
+                ui.smartHint.innerText = 'Settings';
+                ui.smartBtn.querySelector('.icon').innerText = '⚙️';
             }
         }
+
+        function interact(x, y, wasPinch, isPinch) {
+            const doc = ui.iframe.contentDocument;
+            if (!doc) return;
+            const el = doc.elementFromPoint(x, y);
+            if (!el) return;
+
+            const opts = { bubbles: true, clientX: x, clientY: y, view: ui.iframe.contentWindow };
+            el.dispatchEvent(new MouseEvent('mousemove', opts));
+
+            if (isPinch && !wasPinch) el.dispatchEvent(new MouseEvent('mousedown', opts));
+            else if (!isPinch && wasPinch) {
+                el.dispatchEvent(new MouseEvent('mouseup', opts));
+                el.dispatchEvent(new MouseEvent('click', opts));
+            }
+
+            if (isPinch && (el.tagName === 'INPUT' && el.type === 'range')) {
+                const rect = el.getBoundingClientRect();
+                const val = (x - rect.left) / rect.width;
+                el.value = parseFloat(el.min) + (parseFloat(el.max) - parseFloat(el.min)) * Math.max(0, Math.min(1, val));
+                el.dispatchEvent(new Event('input', {bubbles:true}));
+            }
+        }
+
+        function startZoneCalibration() {
+            state.calibratingZone = 1;
+            ui.setup.classList.add('collapsed');
+            ui.cursor.classList.add('calibrating');
+            showMessage("Pinch Top-Left Corner");
+        }
+
+        function resetZone() {
+            cfg.zone = { x: 0, y: 0, w: 1, h: 1 };
+            updateCfg('zone', cfg.zone);
+            showMessage("Zone Reset", 1000);
+        }
+
+        function startDepthCalibration() {
+            state.calibratingDepth = true;
+            ui.setup.classList.add('collapsed');
+            showMessage("Hold hand at 1 meter...", 3000);
+        }
+
+        function toggleSetup() { ui.setup.classList.toggle('collapsed'); }
+        
+        function showMessage(txt, dur=0) {
+            ui.msgBox.innerText = txt;
+            ui.msg.classList.add('show');
+            if (dur > 0) setTimeout(() => ui.msg.classList.remove('show'), dur);
+        }
+
+        setTimeout(() => { if(window.innerWidth < 800) ui.setup.classList.add('collapsed'); }, 100);
+
     </script>
 </body>
 </html>
