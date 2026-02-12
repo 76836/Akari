@@ -4,7 +4,7 @@
 <head>
 
     <head>
-        <title>Akari v2.4c</title>
+        <title>Akari v2.5</title>
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -402,6 +402,7 @@
             onkeydown="if(event.keyCode==13) app.core.handleInput()">
     
     </div>
+    <script src="../AkariNet-Automata/ATPKLoader-1.0.0.js"></script>
     <script>
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
@@ -412,6 +413,13 @@ if ('serviceWorker' in navigator) {
         });
 }
 
+// Set automata URLs only if none exist
+if (!localStorage.getItem('akari:automata_urls')) {
+    localStorage.setItem('akari:automata_urls', JSON.stringify([
+        'https://76836.github.io/AkariNet-Automata/demo.atpk'
+    ]));
+}
+        
 (function () {
     // 1. Check for devBridge request in URL
     const params = new URLSearchParams(window.location.search);
@@ -647,7 +655,7 @@ if ('serviceWorker' in navigator) {
 
             core: {
                 init: async () => {
-                    app.ui.log("Akari v2.4 initializing...");
+                    app.ui.log("Akari v2.5 initializing...");
                     app.core.loadBackground();
 
                     await app.core.loadModule('avatar', app.config.modules.avatar, 'Avatar');
