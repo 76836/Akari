@@ -19,6 +19,8 @@
     <p class="title" style="color:darkcyan;">System Intelligence</p>
 
     <p class="smallertext">Quick command recognition script:</p>
+    <button class="setbutton" onclick="document.getElementById('reflexurl').value = './engine/automataAsReflex.js';">Use Automata to process reflexive responses.</button>
+    <button class="setbutton" onclick="document.getElementById('reflexurl').value = './characters/akari/response.js';">Akari reflex engine (default)</button>
     <input class="box" id="reflexurl" placeholder="./response/akari.js" type=text>
     <button class="setbutton" onclick="setreflex()">Save Changes</button>
 
@@ -42,7 +44,7 @@
     <button class="setbutton" onclick="localStorage.removeItem('genAI_API_KEY');">Reset AI API key.</button>
 
     <br><br><br><br>
-    <p class="smallertext">IQ cfg panel v1.0</p>
+    <p class="smallertext">IQ cfg panel v1.1</p>
 
 </body>
 
