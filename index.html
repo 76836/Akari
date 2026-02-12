@@ -402,41 +402,58 @@
             onkeydown="if(event.keyCode==13) app.core.handleInput()">
     
     </div>
-    <script src="../AkariNet-Automata/ATPKLoader-1.0.0.js"></script>
     <script>
-    (function() {
-        // 1. Ensure the Loader class is ready
+(function() {
+    'use strict';
+
+    const _eventHandlers = new Map();
+
+    window.on = function(eventName, handler) {
+        const handlerId = Math.random().toString(36).substr(2, 9);
+        const wrapper = (e) => handler(e.detail);
+        if (!_eventHandlers.has(eventName)) _eventHandlers.set(eventName, new Map());
+        _eventHandlers.get(eventName).set(handlerId, wrapper);
+        window.addEventListener(eventName, wrapper);
+        return handlerId;
+    };
+
+    window.emit = function(eventName, data) {
+        const event = new CustomEvent(eventName, { detail: data });
+        window.dispatchEvent(event);
+    };
+
+    // --- 2. Loader Initialization ---
+    async function initAkariAutomata() {
         if (typeof AutomatonLoader === 'undefined') {
-            console.error("AutomatonLoader class not found. Make sure the Loader script is included above this one.");
+            console.error("AutomatonLoader class is missing!");
             return;
         }
 
-        // 2. Set the target URL 
-        const ATPK_URL = 'https://76836.github.io/AkariNet-Automata/demo.atpk';
-        
-        const currentUrls = JSON.parse(localStorage.getItem('akari:automata_urls') || '[]');
-        if (!currentUrls.includes(ATPK_URL)) {
-            currentUrls.push(ATPK_URL);
-            localStorage.setItem('akari:automata_urls', JSON.stringify(currentUrls));
-        }
-
-        // 3. Initialize and expose to the global window object
-        // This allows the "automaton-manager" inside the ATPK to access the loader
         const loader = new AutomatonLoader();
         window.automatonLoader = loader;
 
-        // 4. Execute the load sequence
-        console.log("AkariNet: Initializing Automata Loader...");
-        loader.loadAll()
-            .then(() => {
-                const count = loader.list().length;
-                console.log(`AkariNet: Successfully initialized ${count} automata.`);
-            })
-            .catch(err => {
-                console.error("AkariNet: Fatal error during automata initialization:", err);
-            });
-    })();
+        // Configuration: Set the demo URL if not present
+        const demoUrl = 'https://76836.github.io/AkariNet-Automata/demo.atpk'; // <--- Update this!
+        let urls = JSON.parse(localStorage.getItem('akari:automata_urls') || '[]');
+        if (!urls.includes(demoUrl)) {
+            urls.push(demoUrl);
+            localStorage.setItem('akari:automata_urls', JSON.stringify(urls));
+        }
+
+        console.log("Waking up the automata...");
+        await loader.loadAll();
+    }
+
+    // --- 3. Run on Load ---
+    if (document.readyState === 'complete') {
+        initAkariAutomata();
+    } else {
+        window.addEventListener('load', initAkariAutomata);
+    }
+})();
 </script>
+   
+    <script src="../AkariNet-Automata/ATPKLoader-1.0.0.js"></script>
     <script>
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
