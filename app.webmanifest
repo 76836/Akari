@@ -4,7 +4,7 @@
     "short_name": "Akari",
  "screenshots": [
     {
-     "src": "./AkariScreenshot.png",
+     "src": "./images/AkariScreenshot.png",
       "sizes": "1080x2280",
       "type": "image/png",
       "form_factor": "narrow",
@@ -15,16 +15,16 @@
 "description": "Install Akari as a Progressive web app to launch it as an app from your homescreen or digital assistant, use it fully offline, and open all Akari links in the same enviornment. This option uses no extra storage space and can be uninstalled without losing any data.",
 
     "icons": [{
-        "src": "./logo512.png",
+        "src": "./images/logo512.png",
         "sizes": "512x512",
         "type": "image/png"
       },{
-        "src": "./logo192.png",
+        "src": "./images/logo192.png",
         "sizes": "192x192",
         "type": "image/png",
         "purpose": "maskable"
       },{
-        "src": "./logo144.png",
+        "src": "./images/logo144.png",
         "sizes": "144x144",
         "type": "image/png"
       }],

@@ -10,8 +10,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="manifest" href="./app.webmanifest">
         <meta charset="utf-8" />
-        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
-        <link rel="shortcut icon" href="./favicon.ico">
+        <link rel="apple-touch-icon" sizes="180x180" href="./images/apple-touch-icon.png">
+        <link rel="shortcut icon" href="./images/favicon.ico">
         <meta name="msapplication-TileColor" content="#603cba">
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
         <style>
@@ -369,11 +369,11 @@
     <div id="avatar"></div>
     <div id="overlay">
         <div class="console" id="boot-log" style="font-size: 1rem; color: #fff;"></div>
-        <img src="https://76836.github.io/Akari/logo512.png"
+        <img src="./images/logo512.png"
      alt="Logo"
      style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.6);">
 
-<img src="https://76836.github.io/Akari/loading.gif"
+<img src="./images/loading.gif"
      alt="Logo Small"
      style="position:fixed; top:65%; left:50%; transform:translate(-50%, -50%) scale(0.2);">
 
@@ -520,7 +520,7 @@ if ('serviceWorker' in navigator) {
     overlay.id = 'devBridge-bridge-overlay';
     overlay.innerHTML = `
         <div class="devBridge-card">
-            <img class="devBridge-icon" src="https://76836.github.io/Akari/logo512.png"></img>
+            <img class="devBridge-icon" src="./images/logo512.png"></img>
             <h2 style="font-size: 18px; margin-bottom: 4px;">AkariNet devBridge</h2>
             <p style="color: #6ff; font-size: 13px; margin-bottom: 10px;">An external program claiming to be <b>"${cleanName}"</b> is requesting unrestricted access to this AkariNet.</p>
             <div class="devBridge-warning">
