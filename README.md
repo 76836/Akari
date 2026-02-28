@@ -1,18 +1,32 @@
 
-<br>
-
-# AkariNet 
-**Fully customizable AI assistant with voice commands, serverless AI, interactive avatars, device control, and more.**
-
-<br>
+<p align="left">
+  <img src="./images/banner.png" width="100%" alt="AkariNet"/>
+</p>
 
 
-# Akari PWA
-
+> ### **AkariNet: A fully customizable AI assistant with voice commands, serverless AI, interactive avatars, device control, and more.**
 
 <br>
 
+# AkariNet PWA
 
+<br>
+
+Akari Voice Assistant v2.5.  
+Best experience on chrome-based browsers, with expanding support across additional browsers through newer modules.  
+Use at: https://76836.github.io/Akari
+<br>**devBridge** is the safer path for external program-to-AkariNet communication, replacing direct URL-query triggering with an authorization flow (verification code + user approval) for better security and control.  
+New features such as the **AkariNet Audio Console** bring richer speech/wake-word/transcription support and improve compatibility behavior across non-Chromium browsers.
+
+Version 2.5: <br>
+Added AkariNet devBridge authorization flow for external app integration (safer alternative to legacy URL query command triggers).  
+Added Audio Console integration option for wake-word detection and transcription.  
+Invented the AkariNet Automata system to make customizing AkariNet easier, I plan to switch everything over to using that system soon.
+New redesigned UI that works across mobile and desktop without compromise.  
+Improved settings app with preconfigured options and toggles.  
+Full release of the AkariNet VRM avatar module powered by emotionEngine.  
+New AI provider: pollinations.ai. New instances of AkariNet will default to pollinations for LLM inference without needing an API key or account.
+Cleanup and other stuff... (i forgot)
 
 Akari Voice Assistant v2.4.
 Full support on chrome-based browsers.
