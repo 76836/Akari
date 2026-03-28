@@ -67,13 +67,14 @@
         const script = document.createElement('script');
         script.type = 'module';
         script.textContent = `
-            import { AkarinetVoice } from 'https://76836.github.io/AkariNet-AudioConsole/audioConsole-3.3.0.js';
+            import { AkarinetVoice } from 'https://76836.github.io/AkariNet-AudioConsole/audioConsole-3.4.0.js';
             
             const config = {
                 modelId: "onnx-community/moonshine-base-ONNX",
                 modelQuantization: "q8",
                 wakewords: [],
                 wakesoundURL: "https://teachablemachine.withgoogle.com/models/SwNFRUBwu/",
+                wakeChimeURL: "https://76836.github.io/Akari/characters/akari/Summon.mp3",
                 wakesoundThreshold: ${localStorage.getItem('wakeSense') || "0.75"},
                 wakesoundIndex: 2,
                 wakesoundDuration: 750,
