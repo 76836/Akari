@@ -28,11 +28,16 @@
     <button class="setbutton" onclick="document.getElementById('AIurl').value = './characters/akari/Gemini.js';">Akari (Gemini API) (Key required)</button>
     <button class="setbutton" onclick="document.getElementById('AIurl').value = './characters/akari/Qwen2.js';">Akari (Qwen2 0.5B local download) (under 500MB)</button>
     <button class="setbutton" onclick="document.getElementById('AIurl').value = './characters/akari/Llama1B.js';">Akari (Llama 3.2 1B local download) (under 1GB)</button>
+    <button class="setbutton" onclick="document.getElementById('AIurl').value = './characters/akari/lcpp.js';">Akari (llama.cpp on local network)</button>
     <button class="setbutton" onclick="document.getElementById('AIurl').value = './characters/hiyori/Gemini.js';">Hiyori (Gemini API) (Key required)</button>
     <button class="setbutton" onclick="document.getElementById('AIurl').value = '';">Skip the AI (only use preprogrammed responses)</button>
     <input class="box" id="AIurl" placeholder="~disabled~" type=text>
     <button class="setbutton" onclick="setAI()">Save Changes</button>
 
+    <br><br>
+    <p class="smallertext">Llama.cpp integration:</p>
+    <button class="setbutton" onclick="window.location.href = '../engine/LCPP/discovery';">Server autodiscovery menu.</button>
+    
     <br><br>
     <p class="smallertext">Enable/disable Akari Python Server:</p>
     <button class="setbutton" onclick="localStorage.setItem('selectedAISetting', 'No');">Disable AI server connection.</button>
@@ -44,7 +49,7 @@
     <button class="setbutton" onclick="localStorage.removeItem('genAI_API_KEY');">Reset AI API key.</button>
 
     <br><br><br><br>
-    <p class="smallertext">IQ cfg panel v1.1</p>
+    <p class="smallertext">IQ cfg panel v2.0</p>
 
 </body>
 
