@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autodetect llama.cpp Servers</title>
+    <style>
+        :root {
+            --md-primary: #8ab4f8;
+            --md-on-primary: #0f172a;
+            --md-primary-container: #1e293b;
+            --md-on-primary-container: #e2e8f0;
+            --md-surface: #0f172a;
+            --md-on-surface: #e2e8f0;
+            --md-surface-variant: #1e293b;
+            --md-on-surface-variant: #94a3b8;
+            --md-outline: #475569;
+            --md-error: #f97316;
+            --md-success: #34d399;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #1a1a1a;
+            color: var(--md-on-surface);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container { width: 100%; max-width: 600px; }
+
+        header { margin-bottom: 24px; text-align: center; }
+        header h1 { font-family: 'Google Sans', sans-serif; font-size: 28px; margin: 0; color: var(--md-primary); }
+        header p { font-size: 14px; color: var(--md-on-surface-variant); }
+
+        .card {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid var(--md-outline);
+            border-bottom: 5px solid var(--md-outline);
+            border-left: 5px solid var(--md-outline);
+            border-radius: 0px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.40);
+        }
+
+        .input-group { margin-bottom: 16px; }
+        label { display: block; font-size: 12px; margin-bottom: 6px; font-weight: 500; color: var(--md-on-surface-variant); text-transform: uppercase; letter-spacing: 0.5px; }
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid rgba(148, 163, 184, 0.40);
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.8);
+            font-size: 16px;
+            color: var(--md-on-surface);
+            outline: none;
+            transition: border 0.2s, box-shadow 0.2s;
+        }
+        input:focus { border: 1px solid var(--md-primary); box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.20); }
+
+        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        button {
+            padding: 14px;
+            border-radius: 100px;
+            border: none;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: opacity 0.2s, filter 0.2s, transform 0.12s;
+        }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: #2f5fcc; color: #f8fafc; }
+        .btn-primary:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-tonal { background: rgba(148, 163, 184, 0.24); color: #e2e8f0; }
+        .btn-tonal:hover:not(:disabled) { background: rgba(148, 163, 184, 0.36); }
+
+        .progress-track { height: 6px; background: rgba(148, 163, 184, 0.25); border-radius: 3px; overflow: hidden; margin: 16px 0; display: none; position: relative; }
+        .progress-track.active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -20%;
+            height: 100%;
+            width: 20%;
+            background: linear-gradient(120deg, rgba(138, 180, 248, 0.9), rgba(138, 180, 248, 0.5));
+            border-radius: 3px;
+            animation: sweep 1.1s ease-in-out infinite;
+            z-index: 2;
+            pointer-events: none;
+        }
+        @keyframes sweep {
+            0% { left: -20%; }
+            50% { left: 100%; }
+            100% { left: -20%; }
+        }
+        .progress-fill { height: 100%; background: #8ab4f8; width: 0%; transition: width 0.3s linear; z-index:1; }
+
+        .server-item {
+            background: rgba(15, 23, 42, 0.82);
+            border-radius: 0px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid var(--md-outline);
+            border-bottom: 5px solid var(--md-outline);
+            border-left: 5px solid var(--md-outline);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+        }
+
+        .server-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .server-url { font-weight: 500; color: #8ab4f8; font-family: monospace; }
+        .status-badge { font-size: 10px; padding: 2px 8px; border-radius: 8px; text-transform: uppercase; font-weight: bold; }
+        .status-online { background: rgba(52, 211, 153, 0.16); color: #22c55e; }
+        .status-offline { background: rgba(248, 113, 16, 0.16); color: #fb923c; }
+        .status-checking { background: rgba(148, 163, 184, 0.18); color: #94a3b8; }
+
+        .server-details { font-size: 13px; color: var(--md-on-surface-variant); line-height: 1.4; }
+        .delete-btn { color: #f97316; background: none; border: none; font-size: 12px; padding: 0; text-decoration: underline; cursor: pointer; text-align: left; margin-top: 4px; }
+
+        #log { font-family: monospace; font-size: 12px; margin-top: 12px; color: #cbd5e1; max-height: 88px; overflow-y: auto; border-top: 1px solid rgba(148, 163, 184, 0.3); padding-top: 8px; }
+        input::placeholder { color: #94a3b8; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Autodetect Llama.CPP Servers</h1>
+    </header>
+
+    <div class="card">
+        <div class="input-group">
+            <label>Subnet Base:</label>
+            <input type="text" id="subnetInput" placeholder="e.g. 192.168.1">
+        </div>
+        <div class="btn-row">
+            <button class="btn-primary" id="scanBtn">Start Scan</button>
+            <button class="btn-tonal" id="detectBtn">Auto Detect Subnet Base</button>
+        </div>
+        <div class="progress-track" id="progressTrack">
+            <div id="progressFill" class="progress-fill"></div>
+        </div>
+        <div id="log">Ready to scan local network...</div>
+    </div>
+
+    <div id="serverList">
+        <!-- Servers populated here -->
+    </div>
+</div>
+
+<script>
+    let servers = JSON.parse(localStorage.getItem('lcpp_servers') || '[]');
+    let isScanning = false;
+
+    const subnetInput = document.getElementById('subnetInput');
+    const logEl = document.getElementById('log');
+    const serverListEl = document.getElementById('serverList');
+    const progressTrack = document.getElementById('progressTrack');
+    const progressFill = document.getElementById('progressFill');
+
+    function saveServers() {
+        localStorage.setItem('lcpp_servers', JSON.stringify(servers));
+    }
+
+    function writeLog(text) {
+        logEl.textContent = `> ${text}`;
+    }
+
+    function renderServers() {
+        serverListEl.innerHTML = servers.length === 0 ? 
+            '<p style="text-align:center; color:#999; font-size:14px;">No servers saved yet.</p>' : '';
+        
+        // Sort: Online first
+        const sorted = [...servers].sort((a, b) => (b.online === a.online) ? 0 : b.online ? 1 : -1);
+
+        sorted.forEach((s, idx) => {
+            const item = document.createElement('div');
+            item.className = 'server-item';
+            
+            const statusClass = s.checking ? 'status-checking' : (s.online ? 'status-online' : 'status-offline');
+            const statusText = s.checking ? 'Checking...' : (s.online ? 'Online' : 'Offline');
+
+            item.innerHTML = `
+                <div class="server-header">
+                    <span class="server-url">${s.url}</span>
+                    <span class="status-badge ${statusClass}">${statusText}</span>
+                </div>
+                <div class="server-details">
+                    ${s.model ? `<b>Model:</b> ${s.model}<br>` : ''}
+                    ${s.slots ? `<b>Slots:</b> ${s.slots}<br>` : ''}
+                    ${s.lastSeen ? `<b>Last Seen:</b> ${new Date(s.lastSeen).toLocaleTimeString()}` : 'Never seen online'}
+                </div>
+                <button class="delete-btn" onclick="removeServer('${s.url}')">Forget Server</button>
+            `;
+            serverListEl.appendChild(item);
+        });
+    }
+
+    async function checkServerHealth(url) {
+        const server = servers.find(s => s.url === url);
+        if (!server) return;
+
+        server.checking = true;
+        renderServers();
+
+        try {
+            // Llama.cpp specific props endpoint
+            const propsPromise = fetch(`${url}/props`, { signal: AbortSignal.timeout(2000) });
+            // OpenAI compatible models endpoint
+            const modelsPromise = fetch(`${url}/v1/models`, { signal: AbortSignal.timeout(2000) });
+
+            const [propsRes, modelsRes] = await Promise.allSettled([propsPromise, modelsPromise]);
+
+            let isLlama = false;
+            if (propsRes.status === 'fulfilled' && propsRes.value.ok) {
+                const data = await propsRes.value.json();
+                server.slots = data.default_generation_settings?.n_predict || 'Unknown';
+                isLlama = true;
+            }
+
+            if (modelsRes.status === 'fulfilled' && modelsRes.value.ok) {
+                const data = await modelsRes.value.json();
+                server.model = data.data?.[0]?.id || 'Unknown Model';
+                server.online = true;
+                server.lastSeen = Date.now();
+            } else if (isLlama) {
+                server.online = true;
+                server.lastSeen = Date.now();
+            } else {
+                server.online = false;
+            }
+        } catch (e) {
+            server.online = false;
+        } finally {
+            server.checking = false;
+            saveServers();
+            renderServers();
+        }
+    }
+
+    async function scanNetwork() {
+        if (isScanning) return;
+        const base = subnetInput.value.trim();
+        if (!base) return writeLog("Enter a subnet first!");
+
+        isScanning = true;
+        progressTrack.style.display = 'block';
+        progressTrack.classList.add('active');
+        document.getElementById('scanBtn').disabled = true;
+        
+        const ports = [8080];//perhaps i should implement a multi port feature if somebody is running multiple llamafiles on one PC
+        const tasks = [];
+        for (let i = 1; i < 255; i++) {
+            ports.forEach(p => tasks.push(`http://${base}.${i}:${p}`));
+        }
+
+        let completed = 0;
+        const total = tasks.length;
+        const batchSize = 25;
+
+        for (let i = 0; i < tasks.length; i += batchSize) {
+            if (!isScanning) break;
+            const batch = tasks.slice(i, i + batchSize);
+            
+            await Promise.all(batch.map(async (url) => {
+                try {
+                    const res = await fetch(`${url}/v1/models`, { signal: AbortSignal.timeout(1000) });
+                    if (res.ok) {
+                        if (!servers.find(s => s.url === url)) {
+                            servers.push({ url, online: true, lastSeen: Date.now() });
+                            saveServers();
+                            checkServerHealth(url);
+                        }
+                    }
+                } catch (e) {}
+                completed++;
+                progressFill.style.width = `${(completed / total) * 100}%`;
+                writeLog(`Scanning... ${completed}/${total}`);
+            }));
+        }
+
+        isScanning = false;
+        progressTrack.style.display = 'none';
+        progressTrack.classList.remove('active');
+        document.getElementById('scanBtn').disabled = false;
+        writeLog("Scan complete.");
+        renderServers();
+    }
+
+    window.removeServer = (url) => {
+        servers = servers.filter(s => s.url !== url);
+        saveServers();
+        renderServers();
+    };
+
+    document.getElementById('detectBtn').onclick = async () => {
+        writeLog("Starting detection...");
+        progressTrack.style.display = 'block';
+        progressTrack.classList.add('active');
+        progressFill.style.width = '0%';
+
+    // 1. Attempt WebRTC Detection
+    const getWebRTCIP = () => {
+        return new Promise((resolve) => {
+            const pc = new RTCPeerConnection({ iceServers: [] });
+            pc.createDataChannel('');
+            pc.onicecandidate = e => {
+                if (!e.candidate) return resolve(null);
+                const m = e.candidate.candidate.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
+                if (m && !m[1].startsWith('127.')) {
+                    resolve(m[1]);
+                }
+            };
+            pc.createOffer().then(o => pc.setLocalDescription(o));
+            // Timeout WebRTC after 500ms if it's stuck on mDNS (.local)
+            setTimeout(() => resolve(null), 500);
+        });
+    };
+
+    // 2. Fallback Batch Scanner (Sub-5 Seconds)
+    const runBatchScan = async () => {
+        writeLog("WebRTC masked/failed. Running makeshift fallback...");
+        const batchSize = 32; 
+        const timeoutMs = 250;
+
+        for (let i = 0; i <= 255; i += batchSize) {
+            const batch = [];
+            for (let j = i; j < i + batchSize && j <= 255; j++) {
+                const subnet = `192.168.${j}`;
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+                batch.push(
+                    fetch(`http://${subnet}.1`, { mode: 'no-cors', signal: controller.signal })
+                        .then(() => { clearTimeout(timer); return subnet; })
+                        .catch(() => { clearTimeout(timer); return null; })
+                );
+            }
+
+            const results = await Promise.all(batch);
+            const found = results.find(res => res !== null);
+            if (found) return found;
+        }
+        return null;
+    };
+
+    // Execution Logic
+    const rtcResult = await getWebRTCIP();
+    if (rtcResult) {
+        const sub = rtcResult.split('.').slice(0, 3).join('.');
+        subnetInput.value = sub;
+        writeLog(`Detected via WebRTC: ${sub}.x`);
+    } else {
+        const detectedSubnet = await runBatchScan();
+        if (detectedSubnet) {
+            subnetInput.value = detectedSubnet;
+            writeLog(`Detected via Scan: ${detectedSubnet}.x`);
+        } else {
+            writeLog("Detection failed. Please enter subnet manually.");
+        }
+    }
+    progressTrack.style.display = 'none';
+    progressTrack.classList.remove('active');
+};
+
+    document.getElementById('scanBtn').onclick = scanNetwork;
+
+    window.addEventListener('load', () => {
+        if (!subnetInput.value.trim()) {
+            document.getElementById('detectBtn').click();
+        }
+    });
+
+    // Initial check for all saved servers
+    renderServers();
+    servers.forEach(s => checkServerHealth(s.url));
+
+</script>
+</body>
+</html> 
