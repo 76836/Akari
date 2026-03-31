@@ -52,9 +52,9 @@
         label { display: block; font-size: 12px; margin-bottom: 6px; font-weight: 500; color: var(--md-on-surface-variant); text-transform: uppercase; letter-spacing: 0.5px; }
         input {
             width: 100%;
-            padding: 14px;
+            padding: 12px;
             border: 1px solid rgba(148, 163, 184, 0.40);
-            border-radius: 12px;
+            border-radius: 8px;
             background: rgba(15, 23, 42, 0.8);
             font-size: 16px;
             color: var(--md-on-surface);
@@ -63,9 +63,9 @@
         }
         input:focus { border: 1px solid var(--md-primary); box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.20); }
 
-        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
         button {
-            padding: 14px;
+            padding: 12px;
             border-radius: 100px;
             border: none;
             font-weight: 500;
@@ -78,7 +78,10 @@
         .btn-primary:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
         .btn-tonal { background: rgba(148, 163, 184, 0.24); color: #e2e8f0; }
         .btn-tonal:hover:not(:disabled) { background: rgba(148, 163, 184, 0.36); }
+        .btn-outline { background: transparent; border: 1px solid var(--md-outline); color: var(--md-on-surface); }
+        .btn-danger { background: rgba(249, 115, 22, 0.2); color: #f97316; border: 1px solid #f97316; }
 
+        /* Progress Bar */
         .progress-track { height: 6px; background: rgba(148, 163, 184, 0.25); border-radius: 3px; overflow: hidden; margin: 16px 0; display: none; position: relative; }
         .progress-track.active::before {
             content: '';
@@ -100,9 +103,72 @@
         }
         .progress-fill { height: 100%; background: #8ab4f8; width: 0%; transition: width 0.3s linear; z-index:1; }
 
+        /* Advanced Menu */
+        .advanced-toggle {
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--md-primary);
+            text-decoration: underline;
+            display: block;
+            text-align: center;
+            margin-top: 10px;
+        }
+        #advancedMenu {
+            display: none;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--md-outline);
+        }
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #334155;
+            transition: .4s;
+            border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px; width: 14px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--md-primary); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        .port-tag {
+            display: inline-flex;
+            align-items: center;
+            background: var(--md-primary-container);
+            color: var(--md-primary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-right: 6px;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+        .port-tag span { cursor: pointer; margin-left: 6px; font-weight: bold; }
+
+        /* List Items */
         .server-item {
             background: rgba(15, 23, 42, 0.82);
-            border-radius: 0px;
             padding: 16px;
             margin-bottom: 12px;
             border: 1px solid var(--md-outline);
@@ -111,7 +177,6 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            position: relative;
         }
 
         .server-header { display: flex; justify-content: space-between; align-items: flex-start; }
@@ -125,7 +190,6 @@
         .delete-btn { color: #f97316; background: none; border: none; font-size: 12px; padding: 0; text-decoration: underline; cursor: pointer; text-align: left; margin-top: 4px; }
 
         #log { font-family: monospace; font-size: 12px; margin-top: 12px; color: #cbd5e1; max-height: 88px; overflow-y: auto; border-top: 1px solid rgba(148, 163, 184, 0.3); padding-top: 8px; }
-        input::placeholder { color: #94a3b8; }
     </style>
 </head>
 <body>
@@ -142,8 +206,35 @@
         </div>
         <div class="btn-row">
             <button class="btn-primary" id="scanBtn">Start Scan</button>
-            <button class="btn-tonal" id="detectBtn">Auto Detect Subnet Base</button>
+            <button class="btn-tonal" id="detectBtn">Auto Detect</button>
         </div>
+        
+        <a class="advanced-toggle" onclick="toggleAdvanced()">Advanced Settings</a>
+        
+        <div id="advancedMenu">
+            <div class="setting-row">
+                <span>Use HTTPS protocol</span>
+                <label class="switch">
+                    <input type="checkbox" id="httpsToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <div class="input-group">
+                <label>Scan Ports:</label>
+                <div id="portList" style="margin-bottom: 8px;"></div>
+                <div style="display: flex; gap: 8px;">
+                    <input type="number" id="newPortInput" placeholder="Add port..." style="padding: 8px;">
+                    <button class="btn-tonal" style="padding: 8px 16px; border-radius: 8px;" onclick="addPort()">Add</button>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn-danger" onclick="forgetUnresponsive()">Forget Unresponsive</button>
+                <button class="btn-danger" style="background: rgba(249, 115, 22, 0.4);" onclick="forgetAll()">Forget All</button>
+            </div>
+        </div>
+
         <div class="progress-track" id="progressTrack">
             <div id="progressFill" class="progress-fill"></div>
         </div>
@@ -156,7 +247,9 @@
 </div>
 
 <script>
+    // State
     let servers = JSON.parse(localStorage.getItem('lcpp_servers') || '[]');
+    let config = JSON.parse(localStorage.getItem('lcpp_config') || '{"https": false, "ports": [8080]}');
     let isScanning = false;
 
     const subnetInput = document.getElementById('subnetInput');
@@ -164,6 +257,20 @@
     const serverListEl = document.getElementById('serverList');
     const progressTrack = document.getElementById('progressTrack');
     const progressFill = document.getElementById('progressFill');
+    const portListEl = document.getElementById('portList');
+    const httpsToggle = document.getElementById('httpsToggle');
+
+    // Init UI from State
+    httpsToggle.checked = config.https;
+    httpsToggle.onchange = (e) => {
+        config.https = e.target.checked;
+        saveConfig();
+    };
+
+    function saveConfig() {
+        localStorage.setItem('lcpp_config', JSON.stringify(config));
+        renderPorts();
+    }
 
     function saveServers() {
         localStorage.setItem('lcpp_servers', JSON.stringify(servers));
@@ -173,14 +280,39 @@
         logEl.textContent = `> ${text}`;
     }
 
+    function toggleAdvanced() {
+        const menu = document.getElementById('advancedMenu');
+        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function addPort() {
+        const input = document.getElementById('newPortInput');
+        const val = parseInt(input.value);
+        if (val && !config.ports.includes(val)) {
+            config.ports.push(val);
+            saveConfig();
+            input.value = '';
+        }
+    }
+
+    function removePort(port) {
+        config.ports = config.ports.filter(p => p !== port);
+        saveConfig();
+    }
+
+    function renderPorts() {
+        portListEl.innerHTML = config.ports.map(p => `
+            <div class="port-tag">${p}<span onclick="removePort(${p})">&times;</span></div>
+        `).join('');
+    }
+
     function renderServers() {
         serverListEl.innerHTML = servers.length === 0 ? 
             '<p style="text-align:center; color:#999; font-size:14px;">No servers saved yet.</p>' : '';
         
-        // Sort: Online first
         const sorted = [...servers].sort((a, b) => (b.online === a.online) ? 0 : b.online ? 1 : -1);
 
-        sorted.forEach((s, idx) => {
+        sorted.forEach((s) => {
             const item = document.createElement('div');
             item.className = 'server-item';
             
@@ -211,9 +343,7 @@
         renderServers();
 
         try {
-            // Llama.cpp specific props endpoint
             const propsPromise = fetch(`${url}/props`, { signal: AbortSignal.timeout(2000) });
-            // OpenAI compatible models endpoint
             const modelsPromise = fetch(`${url}/v1/models`, { signal: AbortSignal.timeout(2000) });
 
             const [propsRes, modelsRes] = await Promise.allSettled([propsPromise, modelsPromise]);
@@ -255,15 +385,15 @@
         progressTrack.classList.add('active');
         document.getElementById('scanBtn').disabled = true;
         
-        const ports = [8080];//perhaps i should implement a multi port feature if somebody is running multiple llamafiles on one PC
+        const protocol = config.https ? 'https' : 'http';
         const tasks = [];
         for (let i = 1; i < 255; i++) {
-            ports.forEach(p => tasks.push(`http://${base}.${i}:${p}`));
+            config.ports.forEach(p => tasks.push(`${protocol}://${base}.${i}:${p}`));
         }
 
         let completed = 0;
         const total = tasks.length;
-        const batchSize = 25;
+        const batchSize = 30;
 
         for (let i = 0; i < tasks.length; i += batchSize) {
             if (!isScanning) break;
@@ -271,7 +401,7 @@
             
             await Promise.all(batch.map(async (url) => {
                 try {
-                    const res = await fetch(`${url}/v1/models`, { signal: AbortSignal.timeout(1000) });
+                    const res = await fetch(`${url}/v1/models`, { signal: AbortSignal.timeout(1200) });
                     if (res.ok) {
                         if (!servers.find(s => s.url === url)) {
                             servers.push({ url, online: true, lastSeen: Date.now() });
@@ -300,88 +430,91 @@
         renderServers();
     };
 
+    window.forgetUnresponsive = () => {
+        servers = servers.filter(s => s.online);
+        saveServers();
+        renderServers();
+        writeLog("Forgot all offline servers.");
+    };
+
+    window.forgetAll = () => {
+        servers = [];
+        saveServers();
+        renderServers();
+        writeLog("Server list cleared.");
+    };
+
     document.getElementById('detectBtn').onclick = async () => {
         writeLog("Starting detection...");
         progressTrack.style.display = 'block';
         progressTrack.classList.add('active');
         progressFill.style.width = '0%';
 
-    // 1. Attempt WebRTC Detection
-    const getWebRTCIP = () => {
-        return new Promise((resolve) => {
-            const pc = new RTCPeerConnection({ iceServers: [] });
-            pc.createDataChannel('');
-            pc.onicecandidate = e => {
-                if (!e.candidate) return resolve(null);
-                const m = e.candidate.candidate.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
-                if (m && !m[1].startsWith('127.')) {
-                    resolve(m[1]);
+        const getWebRTCIP = () => {
+            return new Promise((resolve) => {
+                const pc = new RTCPeerConnection({ iceServers: [] });
+                pc.createDataChannel('');
+                pc.onicecandidate = e => {
+                    if (!e.candidate) return resolve(null);
+                    const m = e.candidate.candidate.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
+                    if (m && !m[1].startsWith('127.')) resolve(m[1]);
+                };
+                pc.createOffer().then(o => pc.setLocalDescription(o));
+                setTimeout(() => resolve(null), 600);
+            });
+        };
+
+        const runBatchScan = async () => {
+            const batchSize = 32; 
+            const timeoutMs = 300;
+            for (let i = 0; i <= 255; i += batchSize) {
+                const batch = [];
+                for (let j = i; j < i + batchSize && j <= 255; j++) {
+                    const subnet = `192.168.${j}`;
+                    const controller = new AbortController();
+                    const timer = setTimeout(() => controller.abort(), timeoutMs);
+                    batch.push(
+                        fetch(`http://${subnet}.1`, { mode: 'no-cors', signal: controller.signal })
+                            .then(() => { clearTimeout(timer); return subnet; })
+                            .catch(() => { clearTimeout(timer); return null; })
+                    );
                 }
-            };
-            pc.createOffer().then(o => pc.setLocalDescription(o));
-            // Timeout WebRTC after 500ms if it's stuck on mDNS (.local)
-            setTimeout(() => resolve(null), 500);
-        });
-    };
-
-    // 2. Fallback Batch Scanner (Sub-5 Seconds)
-    const runBatchScan = async () => {
-        writeLog("WebRTC masked/failed. Running makeshift fallback...");
-        const batchSize = 32; 
-        const timeoutMs = 250;
-
-        for (let i = 0; i <= 255; i += batchSize) {
-            const batch = [];
-            for (let j = i; j < i + batchSize && j <= 255; j++) {
-                const subnet = `192.168.${j}`;
-                const controller = new AbortController();
-                const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-                batch.push(
-                    fetch(`http://${subnet}.1`, { mode: 'no-cors', signal: controller.signal })
-                        .then(() => { clearTimeout(timer); return subnet; })
-                        .catch(() => { clearTimeout(timer); return null; })
-                );
+                const results = await Promise.all(batch);
+                const found = results.find(res => res !== null);
+                if (found) return found;
             }
+            return null;
+        };
 
-            const results = await Promise.all(batch);
-            const found = results.find(res => res !== null);
-            if (found) return found;
-        }
-        return null;
-    };
-
-    // Execution Logic
-    const rtcResult = await getWebRTCIP();
-    if (rtcResult) {
-        const sub = rtcResult.split('.').slice(0, 3).join('.');
-        subnetInput.value = sub;
-        writeLog(`Detected via WebRTC: ${sub}.x`);
-    } else {
-        const detectedSubnet = await runBatchScan();
-        if (detectedSubnet) {
-            subnetInput.value = detectedSubnet;
-            writeLog(`Detected via Scan: ${detectedSubnet}.x`);
+        const rtcResult = await getWebRTCIP();
+        if (rtcResult) {
+            const sub = rtcResult.split('.').slice(0, 3).join('.');
+            subnetInput.value = sub;
+            writeLog(`Detected: ${sub}.x`);
         } else {
-            writeLog("Detection failed. Please enter subnet manually.");
+            const detectedSubnet = await runBatchScan();
+            if (detectedSubnet) {
+                subnetInput.value = detectedSubnet;
+                writeLog(`Detected: ${detectedSubnet}.x`);
+            } else {
+                writeLog("Detection failed. Enter subnet manually.");
+            }
         }
-    }
-    progressTrack.style.display = 'none';
-    progressTrack.classList.remove('active');
-};
+        progressTrack.style.display = 'none';
+        progressTrack.classList.remove('active');
+    };
 
     document.getElementById('scanBtn').onclick = scanNetwork;
 
     window.addEventListener('load', () => {
+        renderPorts();
+        renderServers();
+        servers.forEach(s => checkServerHealth(s.url));
         if (!subnetInput.value.trim()) {
             document.getElementById('detectBtn').click();
         }
     });
 
-    // Initial check for all saved servers
-    renderServers();
-    servers.forEach(s => checkServerHealth(s.url));
-
 </script>
 </body>
-</html> 
+</html>
