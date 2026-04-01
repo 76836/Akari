@@ -15,7 +15,7 @@ var CloudAI = true;
   
   // Notify the user of the connected model immediately
   if (server) {
-    say(`<i>Connected to llama.cpp server running: <b>${server.model}</b></i>`);
+    say(`<i>(v1.3) Connected to llama.cpp server running: <b>${server.model}</b></i>`);
   } else {
     say('<i>⚠️ No compatible Llama.cpp server found.</i>');
     CloudAI = false;
@@ -27,7 +27,7 @@ You give short answers, and sometimes end your messages with sarcastic remarks, 
 but you're generally kind and respectful to everyone...
 
 System information (in case you need it):
-Akari AI with Llama.cpp v1.2
+Akari AI with Llama.cpp v1.3
 maxOutputTokens: 1000
 Persistent chat history: session only
 Message rendering method: HTML
@@ -62,8 +62,8 @@ Chat is private: True`;
         return;
       }
 
-      // Remove stop tokens
-      text = text.replace(/<\/?s>|<\|end(?:_of_turn|_of_text)?\|>/g, '').trim();
+      // Updated regex to specifically catch <|eot_id|> and other common Llama 3 / Mistral tokens
+      text = text.replace(/<\/?s>|<\|end(?:_of_turn|_of_text)?\|>|<\|eot_id\|>/g, '').trim();
 
       history.push({ role: 'assistant', content: text });
       say(text);
