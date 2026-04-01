@@ -81,7 +81,6 @@
         .btn-outline { background: transparent; border: 1px solid var(--md-outline); color: var(--md-on-surface); }
         .btn-danger { background: rgba(249, 115, 22, 0.2); color: #f97316; border: 1px solid #f97316; }
 
-        /* Progress Bar */
         .progress-track { height: 6px; background: rgba(148, 163, 184, 0.25); border-radius: 3px; overflow: hidden; margin: 16px 0; display: none; position: relative; }
         .progress-track.active::before {
             content: '';
@@ -103,7 +102,6 @@
         }
         .progress-fill { height: 100%; background: #8ab4f8; width: 0%; transition: width 0.3s linear; z-index:1; }
 
-        /* Advanced Menu */
         .advanced-toggle {
             cursor: pointer;
             font-size: 13px;
@@ -166,7 +164,6 @@
         }
         .port-tag span { cursor: pointer; margin-left: 6px; font-weight: bold; }
 
-        /* List Items */
         .server-item {
             background: rgba(15, 23, 42, 0.82);
             padding: 16px;
@@ -187,12 +184,34 @@
         .status-checking { background: rgba(148, 163, 184, 0.18); color: #94a3b8; }
 
         .server-details { font-size: 13px; color: var(--md-on-surface-variant); line-height: 1.4; }
-        .delete-btn { color: #f97316; background: none; border: none; font-size: 12px; padding: 0; text-decoration: underline; cursor: pointer; text-align: left; margin-top: 4px; }
+        .action-row { display: flex; gap: 12px; margin-top: 8px; }
+        .delete-btn { color: #f97316; background: none; border: none; font-size: 12px; padding: 0; text-decoration: underline; cursor: pointer; }
+        .logon-btn { color: var(--md-primary); background: none; border: none; font-size: 12px; padding: 0; text-decoration: underline; cursor: pointer; }
 
         #log { font-family: monospace; font-size: 12px; margin-top: 12px; color: #cbd5e1; max-height: 88px; overflow-y: auto; border-top: 1px solid rgba(148, 163, 184, 0.3); padding-top: 8px; }
+
+        /* Modal fallback */
+        #alertModal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: #1e293b; border: 1px solid var(--md-outline); padding: 20px;
+            z-index: 1000; display: none; border-radius: 0px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-bottom: 5px solid red;
+            border-left: 5px solid red;
+            text-align: center; min-width: 300px;
+        }
+        #modalOverlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7); z-index: 999; display: none;
+        }
     </style>
 </head>
 <body>
+
+<div id="modalOverlay"></div>
+<div id="alertModal">
+    <p id="modalText"></p>
+    <button class="btn-primary" onclick="closeModal()">Close</button>
+</div>
 
 <div class="container">
     <header>
@@ -241,16 +260,15 @@
         <div id="log">Ready to scan local network...</div>
     </div>
 
-    <div id="serverList">
-        <!-- Servers populated here -->
-    </div>
+    <div id="serverList"></div>
 </div>
 
 <script>
     // State
     let servers = JSON.parse(localStorage.getItem('lcpp_servers') || '[]');
-    let config = JSON.parse(localStorage.getItem('lcpp_config') || '{"https": false, "ports": [8080]}');
+    let config = JSON.parse(localStorage.getItem('lcpp_config') || '{"https": false, "ports": [8443]}');
     let isScanning = false;
+    let activePopups = new Map();
 
     const subnetInput = document.getElementById('subnetInput');
     const logEl = document.getElementById('log');
@@ -260,8 +278,26 @@
     const portListEl = document.getElementById('portList');
     const httpsToggle = document.getElementById('httpsToggle');
 
-    // Init UI from State
-    httpsToggle.checked = config.https;
+    // Autodetect security context
+    function detectSecurityContext() {
+        const isHttps = window.location.protocol === 'https:';
+        config.https = isHttps;
+        httpsToggle.checked = isHttps;
+        saveConfig();
+        writeLog(`Security context: ${isHttps ? 'HTTPS' : 'HTTP'}. Defaulting scan mode.`);
+    }
+
+    function customAlert(msg) {
+        document.getElementById('modalText').innerText = msg;
+        document.getElementById('alertModal').style.display = 'block';
+        document.getElementById('modalOverlay').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('alertModal').style.display = 'none';
+        document.getElementById('modalOverlay').style.display = 'none';
+    }
+
     httpsToggle.onchange = (e) => {
         config.https = e.target.checked;
         saveConfig();
@@ -329,13 +365,16 @@
                     ${s.slots ? `<b>Slots:</b> ${s.slots}<br>` : ''}
                     ${s.lastSeen ? `<b>Last Seen:</b> ${new Date(s.lastSeen).toLocaleTimeString()}` : 'Never seen online'}
                 </div>
-                <button class="delete-btn" onclick="removeServer('${s.url}')">Forget Server</button>
+                <div class="action-row">
+                    <button class="delete-btn" onclick="removeServer('${s.url}')">Forget Server</button>
+                    ${!s.online && !s.checking ? `<button class="logon-btn" onclick="logonToServer('${s.url}')">Logon / Fix SSL</button>` : ''}
+                </div>
             `;
             serverListEl.appendChild(item);
         });
     }
 
-    async function checkServerHealth(url) {
+    async function checkServerHealth(url, isAutoRetry = false) {
         const server = servers.find(s => s.url === url);
         if (!server) return;
 
@@ -343,26 +382,19 @@
         renderServers();
 
         try {
-            const propsPromise = fetch(`${url}/props`, { signal: AbortSignal.timeout(2000) });
-            const modelsPromise = fetch(`${url}/v1/models`, { signal: AbortSignal.timeout(2000) });
-
-            const [propsRes, modelsRes] = await Promise.allSettled([propsPromise, modelsPromise]);
-
-            let isLlama = false;
-            if (propsRes.status === 'fulfilled' && propsRes.value.ok) {
-                const data = await propsRes.value.json();
-                server.slots = data.default_generation_settings?.n_predict || 'Unknown';
-                isLlama = true;
-            }
-
-            if (modelsRes.status === 'fulfilled' && modelsRes.value.ok) {
-                const data = await modelsRes.value.json();
+            const res = await fetch(`${url}/v1/models`, { signal: AbortSignal.timeout(2000) });
+            if (res.ok) {
+                const data = await res.json();
                 server.model = data.data?.[0]?.id || 'Unknown Model';
                 server.online = true;
                 server.lastSeen = Date.now();
-            } else if (isLlama) {
-                server.online = true;
-                server.lastSeen = Date.now();
+                
+                // If it was a popup-triggered retry and we are successful, close popup
+                if (activePopups.has(url)) {
+                    const popup = activePopups.get(url);
+                    if (!popup.closed) popup.close();
+                    activePopups.delete(url);
+                }
             } else {
                 server.online = false;
             }
@@ -374,6 +406,45 @@
             renderServers();
         }
     }
+
+    window.logonToServer = (url) => {
+        // Open a small popup to the server's ping endpoint
+        // This allows the user to click "Advanced -> Proceed" if it's a self-signed cert
+        const popup = window.open(`${url}/ping`, 'LCPP_Logon', 'width=600,height=500');
+        if (!popup) {
+            customAlert("Popup blocked! Please allow popups for this site.");
+            return;
+        }
+
+        activePopups.set(url, popup);
+        writeLog(`Attempting logon to ${url}...`);
+
+        const interval = setInterval(async () => {
+            // Stop if server is now online
+            const s = servers.find(sv => sv.url === url);
+            if (!s || s.online) {
+                clearInterval(interval);
+                return;
+            }
+
+            // If user closed popup but still no connection
+            if (popup.closed) {
+                clearInterval(interval);
+                activePopups.delete(url);
+                
+                // Final check
+                await checkServerHealth(url);
+                const finalS = servers.find(sv => sv.url === url);
+                if (!finalS || !finalS.online) {
+                    customAlert(`Failed to connect to ${url}. Ensure the server is running an externally accessable instance of llama.cpp and that you have accepted any SSL certificates.`);
+                }
+                return;
+            }
+
+            // Poll health
+            await checkServerHealth(url, true);
+        }, 1500);
+    };
 
     async function scanNetwork() {
         if (isScanning) return;
@@ -401,6 +472,7 @@
             
             await Promise.all(batch.map(async (url) => {
                 try {
+                    // Quick check
                     const res = await fetch(`${url}/v1/models`, { signal: AbortSignal.timeout(1200) });
                     if (res.ok) {
                         if (!servers.find(s => s.url === url)) {
@@ -409,7 +481,9 @@
                             checkServerHealth(url);
                         }
                     }
-                } catch (e) {}
+                } catch (e) {
+                    // We don't catch silent SSL failures here easily as they just throw TypeErrors
+                }
                 completed++;
                 progressFill.style.width = `${(completed / total) * 100}%`;
                 writeLog(`Scanning... ${completed}/${total}`);
@@ -507,6 +581,7 @@
     document.getElementById('scanBtn').onclick = scanNetwork;
 
     window.addEventListener('load', () => {
+        detectSecurityContext();
         renderPorts();
         renderServers();
         servers.forEach(s => checkServerHealth(s.url));
