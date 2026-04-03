@@ -215,11 +215,18 @@
                     <summary>Wake Word Configuration</summary>
                     <div class="content">
                         <div class="script-group">
-                            <span class="group-label">Sensitivity Settings</span>
-                            <p style="font-size: 0.8rem; margin-bottom: 10px; opacity: 0.8;">Wake word confidence (hey Akari):</p>
-                            <input class="box" id="sensitivityBox" placeholder="0.97" type="text">
-                            <button class="setbutton save-btn" onclick="setsense()">Save Changes</button>
-                        </div>
+    <span class="group-label">Sensitivity Settings</span>
+    <p style="font-size: 0.8rem; margin-bottom: 10px; opacity: 0.8;">Wake word confidence (hey Akari):</p>
+    
+    <input class="box" id="sensitivityBox" placeholder="0.97" type="text" 
+           oninput="document.getElementById('sensitivitySlider').value = this.value">
+    
+    <input type="range" min="0.01" max="1.0" step="0.01" value="0.97" id="sensitivitySlider" 
+           style="width: 100%; margin: 15px 0; accent-color: var(--cyan); cursor: pointer;"
+           oninput="document.getElementById('sensitivityBox').value = this.value; setsense();">
+    
+    <button class="setbutton save-btn" onclick="setsense()">Save Changes</button>
+</div>
                     </div>
                 </details>
 
@@ -256,7 +263,7 @@
                     </div>
                 </details>
 
-                <div class="version-tag">VOICE CFG PANEL V1.3</div>
+                <div class="version-tag">VOICE CFG PANEL V1.4</div>
             </div>
         </div>
     </div>
@@ -269,9 +276,11 @@
 
     <script>
         window.onload = () => {
-            document.getElementById('voiceurl').value = localStorage.getItem('selectedVoiceScript') || "";
-            document.getElementById('whisperurl').value = localStorage.getItem('selectedWhisperScript') || "";
-            document.getElementById('sensitivityBox').value = localStorage.getItem('wakeSense') || "0.97";
+            const savedSense = localStorage.getItem('wakeSense') || "0.81";
+    document.getElementById('voiceurl').value = localStorage.getItem('selectedVoiceScript') || "";
+    document.getElementById('whisperurl').value = localStorage.getItem('selectedWhisperScript') || "";
+    document.getElementById('sensitivityBox').value = savedSense;
+    document.getElementById('sensitivitySlider').value = savedSense;
         };
 
         function setVoiceVal(val) { document.getElementById('voiceurl').value = val; }
