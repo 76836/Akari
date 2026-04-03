@@ -64,12 +64,12 @@ function initWakeAudio() {
                 modelQuantization: "q8",
                 wakewords: [],
                 wakesoundURL: "https://teachablemachine.withgoogle.com/models/SwNFRUBwu/",
-                wakesoundThreshold: ${localStorage.getItem('wakeSense') || "0.85"},
+                wakesoundThreshold: ${localStorage.getItem('wakeSense') || "0.80"},
                 wakesoundIndex: 2,
-                wakesoundDuration: 750,
+                wakesoundDuration: 2750,
                 wakesoundDelay: 5000,
                 requireWakeSound: true,
-                vadThreshold: 0.85,
+                vadThreshold: 0.95,
                 cleanup: false,
                 debugWakeSound: false
             };
@@ -88,7 +88,7 @@ function initWakeAudio() {
     }
 
     window.addEventListener('audioConsoleReady', () => {
-        app.notify('AkariNet', 'Audio Console (adapter v2.1) has started successfully!', {
+        app.notify('AkariNet', 'Audio Console (adapter v2.2) has started successfully!', {
             borderColors: ['#00ccff', '#00FF00']
         });
     });
@@ -108,7 +108,7 @@ function initWakeAudio() {
     const handleEndSequence = () => {
         if (currentTheme === 'purple') {
             if (purpleTimeout) clearTimeout(purpleTimeout);
-            purpleTimeout = setTimeout(resetVisuals, 5000);
+            purpleTimeout = setTimeout(resetVisuals, 2750);
         } else {
             resetVisuals();
         }
@@ -156,7 +156,7 @@ if (!window.whisperTranscriber) {
         }
     };
 }
-    
+    loadscreen("AkariNet Audio Console version 2.2 starting up...");
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initAudioConsole);
     } else {
