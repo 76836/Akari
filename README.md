@@ -5,6 +5,17 @@
 
 
 > ### **AkariNet: A fully customizable AI assistant with voice commands, serverless AI, interactive avatars, device control, and more.**
+>[PocketTTS](https://github.com/76836/AkariNet-PocketTTS/tree/main)
+>
+>[Akari AI Server (llama.cpp)](https://github.com/76836/AkariNet-AI-Server)
+> 
+>[AkariNet Audio Console](https://github.com/76836/AkariNet-AudioConsole/tree/main)
+> 
+>[KittenTTS](https://github.com/76836/AkariNet-KittenTTS/tree/main)
+> 
+>[AkariNet Automata](https://github.com/76836/AkariNet-Automata/tree/main)
+> 
+>[emotionEngine](https://github.com/76836/emotionEngine)
 
 <br>
 
@@ -12,13 +23,13 @@
 
 <br>
 
-Akari Voice Assistant v2.5.  
+### Akari Voice Assistant v2.5.
 Best experience on chrome-based browsers, with expanding support across additional browsers through newer modules.  
 Use at: https://76836.github.io/Akari
 <br>**devBridge** is the safer path for external program-to-AkariNet communication, replacing direct URL-query triggering with an authorization flow (verification code + user approval) for better security and control.  
 New features such as the **AkariNet Audio Console** bring richer speech/wake-word/transcription support and improve compatibility behavior across non-Chromium browsers.
 
-Version 2.5: <br>
+### Version 2.5: <br>
 Added AkariNet devBridge authorization flow for external app integration (safer alternative to legacy URL query command triggers).  
 Added Audio Console integration option for wake-word detection and transcription.  
 Invented the AkariNet Automata system to make customizing AkariNet easier, I plan to switch everything over to using that system soon.
@@ -28,76 +39,80 @@ Full release of the AkariNet VRM avatar module powered by emotionEngine.
 New AI provider: pollinations.ai. New instances of AkariNet will default to pollinations for LLM inference without needing an API key or account.
 Cleanup and other stuff... (i forgot)
 
-Akari Voice Assistant v2.4.
+### Akari Voice Assistant v2.4.
 Full support on chrome-based browsers.
 Use at: https://76836.github.io/Akari
 Support for safari is not tested and features on firefox may be limited.
 URL query support is currently depreciated as I think of safer ways to let other programs trigger AkariNet functions.
 
-Version 2.4: <br>
+### Version 2.4: <br>
 New redesigned UI that works across mobile and desktop without compromise.
 Improved settings app with preconfigured options and toggles.
 Full release of the AkariNet VRM avatar module powered by emotionEngine.
 New AI provider: pollinations.ai. New instances of AkariNet will default to pollinations for LLM inference without needing an API key or account.
 
-Version 2.3: <br>
+### Version 2.3: <br>
 New local speech synthesis with speechT5.
 New notification function and styling.
 Voice settings menu with configuration options for upcoming local transcription. 
 
-Version 2.2: <br>
+### Version 2.2: <br>
 New mobile UI.
 New local AI with persistent chat history powered by MLC WebLLM that works on any device with a webgpu enabled browser (1 step install process)
 Flux.1 avatar for Akari capable of showing 20 emotions.
 Switched wake word to "Hey Akari".
 
-Version 2.1b: <br>
+### Version 2.1b: <br>
 Now supports custom CSS and live wallpapers.
 
-Version 2.1: <br>
+### Version 2.1: <br>
 Added automatic Gemini support, more module slots, some quick options in settings, and some small improvements elsewhere.
 
-Version 2.0: <br>
+### Version 2.0: <br>
 Made new ability to switch between multiple chatacters, added ability to swap out the avater module.
 
-Version 1.9b: <br>
+### Version 1.9b: <br>
 Added search engine-like ability to respond to a command in the url `https://76836.github.io/Akari?q=command`
 
-Version 1.9: <br>
+### Version 1.9: <br>
 Changed the CSS and added AI features you can enable in settings. Also added the solve function to replace the old math feature.
 
-Version 1.8: <br>
+### Version 1.8: <br>
 Made some general javascript upgrades, made windows that open within Akari, added ability to reload Akari just by saying "akari reload". And now you can start conversations off with "hey akari", and it won't interfere with the responses.
 
-Version 1.7: <br>
+### Version 1.7: <br>
 Now you can type commands, and Akari can do some basic math. I also redid the CSS.
 
-Version 1.6: <br>
+### Version 1.6: <br>
 Akari is now fully voice activated, and you can change the speach dictation script in settings, just say "akari, open settings".
 
-Version 1.5: <br>
+### Version 1.5: <br>
 Added the ability to customize the response script, and the ability to change the speech script.
 
-Version 1.4 update: <br>
+### Version 1.4 update: <br>
 Redid the TTS script, added volume control, and added a voice select menu. And, of course, ✨Bug Fixes✨
 
-Version 1.3 Update: 
+### Version 1.3 Update: 
 "Debugged" some code (probably just added more bugs). 
 Made some marginally nicer css. 
 Made a Progressive Web App to install. 
 Split the scripts and css into their own files.
 
-Version 1.2 update:
+### Version 1.2 update:
 Akari can now open any pronouncable app that has a .com domain name, say something like "open Discord" to try it.
 You can also search youtube by saying something like "search YouTube for Smarter Every Day" or "play Never Gonna Give You Up".
 
-Version 1.1 update:
+### Version 1.1 update:
 The Go Akari button now turns green when Akari is listening (or trying to).
 Fixed problem where Chrome would block the "pop-up".
 
-Version 1.0 upload:
+### Version 1.0 upload:
 I made a thing.
 
+
+> [!CAUTION]
+> ### ⚠️ **DEPRECATION WARNING!**
+> ### The original Akari Python Server using GPT4ALL is **no longer maintained** and has been **replaced by the [Akari AI Server](https://github.com/76836/AkariNet-AI-Server)**. <br> The stuff below might do something still, but don't expect it to work. 
 
 # Akari Python Server
 
