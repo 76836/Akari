@@ -40,6 +40,17 @@
     statusBar.id = 'audio-status-bar';
     document.body.appendChild(statusBar);
 
+    let wakeAudio = null;
+
+function initWakeAudio() {
+    // Create audio element for wake sound
+    wakeAudio = new Audio();
+    wakeAudio.src = 'https://76836.github.io/Akari/characters/akari/Summon.mp3';
+    wakeAudio.preload = 'auto'; // Load in background
+    wakeAudio.volume = 1.0;
+    document.body.appendChild(wakeAudio);
+}
+
     function initAudioConsole() {
         if (window.voiceInit) return;
         window.voiceInit = true;
@@ -53,12 +64,12 @@
                 modelQuantization: "q8",
                 wakewords: [],
                 wakesoundURL: "https://teachablemachine.withgoogle.com/models/SwNFRUBwu/",
-                wakesoundThreshold: ${localStorage.getItem('wakeSense') || "0.75"},
+                wakesoundThreshold: ${localStorage.getItem('wakeSense') || "0.85"},
                 wakesoundIndex: 2,
                 wakesoundDuration: 750,
                 wakesoundDelay: 5000,
                 requireWakeSound: true,
-                vadThreshold: 0.75,
+                vadThreshold: 0.85,
                 cleanup: false,
                 debugWakeSound: false
             };
@@ -73,10 +84,11 @@
             await assistant.init();
         `;
         document.head.appendChild(script);
+        initWakeAudio();
     }
 
     window.addEventListener('audioConsoleReady', () => {
-        app.notify('AkariNet', 'Audio Console (adapter v2.0) has started successfully!', {
+        app.notify('AkariNet', 'Audio Console (adapter v2.1) has started successfully!', {
             borderColors: ['#00ccff', '#00FF00']
         });
     });
@@ -103,19 +115,25 @@
     };
 
     window.addEventListener('audioConsoleSpeechEnd', handleEndSequence);
-    window.addEventListener('audioConsoleSpeechDiscarded', handleEndSequence);
+    window.addEventListener('audioConsoleSpeechDiscarded', resetVisuals);
 
     window.addEventListener('audioConsoleWakeSound', (e) => {
-        statusBar.classList.add('active', 'purple-theme');
-        currentTheme = 'purple';
-        if (purpleTimeout) { clearTimeout(purpleTimeout); purpleTimeout = null; }
+    statusBar.classList.add('active', 'purple-theme');
+    currentTheme = 'purple';
+    if (purpleTimeout) { clearTimeout(purpleTimeout); purpleTimeout = null; }
 
-        const btn = document.getElementById('micbutton');
-        if (btn && (btn.innerText === 'voice' || btn.classList.contains('mic-off'))) {
-            btn.className = 'button-long mic-on';
-            btn.innerText = `hey Akari (${(e.detail.score * 100).toFixed(0)}%)`;
-        }
-    });
+    // Play the wake sound from the beginning
+    if (wakeAudio) {
+        wakeAudio.currentTime = 0; // Reset to beginning
+        wakeAudio.play().catch(err => console.log('Audio playback failed:', err));
+    }
+
+    const btn = document.getElementById('micbutton');
+    if (btn && (btn.innerText === 'voice' || btn.classList.contains('mic-off'))) {
+        btn.className = 'button-long mic-on';
+        btn.innerText = `hey Akari (${(e.detail.score * 100).toFixed(0)}%)`;
+    }
+});
 
     window.addEventListener('audioConsoleResult', (e) => {
         if (window.app) app.isSilentMode = false;
