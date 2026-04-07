@@ -29,7 +29,7 @@
     </style>
 </head>
 <body>
-    <div id="overlay"><div id="status">V0.5.1</div></div>
+    <div id="overlay"><div id="status">V0.5.1b</div></div>
     
     <div id="bridge-container">
         <iframe id="bridge-iframe"></iframe>
@@ -88,7 +88,7 @@
             embarrassed: { surprised: 0.3, sad: 0.2, relaxed: 0.7, lookDown: 0.7, happy: 0.1, blink: 0.0 }
         };
 
-        const TEST_DOC = ```
+        const TEST_DOC = `
             <!DOCTYPE HTML>
 <html id="html">
 <head>
@@ -411,7 +411,7 @@
     <\/script>
 <\/body>
 <\/html>
-        ```;
+        `;
 
         let scene, camera, renderer, clock, currentVrm, characterGroup;
         let chatMesh, chatCanvas, chatTexture, reticle, bridgeIframe;
