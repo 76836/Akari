@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AkariNet VR</title>
+    <style>
+        body { margin: 0; background: #050508; color: #00f2ff; font-family: monospace; overflow: hidden; }
+        #overlay { position: absolute; top: 10px; left: 10px; pointer-events: none; z-index: 10; }
+        #status { background: rgba(0,0,0,0.5); padding: 5px; border-radius: 4px; }
+        #drop-zone { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); z-index: 100; border: 0px dashed #00f2ff; }
+        #drop-zone.hidden { display: none; }
+        
+        /* Off-screen bridge components */
+        #bridge-container {
+            position: absolute;
+            top: -5000px; /* Offset enough to be off-screen but still rendered by the browser */
+            left: -5000px;
+            width: 512px;
+            height: 512px;
+            overflow: hidden;
+            background: #0a1423;
+        }
+        #bridge-iframe {
+            width: 512px;
+            height: 512px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="overlay"><div id="status">V0.5.1</div></div>
+    
+    <div id="bridge-container">
+        <iframe id="bridge-iframe"></iframe>
+    </div>
+
+    <div id="drop-zone">
+        <div style="text-align:center">
+            <h2>AkariNet VR</h2>
+            <p>Drop VRM to Begin</p>
+            <input type="file" id="file-input" accept=".vrm">
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/",
+                "@pixiv/three-vrm": "https://unpkg.com/@pixiv/three-vrm@2.1.0/lib/three-vrm.module.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { VRButton } from 'three/addons/webxr/VRButton.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+
+        const PARAMS = {
+            motion: { lookSpeed: 1.2, idleTimeout: 1.5, maxNeckY: 0.8, maxNeckX: 0.4, maxSpineY: 0.25 },
+            idle: { rangeX: 0.6, rangeY: 0.35, minHold: 2.0, maxHold: 5.0 },
+            sway: { intensity: 0.032, baseFrequency: 0.4, armRelaxation: 1.375 },
+            vr: { followDist: 1.8, followSpeed: 0.05, deadzone: 0.9 }
+        };
+
+        const EMOTIONS = {
+            neutral: { neutral: 1.0 },
+            happy: { ih: 0.8, aa: 0.2, relaxed: 0.2, blink: 0.0 },
+            sad: { sad: 0.8, lookDown: 0.2, blink: 0.0 },
+            angry: { angry: 1.0, lookDown: 0.1, blink: 0.0 },
+            fear: { surprised: 0.5, sad: 0.5, happy: 0, blink: 0.0 },
+            surprise: { surprised: 1.0, blink: 0.0 },
+            confused: { angry: 0.2, sad: 0.3, neutral: 0.5, blink: 0.0 },
+            love: { happy: 0.3, ou: 0.4, sad: 0.1 },
+            disgust: { angry: 0.6, sad: 0.2, happy: 0, blink: 0.0 },
+            trust: { neutral: 1.0, angry: 0.2, aa: 0.1, ou: 0.6 },
+            anticipation: { surprised: 0.3, ee: 0.0, ih: 0.5, happy: 0.1, blink: 0.0 },
+            contempt: { happy: 0.0, angry: 0.7, relaxed: 0.3, blink: 0.0 },
+            bored: { neutral: 0.6, sad: 0.3, lookDown: 0.6, relaxed: 0.1 },
+            pride: { ee: 0.3, relaxed: 0.7, neutral: 0.1 },
+            shame: { angry: 0.2, sad: 0.6, lookDown: 0.8, blink: 0.2 },
+            curious: { surprised: 0.3, neutral: 0.4, ih: 0.3, blink: 0.0 },
+            embarrassed: { surprised: 0.3, sad: 0.2, relaxed: 0.7, lookDown: 0.7, happy: 0.1, blink: 0.0 }
+        };
+
+        const TEST_DOC = `
+            <!DOCTYPE html>
+            <html>
+            <body style="margin:0; padding:20px; background:#0a1423; color:#00f2ff; font-family:sans-serif; height:100vh; display:flex; flex-direction:column; border: 4px solid #00f2ff; box-sizing: border-box;">
+                <h2 style="margin:0 0 10px 0; text-shadow: 0 0 10px #00f2ff;">IFRAME VR BRIDGE</h2>
+                <div style="flex:1; background:rgba(0,0,0,0.5); padding:15px; border-radius:10px; border:1px solid #00f2ff; overflow:hidden;">
+                    <p style="margin:0; font-family:monospace;">> test content</p>
+                    <p style="margin:10px 0; font-family:monospace;">> Renderer: Offscreen Capture</p>
+                    <button onclick="this.style.background='#ff00ff'; setTimeout(()=>this.style.background='#00f2ff', 200)" 
+                            style="background:#00f2ff; color:#000; border:none; padding:15px; cursor:pointer; font-weight:bold; width:100%; border-radius:5px;">
+                        TESTTT BUTTON
+                    </button>
+                    <p id="feedback" style="margin-top:10px; color:#fff; font-size:12px;">Waiting for VR Input...</p>
+                    <iframe src="https://76836.github.io/Akari/" style="width:100%; height:200px; border:none; margin-bottom:20px;"></iframe>
+                </div>
+                <script>
+                    window.addEventListener('mousemove', (e) => {
+                        document.getElementById('feedback').innerText = 'Hover X:' + Math.round(e.clientX) + ' Y:' + Math.round(e.clientY);
+                    });
+                <\/script>
+            </body>
+            </html>
+        `;
+
+        let scene, camera, renderer, clock, currentVrm, characterGroup;
+        let chatMesh, chatCanvas, chatTexture, reticle, bridgeIframe;
+        let raycaster = new THREE.Raycaster();
+        let vrCursor;
+        let isCapturing = false;
+        
+        const state = {
+            idleTargetX: 0, idleTargetY: 1.45, nextIdleSwitch: 0,
+            isFollowing: true,
+            totalElapsed: 0,
+            isVrm1: false,
+            lastCapture: 0
+        };
+
+        init();
+
+        async function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x050508);
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.xr.enabled = true;
+            document.body.appendChild(renderer.domElement);
+            document.body.appendChild(VRButton.createButton(renderer));
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+            const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+            sun.position.set(1, 2, 1);
+            scene.add(sun);
+
+            const params = new URLSearchParams(window.location.search);
+
+            if (params.has("envUrl")) {
+                const loader = new THREE.TextureLoader();
+                loader.load(params.get("envUrl"), (texture) => {
+                    texture.mapping = THREE.EquirectangularReflectionMapping;
+                    scene.background = texture;
+                });
+            } else {
+                scene.add(new THREE.GridHelper(20, 20, 0x00f2ff, 0x111111));
+            }
+
+            characterGroup = new THREE.Group();
+            scene.add(characterGroup);
+
+            setupIframeBridge();
+            setupReticle();
+            setupFileHandling();
+
+            if (params.has("modelUrl")) {
+                loadVRM(params.get("modelUrl"));
+            }
+            
+            const onSelect = () => {
+                raycaster.setFromCamera({x:0, y:0}, camera);
+                const intersects = raycaster.intersectObject(chatMesh);
+                if (intersects.length > 0) {
+                    const uv = intersects[0].uv;
+                    simulateIframeClick(uv.x * 512, (1 - uv.y) * 512);
+                }
+            };
+
+            window.addEventListener('click', onSelect);
+            renderer.xr.getController(0).addEventListener('select', onSelect);
+
+            clock = new THREE.Clock();
+            renderer.setAnimationLoop(animate);
+        }
+
+        function setupIframeBridge() {
+            bridgeIframe = document.getElementById('bridge-iframe');
+            bridgeIframe.srcdoc = TEST_DOC;
+
+            chatCanvas = document.createElement('canvas');
+            chatCanvas.width = 512;
+            chatCanvas.height = 512;
+            
+            chatTexture = new THREE.CanvasTexture(chatCanvas);
+            const chatMat = new THREE.MeshBasicMaterial({ map: chatTexture, transparent: true, side: THREE.DoubleSide });
+            chatMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.8), chatMat);
+            chatMesh.position.set(0, 1.2, -PARAMS.vr.followDist);
+            scene.add(chatMesh);
+
+            vrCursor = new THREE.Mesh(
+                new THREE.SphereGeometry(0.01, 16, 16),
+                new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false })
+            );
+            vrCursor.renderOrder = 999;
+            scene.add(vrCursor);
+        }
+
+        function simulateIframeClick(x, y) {
+            const innerDoc = bridgeIframe.contentDocument;
+            if (!innerDoc) return;
+            const el = innerDoc.elementFromPoint(x, y);
+            if (el) {
+                el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: x, clientY: y }));
+                el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: x, clientY: y }));
+                el.click();
+            }
+        }
+
+        function simulateIframeMove(x, y) {
+            const innerDoc = bridgeIframe.contentDocument;
+            if (!innerDoc) return;
+            innerDoc.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: x, clientY: y }));
+        }
+
+        function setupReticle() {
+            reticle = new THREE.Mesh(
+                new THREE.RingGeometry(0.012, 0.018, 32),
+                new THREE.MeshBasicMaterial({ color: 0x00f2ff, transparent: true, opacity: 0, depthTest: false })
+            );
+            reticle.position.z = -1;
+            camera.add(reticle);
+        }
+
+        function loadVRM(url) {
+            new GLTFLoader().register((p) => new VRMLoaderPlugin(p)).load(url, (gltf) => {
+                if (currentVrm) characterGroup.remove(currentVrm.scene);
+                currentVrm = gltf.userData.vrm;
+                characterGroup.add(currentVrm.scene);
+                state.isVrm1 = String(currentVrm.meta.metaVersion).startsWith('1');
+                if (!state.isVrm1) VRMUtils.rotateVRM0(currentVrm);
+                
+                const lA = currentVrm.humanoid.getNormalizedBoneNode('leftUpperArm');
+                const rA = currentVrm.humanoid.getNormalizedBoneNode('rightUpperArm');
+                let angle = PARAMS.sway.armRelaxation;
+                if (state.isVrm1) angle = -angle; 
+                if (lA) lA.rotation.z = angle;
+                if (rA) rA.rotation.z = -angle;
+                document.getElementById('drop-zone').classList.add('hidden');
+            });
+        }
+
+        function setupFileHandling() {
+            const input = document.getElementById('file-input');
+            input.onchange = (e) => {
+                const url = URL.createObjectURL(e.target.files[0]);
+                loadVRM(url);
+            };
+        }
+
+        async function updateBridgeTexture() {
+            // Limits capture to roughly 20fps for performance and ensures no overlapping calls
+            if (isCapturing || state.totalElapsed - state.lastCapture < 0.05) return; 
+            
+            const body = bridgeIframe.contentDocument ? bridgeIframe.contentDocument.body : null;
+            if (!body) return;
+
+            isCapturing = true;
+            try {
+                // Use the global html2canvas provided by the script tag
+                const canvas = await window.html2canvas(body, {
+                    width: 512,
+                    height: 512,
+                    scale: 1,
+                    backgroundColor: null,
+                    logging: false
+                });
+                
+                const ctx = chatCanvas.getContext('2d');
+                ctx.clearRect(0, 0, 512, 512);
+                ctx.drawImage(canvas, 0, 0);
+                chatTexture.needsUpdate = true;
+                state.lastCapture = state.totalElapsed;
+            } catch (e) {
+                console.error("Bridge Capture Failed:", e);
+            }
+            isCapturing = false;
+        }
+
+        function animate() {
+            const dt = Math.min(clock.getDelta(), 0.05);
+            state.totalElapsed += dt;
+
+            const idealUIPos = new THREE.Vector3(0.6, -0.2, -PARAMS.vr.followDist).applyQuaternion(camera.quaternion).add(camera.position);
+            if (chatMesh.position.distanceTo(idealUIPos) > PARAMS.vr.deadzone) {
+                chatMesh.position.lerp(idealUIPos, PARAMS.vr.followSpeed);
+            }
+            chatMesh.lookAt(camera.position);
+
+            raycaster.setFromCamera({x:0, y:0}, camera);
+            const intersects = raycaster.intersectObject(chatMesh);
+            if (intersects.length > 0) {
+                reticle.material.opacity = 1;
+                vrCursor.position.copy(intersects[0].point);
+                vrCursor.visible = true;
+                
+                const uv = intersects[0].uv;
+                simulateIframeMove(uv.x * 512, (1 - uv.y) * 512);
+            } else {
+                reticle.material.opacity = 0;
+                vrCursor.visible = false;
+            }
+
+            updateBridgeTexture();
+
+            if (currentVrm) {
+                const userHeight = camera.position.y;
+                if (userHeight > 0.5) {
+                    characterGroup.scale.setScalar(userHeight / 1.05);
+                }
+
+                if (state.isFollowing) {
+                    const targetPos = new THREE.Vector3(0, 0, -PARAMS.vr.followDist).applyQuaternion(camera.quaternion);
+                    targetPos.add(camera.position); targetPos.y = 0;
+                    characterGroup.position.lerp(targetPos, PARAMS.vr.followSpeed);
+                }
+                
+                const dx = camera.position.x - characterGroup.position.x;
+                const dz = camera.position.z - characterGroup.position.z;
+                characterGroup.rotation.y = Math.atan2(dx, dz);
+
+                updateX(dt);
+                currentVrm.update(dt);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function updateX(dt) {
+            if (state.totalElapsed > state.nextIdleSwitch) {
+                state.idleTargetX = (Math.random() - 0.5) * 2 * PARAMS.idle.rangeX;
+                state.nextIdleSwitch = state.totalElapsed + PARAMS.idle.minHold + Math.random() * 3.0;
+            }
+            const neck = currentVrm.humanoid.getNormalizedBoneNode('neck');
+            const spine = currentVrm.humanoid.getNormalizedBoneNode('spine');
+            const sway = Math.sin(state.totalElapsed * PARAMS.sway.baseFrequency) * PARAMS.sway.intensity;
+
+            if (spine) {
+                spine.rotation.z = sway;
+                spine.rotation.y = THREE.MathUtils.lerp(spine.rotation.y, THREE.MathUtils.clamp(state.idleTargetX * 0.15, -PARAMS.motion.maxSpineY, PARAMS.motion.maxSpineY), dt);
+            }
+            if (neck) {
+                neck.rotation.y = THREE.MathUtils.lerp(neck.rotation.y, THREE.MathUtils.clamp(state.idleTargetX * 0.45, -PARAMS.motion.maxNeckY, PARAMS.motion.maxNeckY), dt);
+            }
+
+            const requestedEmote = (localStorage.getItem('v2emote') || 'neutral').toLowerCase().trim();
+            const emoteData = EMOTIONS[requestedEmote] || EMOTIONS.neutral;
+
+            Object.keys(emoteData).forEach(key => {
+                if (key !== 'blink') currentVrm.expressionManager.setValue(key, emoteData[key]);
+            });
+
+            let blinkBase = (state.totalElapsed % 4.0) < 0.15 ? Math.sin(((state.totalElapsed % 4.0) / 0.15) * Math.PI) : 0;
+            currentVrm.expressionManager.setValue('blink', blinkBase * (emoteData.blink !== undefined ? emoteData.blink : 1.0));
+        }
+    </script>
+</body>
+</html>
