@@ -286,8 +286,22 @@
                 if (key === 'Backspace') {
                     box.value = box.value.slice(0, -1);
                 } else if (key === 'Enter') {
-                    const btn = bridgeIframe.contentDocument.getElementById('send-button');
-                    if (btn) btn.click();
+                    const beforeSubmit = box.value;
+                    const keyDown = new KeyboardEvent('keydown', {
+                        key: 'Enter',
+                        code: 'Enter',
+                        keyCode: 13,
+                        which: 13,
+                        bubbles: true
+                    });
+                    box.dispatchEvent(keyDown);
+
+                    // menu.html handles submission via inline onkeydown, but fall back
+                    // to app.core.handleInput in case synthetic keyboard events are blocked.
+                    const menuWindow = bridgeIframe.contentWindow;
+                    if (box.value === beforeSubmit && menuWindow?.app?.core?.handleInput) {
+                        menuWindow.app.core.handleInput();
+                    }
                 } else {
                     box.value += key;
                 }
