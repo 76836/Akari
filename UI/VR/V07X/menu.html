@@ -364,9 +364,9 @@
     <div id="avatar"></div>
     <div id="overlay">
         <div class="console" id="boot-log" style="font-size: 1rem; color: #fff;"></div>
-        <img src=".../images/logo512.png" alt="Logo"
+        <img src="https://76836.github.io/Akari/images/logo512.png" alt="Logo"
             style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.6);">
-        <img src=".../images/loading.gif" alt="Logo Small"
+        <img src="https://76836.github.io/Akari/images/loading.gif" alt="Logo Small"
             style="position:fixed; top:65%; left:50%; transform:translate(-50%, -50%) scale(0.2);">
     </div>
     </div>
@@ -443,7 +443,7 @@
         })();
     </script>
 
-    <script src="..../AkariNet-Automata/ATPKLoader-1.0.0.js"></script>
+    <script src="https://76836.github.io/AkariNet-Automata/ATPKLoader-1.0.0.js"></script>
     <script>
         /**
          * Global Legacy Bridge
@@ -590,7 +590,7 @@
                         const greet = app.core.getGreeting();
                         app.core.appendBubble(greet, 'responsetxt');
                         app.notify('Akari', greet);
-                    }, 6000);
+                    }, 16000);
 
                 },
                 toggleFollow: () => {
@@ -656,9 +656,10 @@
                     app.notify('Akari', text, { borderColors: ['#A020F0', '#00FF00'] });
                     window.emote(text);
 
-                    if (!app.isSilentMode) {
+                    //if (!app.isSilentMode) {
                         window.speak(text);
-                    }
+                    //}
+                    //I'll leave speech always on in VR for now...
                     app.isSilentMode = false;
                 },
 
