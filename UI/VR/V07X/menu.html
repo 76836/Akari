@@ -366,8 +366,6 @@
         <div class="console" id="boot-log" style="font-size: 1rem; color: #fff;"></div>
         <img src="https://76836.github.io/Akari/images/logo512.png" alt="Logo"
             style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.6);">
-        <img src="https://76836.github.io/Akari/images/loading.gif" alt="Logo Small"
-            style="position:fixed; top:65%; left:50%; transform:translate(-50%, -50%) scale(0.2);">
     </div>
     </div>
 
@@ -473,7 +471,18 @@
             }
         };
 
-        const fixPath = (path) => (path && path.startsWith('.') ? '..' + path : path);
+        const fixPath = (path) => {
+            if (!path) return path;
+
+            const base = "https://76836.github.io/Akari/";
+
+            try {
+                // URL constructor automatically resolves ., .., and deeper chains correctly
+                return new URL(path, base).href;
+            } catch {
+                return path;
+            }
+        };
 
         const app = {
             isSilentMode: true,
@@ -657,7 +666,7 @@
                     window.emote(text);
 
                     //if (!app.isSilentMode) {
-                        window.speak(text);
+                    window.speak(text);
                     //}
                     //I'll leave speech always on in VR for now...
                     app.isSilentMode = false;
