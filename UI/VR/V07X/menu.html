@@ -4,7 +4,7 @@
 <head>
 
     <head>
-        <title>Akari v2.5b</title>
+        <title>Akari</title>
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -364,9 +364,9 @@
     <div id="avatar"></div>
     <div id="overlay">
         <div class="console" id="boot-log" style="font-size: 1rem; color: #fff;"></div>
-        <img src="./images/logo512.png" alt="Logo"
+        <img src=".../images/logo512.png" alt="Logo"
             style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.6);">
-        <img src="./images/loading.gif" alt="Logo Small"
+        <img src=".../images/loading.gif" alt="Logo Small"
             style="position:fixed; top:65%; left:50%; transform:translate(-50%, -50%) scale(0.2);">
     </div>
     </div>
@@ -443,7 +443,7 @@
         })();
     </script>
 
-    <script src="../AkariNet-Automata/ATPKLoader-1.0.0.js"></script>
+    <script src="..../AkariNet-Automata/ATPKLoader-1.0.0.js"></script>
     <script>
         /**
          * Global Legacy Bridge
@@ -473,12 +473,12 @@
             }
         };
 
+        const fixPath = (path) => (path && path.startsWith('.') ? '..' + path : path);
+
         const app = {
             isSilentMode: true,
             autoMinTimer: null,
             config: {
-                fixPath: (path) => (path && path.startsWith('.') ? '..' + path : path),
-                //theres a 50/50 chance this works, im not gonna test it
                 modules: {
                     voice: fixPath(localStorage.getItem('selectedVoiceScript')),
                     avatar: fixPath(localStorage.getItem('selectedAvatarScript')),
@@ -573,7 +573,7 @@
 
             core: {
                 init: async () => {
-                    app.ui.log("Akari v2.5 initializing...");
+                    app.ui.log("AkariNet VR, Starting up...");
                     app.core.loadBackground();
 
                     await app.core.loadModule('avatar', app.config.modules.avatar, 'Avatar');
@@ -590,7 +590,7 @@
                         const greet = app.core.getGreeting();
                         app.core.appendBubble(greet, 'responsetxt');
                         app.notify('Akari', greet);
-                    }, 1000);
+                    }, 6000);
 
                 },
                 toggleFollow: () => {
