@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AkariNet VR</title>
+    <style>
+        body {
+            margin: 0;
+            background: #0000aa;
+            color: #ffffff;
+            font-family: "Courier New", Courier, monospace;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #status {
+            background: #c0c0c0;
+            color: #000000;
+            padding: 6px 12px;
+            font-size: 14px;
+            border: 2px solid;
+            border-color: #ffffff #808080 #808080 #ffffff;
+            display: inline-block;
+        }
+
+        #drop-zone {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-start;
+            background: #000000;
+            z-index: 100;
+            padding: 0;
+        }
+
+        #drop-zone.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .glass-card {
+            background: #c0c0c0;
+            border: 2px solid;
+            border-color: #dfdfdf #0a0a0a #0a0a0a #dfdfdf;
+            border-radius: 0;
+            padding: 4px;
+            width: 100%;
+            max-width: 350px;
+            height: 100vh;
+            box-shadow: 4px 0px 0px #000000;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        h2 {
+            margin: 0;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #ffffff;
+            background: #000080;
+            padding: 8px 10px;
+            text-align: left;
+            display: block;
+        }
+
+        p {
+            margin: 20px 10px;
+            color: #000000;
+            font-size: 1rem;
+            text-align: left;
+            line-height: 1.4;
+        }
+
+        .progress-container {
+            width: calc(100% - 20px);
+            height: 28px;
+            background: #000000;
+            border: 2px solid;
+            border-color: #808080 #ffffff #ffffff #808080;
+            margin: 10px;
+            display: none;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: #000080;
+            transition: width 0.1s linear;
+        }
+
+        .action-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 0 10px;
+            margin-top: auto;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: #c0c0c0;
+            border: 2px solid;
+            border-color: #ffffff #808080 #808080 #ffffff;
+            color: #000000;
+            padding: 12px;
+            font-family: "Courier New", monospace;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: left;
+            width: 100%;
+            box-sizing: border-box;
+            outline-offset: -6px;
+        }
+
+        .btn:active {
+            border-color: #808080 #ffffff #ffffff #808080;
+            padding: 13px 11px 11px 13px;
+        }
+
+        #bridge-container {
+            position: absolute;
+            top: -5000px;
+            left: -5000px;
+            width: 1024px;
+            height: 1024px;
+            background: #000000;
+        }
+
+        #bridge-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: transparent;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="overlay">
+        <div id="status">v0.7.4</div>
+    </div>
+
+    <div id="bridge-container">
+        <iframe id="bridge-iframe"></iframe>
+    </div>
+
+    <div id="drop-zone">
+        <div class="glass-card">
+            <h2>AkariNet VR</h2>
+            <p id="status-text">Drop or Select VRM to Begin</p>
+            <a
+                href="https://192.168.86.58:8119/v6/?modelUrl=https://76836.github.io/Akari/characters/akari/VRM/1192842823581716627.vrm">(testing)
+                use Akari.vrm</a>
+
+            <div id="progress-container" class="progress-container">
+                <div id="progress-bar"></div>
+            </div>
+
+            <div class="action-btns" id="ui-buttons">
+                <button class="btn primary" onclick="document.getElementById('file-input').click()">Load Local
+                    VRM</button>
+                <button id="quick-load-btn" class="btn hidden">Quick Load Last</button>
+                <button class="btn" onclick="document.documentElement.requestFullscreen()">Enter Fullscreen</button>
+            </div>
+
+            <input type="file" id="file-input" accept=".vrm" style="display:none">
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/",
+                "@pixiv/three-vrm": "https://unpkg.com/@pixiv/three-vrm@2.1.0/lib/three-vrm.module.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { VRButton } from 'three/addons/webxr/VRButton.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+        import { AirKeyboard } from './airkeyboard.js';
+        import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+        import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
+
+        const PARAMS = {
+            motion: { lookSpeed: 1.2, idleTimeout: 1.5, maxNeckY: 0.8, maxNeckX: 0.4, maxSpineY: 0.25 },
+            idle: { rangeX: 0.6, rangeY: 0.35, minHold: 2.0, maxHold: 5.0 },
+            sway: { intensity: 0.032, baseFrequency: 0.4, armRelaxation: 1.375 },
+            vr: { followDist: 1.8, followSpeed: 0.04, deadzone: 1.9, lookAwayThreshold: 1.5, personalSpace: 0.8 },
+            ui: {
+                lookAngleClose: 0.25,  // Angle (rad) to consider "not looking" at menu
+                lookAngleOpen: 0.35,   // Angle (rad) to consider "looking at" menu to expand
+                hideDelay: 0.25,        // Seconds to wait before minimizing
+                minScale: 0.4,         // Scale of mini-mode clock
+                minOffset: -0.85       // Y-offset of minibar in camera space
+            }
+        };
+
+        const EMOTIONS = {
+            neutral: { neutral: 1.0 },
+            happy: { ih: 0.8, aa: 0.2, relaxed: 0.2, blink: 0.0 },
+            sad: { sad: 0.8, lookDown: 0.2, blink: 0.0 },
+            angry: { angry: 1.0, lookDown: 0.1, blink: 0.0 },
+            fear: { surprised: 0.5, sad: 0.5, happy: 0, blink: 0.0 },
+            surprise: { surprised: 1.0, blink: 0.0 },
+            confused: { angry: 0.2, sad: 0.3, neutral: 0.5, blink: 0.0 },
+            love: { happy: 0.3, ou: 0.4, sad: 0.1 },
+            disgust: { angry: 0.6, sad: 0.2, happy: 0, blink: 0.0 },
+            trust: { neutral: 1.0, angry: 0.2, aa: 0.1, ou: 0.6 },
+            anticipation: { surprised: 0.3, ee: 0.0, ih: 0.5, happy: 0.1, blink: 0.0 },
+            contempt: { happy: 0.0, angry: 0.7, relaxed: 0.3, blink: 0.0 },
+            bored: { neutral: 0.6, sad: 0.3, lookDown: 0.6, relaxed: 0.1 },
+            pride: { ee: 0.3, relaxed: 0.7, neutral: 0.1 },
+            shame: { angry: 0.2, sad: 0.6, lookDown: 0.8, blink: 0.2 },
+            curious: { surprised: 0.3, neutral: 0.4, ih: 0.3, blink: 0.0 },
+            embarrassed: { surprised: 0.3, sad: 0.2, relaxed: 0.7, lookDown: 0.7, happy: 0.1, blink: 0.0 }
+        };
+
+        let scene, camera, renderer, clock, currentVrm, characterGroup;
+        let chatMesh, chatCanvas, chatTexture, reticle, bridgeIframe, controls, keyboard;
+        let c1, c2, h1, h2;
+        let cursorL, cursorR, cursorG;
+        let raycaster = new THREE.Raycaster();
+        let isCapturing = false;
+        let bridgeLoaded = false;
+
+        const state = {
+            idleTargetX: 0, idleTargetY: 1.45, nextIdleSwitch: 0,
+            isFollowing: true,
+            totalElapsed: 0,
+            isVrm1: false,
+            lastCapture: 0,
+            walkCycle: 0,
+            isWalking: false,
+            isTurning: false,
+            lookAwayTime: 0,
+            currentTarget: new THREE.Vector3(0, 0, -1.8),
+            keyboardVisible: false,
+            kbTargetPos: new THREE.Vector3(),
+            isPointerLocked: false,
+            vrInputActive: false,
+            grabbedBy: null, // Stores which controller/hand is moving the menu
+            menuScale: 1.5,
+            isMenuClosed: false
+        };
+
+        const keys = {};
+        window.addEventListener('keydown', (e) => keys[e.code] = true);
+        window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+        window.state = state; // Expose to iframe
+        window.toggleFollow = () => {
+            state.isFollowing = !state.isFollowing;
+            return state.isFollowing;
+        };
+
+        window.sendKeyToMenu = (key) => {
+            if (!bridgeIframe.contentDocument) return;
+            const box = bridgeIframe.contentDocument.getElementById('box');
+            if (box) {
+                if (key === 'Backspace') {
+                    box.value = box.value.slice(0, -1);
+                } else if (key === 'Enter') {
+                    const btn = bridgeIframe.contentDocument.getElementById('send-button');
+                    if (btn) btn.click();
+                } else {
+                    box.value += key;
+                }
+                box.dispatchEvent(new Event('input', { bubbles: true }));
+                box.focus();
+            }
+        };
+
+        init();
+
+        async function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x050508);
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.xr.enabled = true;
+            document.body.appendChild(renderer.domElement);
+            document.body.appendChild(VRButton.createButton(renderer));
+
+            scene.add(camera); // Required for reticle (child of camera) to show
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.target.set(0, 1.2, 0);
+            controls.enableDamping = true;
+            controls.enabled = true;
+            controls.update();
+
+            // Pointer Lock for PC Support
+            document.addEventListener('pointerlockchange', () => {
+                state.isPointerLocked = document.pointerLockElement === document.body;
+                controls.enabled = !state.isPointerLocked;
+            });
+
+            function handleCameraGrabStart() {
+                if (state.isPointerLocked || (renderer.xr.isPresenting && !state.vrInputActive)) {
+                    raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+                    const ints = raycaster.intersectObject(chatMesh, true);
+                    if (ints.length > 0 && (ints[0].object.userData.isTitleBar || ints[0].object.userData.isBg)) {
+                        state.grabbedBy = camera;
+                        state.grabLocalPos = camera.worldToLocal(chatMesh.position.clone());
+                    }
+                }
+            }
+
+            window.addEventListener('mousedown', (e) => {
+                const dropZone = document.getElementById('drop-zone');
+                if (!renderer.xr.isPresenting && !state.isPointerLocked && dropZone && dropZone.classList.contains('hidden')) {
+                    document.body.requestPointerLock();
+                }
+                handleCameraGrabStart();
+            });
+
+            window.addEventListener('touchstart', (e) => {
+                handleCameraGrabStart();
+            });
+
+            window.addEventListener('mouseup', () => { if (state.grabbedBy === camera) state.grabbedBy = null; });
+            window.addEventListener('touchend', () => { if (state.grabbedBy === camera) state.grabbedBy = null; });
+
+            window.addEventListener('mousemove', (e) => {
+                if (state.isPointerLocked) {
+                    const sensitivity = 0.002;
+                    // Directly manipulate camera and ensure it stays in sync
+                    camera.rotation.order = 'YXZ';
+                    camera.rotation.y -= e.movementX * sensitivity;
+                    camera.rotation.x -= e.movementY * sensitivity;
+                    camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x));
+
+                    // Sync OrbitControls target so it doesn't snap back when unlocked
+                    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                    controls.target.copy(camera.position).add(dir.multiplyScalar(5));
+                }
+            });
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+            const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+            sun.position.set(1, 2, 1);
+            scene.add(sun);
+
+            const params = new URLSearchParams(window.location.search);
+
+            if (params.has("envUrl")) {
+                const loader = new THREE.TextureLoader();
+                loader.load(params.get("envUrl"), (texture) => {
+                    texture.mapping = THREE.EquirectangularReflectionMapping;
+                    scene.background = texture;
+                });
+            } else {
+                scene.add(new THREE.GridHelper(20, 20, 0x00f2ff, 0x111111));
+            }
+
+            characterGroup = new THREE.Group();
+            scene.add(characterGroup);
+
+            setupIframeBridge();
+            setupReticle();
+            setupFileHandling();
+
+            const lastModelType = localStorage.getItem('lastModelType');
+            if (lastModelType) {
+                const btn = document.getElementById('quick-load-btn');
+                btn.classList.remove('hidden');
+                btn.onclick = () => quickLoad();
+            }
+
+            if (params.has("modelUrl")) {
+                loadVRM(params.get("modelUrl"));
+            }
+
+            // VR Controllers & Hands setup
+            const controllerModelFactory = new XRControllerModelFactory();
+            const handModelFactory = new XRHandModelFactory();
+
+            function setupVRInput(index) {
+                const controller = renderer.xr.getController(index);
+                controller.addEventListener('select', onSelect);
+                scene.add(controller);
+
+                const grip = renderer.xr.getControllerGrip(index);
+                grip.add(controllerModelFactory.createControllerModel(grip));
+                scene.add(grip);
+
+                const ray = new THREE.Line(
+                    new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1)]),
+                    new THREE.LineBasicMaterial({ color: 0x00f2ff, transparent: true, opacity: 0.5 })
+                );
+                ray.name = 'ray';
+                ray.scale.z = 5;
+                controller.add(ray);
+
+                const hand = renderer.xr.getHand(index);
+                hand.addEventListener('select', onSelect);
+                hand.add(handModelFactory.createHandModel(hand));
+                scene.add(hand);
+
+                return { controller, hand };
+            }
+
+            const input0 = setupVRInput(0);
+            const input1 = setupVRInput(1);
+            c1 = input0.controller; c2 = input1.controller;
+            h1 = input0.hand; h2 = input1.hand;
+
+            // Handle Grabbing (Squeeze) and Toggling
+            function onGrabStart(e) {
+                const controller = e.target;
+                const tempMatrix = new THREE.Matrix4();
+                tempMatrix.identity().extractRotation(controller.matrixWorld);
+                raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+                raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+
+                const ints = raycaster.intersectObject(chatMesh, true);
+                if (ints.length > 0 && (ints[0].object.userData.isTitleBar || ints[0].object.userData.isBg)) {
+                    state.grabbedBy = controller;
+                    state.grabLocalPos = controller.worldToLocal(chatMesh.position.clone());
+                }
+            }
+
+            function onGrabEnd(e) {
+                if (state.grabbedBy === e.target) {
+                    state.grabbedBy = null;
+                }
+            }
+
+            [c1, c2, h1, h2].forEach(input => {
+                input.addEventListener('squeezestart', onGrabStart);
+                input.addEventListener('squeezeend', onGrabEnd);
+                input.addEventListener('selectstart', onGrabStart);
+                input.addEventListener('selectend', onGrabEnd);
+            });
+
+            window.addEventListener('click', (e) => {
+                if (state.isPointerLocked || (renderer.xr.isPresenting && !state.vrInputActive)) {
+                    onSelect();
+                }
+            });
+
+            clock = new THREE.Clock();
+            renderer.setAnimationLoop(animate);
+        }
+
+        function onSelect(event) {
+            if (event && event.target && event.target.matrixWorld) {
+                const controller = event.target;
+                const tempMatrix = new THREE.Matrix4();
+                tempMatrix.identity().extractRotation(controller.matrixWorld);
+                raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+                raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+            } else {
+                raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+            }
+
+            const menuInt = raycaster.intersectObject(chatMesh, true);
+            if (menuInt.length > 0) {
+                if (menuInt[0].object.userData.isIframe) {
+                    const uv = menuInt[0].uv;
+                    simulateIframeClick(uv.x * 1024, (1 - uv.y) * 1024);
+                } else if (menuInt[0].object.userData.isTitleBar) {
+                    if (menuInt[0].uv.x > 0.9) state.isMenuClosed = true;
+                }
+                return;
+            }
+
+            const kbInt = raycaster.intersectObjects(keyboard.keys, true);
+            if (kbInt.length > 0 && state.keyboardVisible) {
+                let obj = kbInt[0].object;
+                while (obj && !obj.userData.label) obj = obj.parent;
+                if (obj) keyboard.press(obj.userData.label);
+            }
+        }
+
+        function setupIframeBridge() {
+            bridgeIframe = document.getElementById('bridge-iframe');
+            bridgeIframe.onload = () => {
+                console.log("Menu Bridge Loaded Successfully");
+                bridgeLoaded = true;
+            };
+            bridgeIframe.onerror = () => console.error("Menu Bridge Failed to Load");
+            bridgeIframe.src = 'menu.html';
+
+            chatCanvas = document.createElement('canvas');
+            chatCanvas.width = 1024;
+            chatCanvas.height = 1024;
+
+            chatTexture = new THREE.CanvasTexture(chatCanvas);
+            const chatMat = new THREE.MeshBasicMaterial({ map: chatTexture, transparent: true, side: THREE.DoubleSide });
+            chatMesh = new THREE.Group();
+            
+            const windowBgHeight = state.menuScale + 0.14;
+            const bgMat = new THREE.MeshBasicMaterial({ color: 0x222222, side: THREE.DoubleSide });
+            const bgMesh = new THREE.Mesh(new THREE.PlaneGeometry(state.menuScale + 0.04, windowBgHeight), bgMat);
+            bgMesh.position.set(0, 0.05, -0.01); 
+            bgMesh.userData.isBg = true;
+            chatMesh.add(bgMesh);
+
+            const windowMesh = new THREE.Mesh(new THREE.PlaneGeometry(state.menuScale, state.menuScale), chatMat);
+            windowMesh.position.set(0, -0.05, 0);
+            windowMesh.userData.isIframe = true;
+            chatMesh.add(windowMesh);
+
+            const titleHeight = state.menuScale * 0.1;
+            const titleGeom = new THREE.PlaneGeometry(state.menuScale, titleHeight);
+            const titleCanvas = document.createElement('canvas');
+            titleCanvas.width = 1024;
+            titleCanvas.height = 102;
+            const tctx = titleCanvas.getContext('2d');
+            
+            const grad = tctx.createLinearGradient(0, 0, 1024, 0);
+            grad.addColorStop(0, '#000080');
+            grad.addColorStop(1, '#1084d0');
+            tctx.fillStyle = grad;
+            tctx.fillRect(0, 0, 1024, 102);
+            
+            tctx.fillStyle = '#ffffff';
+            tctx.font = 'bold 48px "Courier New", monospace';
+            tctx.textAlign = 'left';
+            tctx.textBaseline = 'middle';
+            tctx.fillText('AkariNet VR v0.7.4', 20, 51);
+
+            const titleTex = new THREE.CanvasTexture(titleCanvas);
+            const titleMat = new THREE.MeshBasicMaterial({ map: titleTex, side: THREE.DoubleSide });
+            const titleMesh = new THREE.Mesh(titleGeom, titleMat);
+            titleMesh.position.set(0, state.menuScale / 2 + 0.02, 0);
+            titleMesh.userData.isTitleBar = true;
+            chatMesh.add(titleMesh);
+            
+            chatMesh.position.set(0.6, 1.2, -PARAMS.vr.followDist);
+            scene.add(chatMesh);
+
+            keyboard = new AirKeyboard((key) => {
+                if (key === 'Close') {
+                    state.keyboardVisible = false;
+                } else {
+                    window.sendKeyToMenu(key);
+                }
+            });
+            keyboard.visible = false;
+            scene.add(keyboard);
+
+            function createUniversalCursor() {
+                const cursor = new THREE.Group();
+                const ring = new THREE.Mesh(
+                    new THREE.RingGeometry(0.015, 0.022, 32),
+                    new THREE.MeshBasicMaterial({ color: 0x00f2ff, transparent: true, opacity: 0.8, depthTest: false })
+                );
+                const dot = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.005, 16, 16),
+                    new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false })
+                );
+                cursor.add(ring); cursor.add(dot);
+                cursor.renderOrder = 999;
+                return cursor;
+            }
+
+            cursorL = createUniversalCursor();
+            cursorR = createUniversalCursor();
+            cursorG = createUniversalCursor();
+            scene.add(cursorL); scene.add(cursorR); scene.add(cursorG);
+        }
+
+        function simulateIframeClick(x, y) {
+            const innerDoc = bridgeIframe.contentDocument;
+            if (!innerDoc) return;
+            const el = innerDoc.elementFromPoint(x, y);
+            if (el) {
+                el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: x, clientY: y }));
+                el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: x, clientY: y }));
+                el.click();
+
+                if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                    if (!state.keyboardVisible) {
+                        state.keyboardVisible = true;
+                        // Position keyboard comfortably in front of camera
+                        const dir = new THREE.Vector3(0, -0.2, -1.4).applyQuaternion(camera.quaternion);
+                        keyboard.position.copy(camera.position).add(dir);
+                        keyboard.lookAt(camera.position);
+                        keyboard.rotateX(-0.3); // Slight tilt for ergonomics
+                        state.kbTargetPos.copy(keyboard.position);
+                    }
+                }
+            }
+        }
+
+        function simulateIframeMove(x, y) {
+            const innerDoc = bridgeIframe.contentDocument;
+            if (!innerDoc) return;
+            innerDoc.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: x, clientY: y }));
+        }
+
+        function setupReticle() {
+            // Old reticle removed in favor of cursors[G/L/R]
+        }
+
+        async function loadVRM(url, isFromLocalFile = false) {
+            const statusText = document.getElementById('status-text');
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+            const uiButtons = document.getElementById('ui-buttons');
+
+            statusText.innerText = "Loading VRM Model...";
+            progressContainer.classList.add('active');
+            uiButtons.classList.add('hidden');
+
+            // Caching Logic
+            let finalUrl = url;
+            if (!isFromLocalFile && url.startsWith('http')) {
+                try {
+                    const cache = await caches.open('vrm-cache');
+                    let response = await cache.match(url);
+                    if (!response) {
+                        statusText.innerText = "Downloading Model...";
+                        response = await fetch(url);
+                        await cache.put(url, response.clone());
+                    } else {
+                        statusText.innerText = "Loading from Cache...";
+                    }
+                    const blob = await response.blob();
+                    finalUrl = URL.createObjectURL(blob);
+                } catch (e) {
+                    console.warn("Cache failed, using direct URL", e);
+                }
+            }
+
+            const loader = new GLTFLoader();
+            loader.register((p) => new VRMLoaderPlugin(p));
+
+            loader.load(
+                finalUrl,
+                (gltf) => {
+                    if (currentVrm) characterGroup.remove(currentVrm.scene);
+                    currentVrm = gltf.userData.vrm;
+                    characterGroup.add(currentVrm.scene);
+                    state.isVrm1 = String(currentVrm.meta.metaVersion).startsWith('1');
+                    if (!state.isVrm1) VRMUtils.rotateVRM0(currentVrm);
+
+                    const lA = currentVrm.humanoid.getNormalizedBoneNode('leftUpperArm');
+                    const rA = currentVrm.humanoid.getNormalizedBoneNode('rightUpperArm');
+                    let angle = PARAMS.sway.armRelaxation;
+                    if (state.isVrm1) angle = -angle;
+                    if (lA) lA.rotation.z = angle;
+                    if (rA) rA.rotation.z = -angle;
+
+                    document.getElementById('drop-zone').classList.add('hidden');
+
+                    // Save for quick load
+                    if (isFromLocalFile) {
+                        saveToIndexedDB(url); // url is blob here
+                    } else {
+                        localStorage.setItem('lastModelType', 'remote');
+                        localStorage.setItem('lastModelUrl', url);
+                    }
+                },
+                (xhr) => {
+                    if (xhr.lengthComputable) {
+                        const percent = (xhr.loaded / xhr.total) * 100;
+                        progressBar.style.width = percent + '%';
+                    }
+                },
+                (error) => {
+                    console.error(error);
+                    statusText.innerText = "Error Loading VRM";
+                    uiButtons.classList.remove('hidden');
+                    progressContainer.classList.remove('active');
+                }
+            );
+        }
+
+        async function saveToIndexedDB(blobUrl) {
+            const response = await fetch(blobUrl);
+            const blob = await response.blob();
+
+            const request = indexedDB.open("VRMCache", 1);
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                db.createObjectStore("models", { keyPath: "id" });
+            };
+            request.onsuccess = (e) => {
+                const db = e.target.result;
+                const tx = db.transaction("models", "readwrite");
+                tx.objectStore("models").put({ id: "last", data: blob });
+                localStorage.setItem('lastModelType', 'local');
+            };
+        }
+
+        async function quickLoad() {
+            const type = localStorage.getItem('lastModelType');
+            if (type === 'remote') {
+                loadVRM(localStorage.getItem('lastModelUrl'));
+            } else if (type === 'local') {
+                const request = indexedDB.open("VRMCache", 1);
+                request.onsuccess = (e) => {
+                    const db = e.target.result;
+                    const tx = db.transaction("models", "readonly");
+                    const get = tx.objectStore("models").get("last");
+                    get.onsuccess = () => {
+                        if (get.result) {
+                            const url = URL.createObjectURL(get.result.data);
+                            loadVRM(url, true);
+                        }
+                    };
+                };
+            }
+        }
+
+        function setupFileHandling() {
+            const input = document.getElementById('file-input');
+            input.onchange = (e) => {
+                if (e.target.files.length === 0) return;
+                const url = URL.createObjectURL(e.target.files[0]);
+                loadVRM(url, true);
+            };
+
+            // Drag and drop
+            window.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+            });
+            window.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (e.dataTransfer.files.length > 0) {
+                    const file = e.dataTransfer.files[0];
+                    if (file.name.toLowerCase().endsWith('.vrm')) {
+                        const url = URL.createObjectURL(file);
+                        loadVRM(url, true);
+                    }
+                }
+            });
+        }
+
+        async function updateBridgeTexture() {
+            if (!bridgeLoaded || isCapturing || state.totalElapsed - state.lastCapture < 0.05) return;
+
+            const body = bridgeIframe.contentDocument ? bridgeIframe.contentDocument.body : null;
+            if (!body) return;
+
+            isCapturing = true;
+            try {
+                const ctx = chatCanvas.getContext('2d');
+
+                if (state.menuMinimized) {
+                    // Draw a modern matte black pill clock indicator
+                    ctx.clearRect(0, 0, 1024, 1024);
+
+                    const pillW = 600;
+                    const pillH = 180;
+                    const x = (1024 - pillW) / 2;
+                    const y = (1024 - pillH) / 2;
+                    const r = pillH / 2;
+
+                    // Pill Background
+                    ctx.fillStyle = '#121212';
+                    ctx.beginPath();
+                    ctx.moveTo(x + r, y);
+                    ctx.lineTo(x + pillW - r, y);
+                    ctx.quadraticCurveTo(x + pillW, y, x + pillW, y + r);
+                    ctx.quadraticCurveTo(x + pillW, y + pillH, x + pillW - r, y + pillH);
+                    ctx.lineTo(x + r, y + pillH);
+                    ctx.quadraticCurveTo(x, y + pillH, x, y + r);
+                    ctx.quadraticCurveTo(x, y, x + r, y);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Subtle Border
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+
+                    // Menu Icon (Dots)
+                    ctx.fillStyle = '#ffffff';
+                    for(let i=0; i<3; i++) {
+                        for(let j=0; j<3; j++) {
+                            ctx.beginPath();
+                            ctx.arc(x + 50 + i*14, y + pillH/2 - 14 + j*14, 4, 0, Math.PI*2);
+                            ctx.fill();
+                        }
+                    }
+
+                    // Clock text
+                    const now = new Date();
+                    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                    ctx.font = 'bold 80px "Outfit", sans-serif';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(timeStr, x + 120, y + pillH / 2 + 5);
+
+                    // Pulsing dots badge
+                    const pulse = (Math.sin(state.totalElapsed * 3) + 1) / 2;
+                    ctx.fillStyle = `rgba(0, 242, 255, ${0.4 + pulse * 0.6})`;
+                    ctx.beginPath();
+                    ctx.arc(x + pillW - 60, y + pillH / 2, 8, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    chatTexture.needsUpdate = true;
+                } else {
+                    const canvas = await window.html2canvas(body, {
+                        width: 1024, height: 1024, scale: 1, backgroundColor: null, logging: false, useCORS: true, allowTaint: true
+                    });
+                    ctx.clearRect(0, 0, 1024, 1024);
+                    ctx.drawImage(canvas, 0, 0);
+                    chatTexture.needsUpdate = true;
+                }
+                state.lastCapture = state.totalElapsed;
+            } catch (e) {
+                console.error("Bridge Capture Failed:", e);
+            }
+            isCapturing = false;
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyF') {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+        });
+
+        function animate() {
+            try {
+                const dt = Math.min(clock.getDelta(), 0.05);
+                state.totalElapsed += dt;
+
+                if (!renderer.xr.isPresenting) {
+                    const moveSpeed = 0.05;
+                    const dir = new THREE.Vector3();
+                    if (keys['KeyW']) dir.z -= 1;
+                    if (keys['KeyS']) dir.z += 1;
+                    if (keys['KeyA']) dir.x -= 1;
+                    if (keys['KeyD']) dir.x += 1;
+
+                    if (dir.length() > 0) {
+                        dir.normalize();
+                        const camDir = new THREE.Vector3();
+                        camera.getWorldDirection(camDir);
+                        camDir.y = 0; camDir.normalize();
+                        const camSide = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), camDir).normalize();
+                        const move = new THREE.Vector3();
+                        move.addScaledVector(camDir, -dir.z);
+                        move.addScaledVector(camSide, -dir.x);
+                        camera.position.addScaledVector(move, moveSpeed);
+                        controls.target.addScaledVector(move, moveSpeed);
+                    }
+                    controls.update();
+                }
+
+                // VR Input Detection & Raycasting
+                cursorL.visible = false;
+                cursorR.visible = false;
+                cursorG.visible = false;
+                let activeIntersection = false;
+
+                try {
+                    const vrInputs = [
+                        { obj: c1, cursor: cursorL }, { obj: c2, cursor: cursorR },
+                        { obj: h1, cursor: cursorL }, { obj: h2, cursor: cursorR }
+                    ];
+
+                    state.vrInputActive = vrInputs.some(i => i.obj && i.obj.visible);
+
+                    // Grab logic: Move menu with controller/hand/camera
+                    if (state.grabbedBy && state.grabbedBy.visible !== false) {
+                        const newPos = state.grabLocalPos.clone().applyMatrix4(state.grabbedBy.matrixWorld);
+                        chatMesh.position.lerp(newPos, 0.4);
+                        chatMesh.lookAt(camera.position);
+                    }
+
+                    for (const input of vrInputs) {
+                        if (!input.obj || !input.obj.visible) continue;
+
+                        const tempMatrix = new THREE.Matrix4();
+                        tempMatrix.identity().extractRotation(input.obj.matrixWorld);
+                        raycaster.ray.origin.setFromMatrixPosition(input.obj.matrixWorld);
+                        raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+
+                        const menuInt = raycaster.intersectObject(chatMesh, true);
+                        const kbInt = state.keyboardVisible ? raycaster.intersectObject(keyboard, true) : [];
+
+                        if (menuInt.length > 0) {
+                            activeIntersection = true;
+                            input.cursor.visible = true;
+                            input.cursor.position.copy(menuInt[0].point);
+                            input.cursor.lookAt(camera.position);
+                            input.cursor.scale.setScalar(1.0);
+                            
+                            if (menuInt[0].object.userData.isIframe) {
+                                simulateIframeMove(menuInt[0].uv.x * 1024, (1 - menuInt[0].uv.y) * 1024);
+                            }
+                            keyboard.onHover(null);
+                            state.lastMenuLookTime = state.totalElapsed;
+                        } else if (kbInt.length > 0) {
+                            activeIntersection = true;
+                            input.cursor.visible = true;
+                            input.cursor.position.copy(kbInt[0].point);
+                            input.cursor.lookAt(camera.position);
+                            input.cursor.scale.setScalar(1.0);
+
+                            let obj = kbInt[0].object;
+                            while (obj && !obj.userData.label && obj.parent) obj = obj.parent;
+                            keyboard.onHover(obj && obj.userData.label ? obj.userData.label : null);
+                        }
+                    }
+
+                    if (!activeIntersection && !state.vrInputActive) {
+                        // Gaze Raycast
+                        raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+                        const menuInt = raycaster.intersectObject(chatMesh, true);
+                        const kbInt = state.keyboardVisible ? raycaster.intersectObject(keyboard, true) : [];
+
+                        if (menuInt.length > 0) {
+                            cursorG.visible = true;
+                            cursorG.position.copy(menuInt[0].point);
+                            cursorG.lookAt(camera.position);
+                            if (menuInt[0].object.userData.isIframe) {
+                                simulateIframeMove(menuInt[0].uv.x * 1024, (1 - menuInt[0].uv.y) * 1024);
+                            }
+                            keyboard.onHover(null);
+                            state.lastMenuLookTime = state.totalElapsed;
+                        } else if (kbInt.length > 0) {
+                            cursorG.visible = true;
+                            cursorG.position.copy(kbInt[0].point);
+                            cursorG.lookAt(camera.position);
+                            
+                            let obj = kbInt[0].object;
+                            while (obj && !obj.userData.label && obj.parent) obj = obj.parent;
+                            keyboard.onHover(obj && obj.userData.label ? obj.userData.label : null);
+                        }
+                    }
+                } catch (e) {
+                    if (!state.inputErrorLogged) {
+                        console.error("VR Input/Controller Error:", e);
+                        state.inputErrorLogged = true;
+                    }
+                }
+
+                // Handle Menu Toggling via Meta buttons (B/Y or Menu)
+                const session = renderer.xr.getSession();
+                if (session) {
+                    for (const source of session.inputSources) {
+                        if (source.gamepad) {
+                            // Common mapping: buttons[4] is top button (B or Y)
+                            if (source.gamepad.buttons[4] && source.gamepad.buttons[4].pressed) {
+                                state.isMenuClosed = true;
+                            } else if (source.gamepad.buttons[5] && source.gamepad.buttons[5].pressed) {
+                                // X or A to reopen
+                                state.isMenuClosed = false;
+                            }
+                        }
+                    }
+                }
+                chatMesh.visible = !state.isMenuClosed;
+
+                // Minibar / Minimize logic
+                const camFwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                const toMenu = new THREE.Vector3().subVectors(chatMesh.position, camera.position).normalize();
+                const angleToMenu = camFwd.angleTo(toMenu);
+
+                if (angleToMenu < PARAMS.ui.lookAngleOpen) {
+                    state.lastMenuLookTime = state.totalElapsed;
+                }
+
+                if (state.totalElapsed - state.lastMenuLookTime > PARAMS.ui.hideDelay && !activeIntersection && !state.keyboardVisible && !state.grabbedBy) {
+                    state.menuMinimized = true;
+                } else {
+                    if (state.menuMinimized && angleToMenu < PARAMS.ui.lookAngleClose) {
+                        state.menuMinimized = false;
+                        state.lastMenuLookTime = state.totalElapsed;
+                    }
+                }
+
+                if (!state.isMenuClosed) {
+                    if (state.menuMinimized) {
+                        chatMesh.children.forEach(c => { if(c.userData.isBg || c.userData.isTitleBar) c.visible = false; });
+                        chatMesh.scale.lerp(new THREE.Vector3(PARAMS.ui.minScale, PARAMS.ui.minScale, PARAMS.ui.minScale), 0.1);
+                        const minibarPos = new THREE.Vector3(0, PARAMS.ui.minOffset, -PARAMS.vr.followDist).applyQuaternion(camera.quaternion).add(camera.position);
+                        chatMesh.position.lerp(minibarPos, 0.05);
+                    } else {
+                        chatMesh.children.forEach(c => { if(c.userData.isBg || c.userData.isTitleBar) c.visible = true; });
+                        if (!state.grabbedBy) {
+                            chatMesh.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
+                        }
+                    }
+                    chatMesh.lookAt(camera.position);
+                }
+
+                // Keyboard logic
+                keyboard.visible = state.keyboardVisible;
+                if (state.keyboardVisible) {
+                    const toKb = new THREE.Vector3().subVectors(keyboard.position, camera.position).normalize();
+                    const camFwdAlt = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                    if (camFwdAlt.dot(toKb) < 0.4) state.keyboardVisible = false;
+                }
+
+                updateBridgeTexture();
+
+                if (currentVrm) {
+                    characterGroup.scale.setScalar(1.524 / 1.45);
+
+                    const toCam = new THREE.Vector3().subVectors(camera.position, characterGroup.position);
+                    toCam.y = 0; toCam.normalize();
+                    const bodyFwd = new THREE.Vector3(0, 0, 1).applyQuaternion(characterGroup.quaternion);
+                    const angleToCam = bodyFwd.angleTo(toCam);
+
+                    if (state.isFollowing) {
+                        const gazeDir = new THREE.Vector3(0, 0, -PARAMS.vr.followDist).applyQuaternion(camera.quaternion);
+                        const gazePos = gazeDir.add(camera.position); gazePos.y = 0;
+
+                        const camFwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                        const toChar = new THREE.Vector3().subVectors(characterGroup.position, camera.position);
+                        const charDist = toChar.length();
+                        toChar.normalize();
+                        const lookingAtChar = camFwd.dot(toChar) > 0.8;
+
+                        const gazeDelta = gazePos.distanceTo(state.currentTarget);
+                        if (gazeDelta > 1.2) {
+                            state.lookAwayTime += dt;
+                            if (state.lookAwayTime > PARAMS.vr.lookAwayThreshold) {
+                                if (!(lookingAtChar && gazePos.distanceTo(camera.position) > charDist)) {
+                                    state.currentTarget.copy(gazePos);
+                                }
+                                state.lookAwayTime = 0;
+                            }
+                        } else {
+                            state.lookAwayTime = 0;
+                        }
+
+                        const distToTarget = characterGroup.position.distanceTo(state.currentTarget);
+                        if (distToTarget > 0.2) {
+                            const currentSpeed = PARAMS.vr.followSpeed * (0.6 + 0.8 * Math.abs(Math.sin(state.walkCycle)));
+                            const nextPos = characterGroup.position.clone();
+                            nextPos.lerp(state.currentTarget, currentSpeed);
+                            if (nextPos.distanceTo(camera.position) > PARAMS.vr.personalSpace) {
+                                characterGroup.position.copy(nextPos);
+                            }
+                            state.isWalking = true;
+
+                            const moveDir = new THREE.Vector3().subVectors(state.currentTarget, characterGroup.position);
+                            if (moveDir.length() > 0.01) {
+                                const targetRotY = Math.atan2(moveDir.x, moveDir.z);
+                                rotateTowards(targetRotY, 0.1);
+                            }
+                        } else {
+                            if (angleToCam > 1.5 || state.isTurning) {
+                                state.isTurning = true;
+                                state.isWalking = true;
+                                const targetRotY = Math.atan2(toCam.x, toCam.z);
+                                rotateTowards(targetRotY, 0.08);
+                                if (angleToCam < 0.5) state.isTurning = false;
+                            } else {
+                                state.isWalking = false;
+                                state.isTurning = false;
+                            }
+                        }
+
+                        const distToCam = characterGroup.position.distanceTo(camera.position);
+                        if (distToCam < PARAMS.vr.personalSpace) {
+                            const pushDir = new THREE.Vector3().subVectors(characterGroup.position, camera.position);
+                            pushDir.y = 0; pushDir.normalize();
+                            characterGroup.position.addScaledVector(pushDir, (PARAMS.vr.personalSpace - distToCam) * 0.05);
+                        }
+                    } else {
+                        state.isWalking = false;
+                        state.isTurning = false;
+                    }
+
+                    function rotateTowards(targetRotY, speed) {
+                        let diff = targetRotY - characterGroup.rotation.y;
+                        while (diff < -Math.PI) diff += Math.PI * 2;
+                        while (diff > Math.PI) diff -= Math.PI * 2;
+                        characterGroup.rotation.y += diff * speed;
+                    }
+
+                    updateX(dt);
+                    currentVrm.update(dt);
+                }
+            } catch (e) {
+                if (!state.loopErrorLogged) {
+                    console.error("Critical Animation Loop Error:", e);
+                    state.loopErrorLogged = true;
+                }
+            }
+            renderer.render(scene, camera);
+        }
+
+        function updateX(dt) {
+            if (state.totalElapsed > state.nextIdleSwitch) {
+                state.idleTargetX = (Math.random() - 0.5) * 2 * PARAMS.idle.rangeX;
+                state.nextIdleSwitch = state.totalElapsed + PARAMS.idle.minHold + Math.random() * 3.0;
+            }
+            const neck = currentVrm.humanoid.getNormalizedBoneNode('neck');
+            const spine = currentVrm.humanoid.getNormalizedBoneNode('spine');
+            const lLeg = currentVrm.humanoid.getNormalizedBoneNode('leftUpperLeg');
+            const rLeg = currentVrm.humanoid.getNormalizedBoneNode('rightUpperLeg');
+            const lKnee = currentVrm.humanoid.getNormalizedBoneNode('leftLowerLeg');
+            const rKnee = currentVrm.humanoid.getNormalizedBoneNode('rightLowerLeg');
+            const lArm = currentVrm.humanoid.getNormalizedBoneNode('leftUpperArm');
+            const rArm = currentVrm.humanoid.getNormalizedBoneNode('rightUpperArm');
+
+            const sway = Math.sin(state.totalElapsed * PARAMS.sway.baseFrequency) * PARAMS.sway.intensity;
+
+            if (spine) {
+                spine.rotation.z = sway;
+                spine.rotation.y = THREE.MathUtils.lerp(spine.rotation.y, THREE.MathUtils.clamp(state.idleTargetX * 0.15, -PARAMS.motion.maxSpineY, PARAMS.motion.maxSpineY), dt);
+            }
+            if (neck) {
+                // Combine Idle Look with Camera Tracking
+                const toCam = new THREE.Vector3().subVectors(camera.position, characterGroup.position);
+                toCam.y = 0; toCam.normalize();
+                const bodyFwd = new THREE.Vector3(0, 0, 1).applyQuaternion(characterGroup.quaternion);
+                const localLook = new THREE.Vector3().subVectors(camera.position, characterGroup.position);
+                localLook.applyQuaternion(characterGroup.quaternion.clone().invert());
+
+                let lookY = Math.atan2(localLook.x, localLook.z);
+                // Clamp neck rotation to human limits (~70 degrees)
+                lookY = THREE.MathUtils.clamp(lookY, -1.2, 1.2);
+
+                const neckTargetY = state.isWalking ? lookY * 0.4 : lookY * 0.85;
+                neck.rotation.y = THREE.MathUtils.lerp(neck.rotation.y, neckTargetY + THREE.MathUtils.clamp(state.idleTargetX * 0.45, -PARAMS.motion.maxNeckY, PARAMS.motion.maxNeckY), dt * 3);
+            }
+
+            if (state.isWalking) {
+                state.walkCycle += dt * 7.0;
+                const legSwing = Math.sin(state.walkCycle) * 0.4;
+                const armSwing = Math.cos(state.walkCycle) * 0.3;
+
+                if (lLeg) lLeg.rotation.x = legSwing;
+                if (rLeg) rLeg.rotation.x = -legSwing;
+
+                if (lKnee) lKnee.rotation.x = legSwing > 0 ? legSwing * -1.5 : 0;
+                if (rKnee) rKnee.rotation.x = -legSwing > 0 ? -legSwing * -1.5 : 0;
+
+                if (lArm) lArm.rotation.x = -armSwing;
+                if (rArm) rArm.rotation.x = armSwing;
+
+                characterGroup.position.y = Math.abs(Math.sin(state.walkCycle)) * 0.04;
+            } else {
+                if (lLeg) lLeg.rotation.x = THREE.MathUtils.lerp(lLeg.rotation.x, 0, 0.1);
+                if (rLeg) rLeg.rotation.x = THREE.MathUtils.lerp(rLeg.rotation.x, 0, 0.1);
+                if (lKnee) lKnee.rotation.x = THREE.MathUtils.lerp(lKnee.rotation.x, 0, 0.1);
+                if (rKnee) rKnee.rotation.x = THREE.MathUtils.lerp(rKnee.rotation.x, 0, 0.1);
+
+                // Reset arm relaxation from init if stopped
+                let angle = PARAMS.sway.armRelaxation;
+                if (state.isVrm1) angle = -angle;
+                if (lArm) lArm.rotation.x = THREE.MathUtils.lerp(lArm.rotation.x, 0, 0.1);
+                if (rArm) rArm.rotation.x = THREE.MathUtils.lerp(rArm.rotation.x, 0, 0.1);
+
+                characterGroup.position.y = THREE.MathUtils.lerp(characterGroup.position.y, 0, 0.1);
+            }
+
+            const requestedEmote = (localStorage.getItem('v2emote') || 'neutral').toLowerCase().trim();
+            const emoteData = EMOTIONS[requestedEmote] || EMOTIONS.neutral;
+
+            Object.keys(emoteData).forEach(key => {
+                if (key !== 'blink') currentVrm.expressionManager.setValue(key, emoteData[key]);
+            });
+
+            let blinkBase = (state.totalElapsed % 4.0) < 0.15 ? Math.sin(((state.totalElapsed % 4.0) / 0.15) * Math.PI) : 0;
+            currentVrm.expressionManager.setValue('blink', blinkBase * (emoteData.blink !== undefined ? emoteData.blink : 1.0));
+        }
+    </script>
+</body>
+
+</html>
