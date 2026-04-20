@@ -432,16 +432,37 @@
         const loader = new AutomatonLoader();
         window.automatonLoader = loader;
 
-        // Configuration: Set the demo URL if not present
-        const demoUrl = 'https://76836.github.io/AkariNet-Automata/demo.atpk'; // <--- Update this!
-        let urls = JSON.parse(localStorage.getItem('akari:automata_urls') || '[]');
-        if (!urls.includes(demoUrl)) {
-            urls.push(demoUrl);
+        // v1.1.0 integration defaults
+        const defaultUrl = 'https://76836.github.io/AkariNet-Automata/demo.atpk';
+        let urls = [];
+        let blacklist = [];
+
+        try {
+            urls = JSON.parse(localStorage.getItem('akari:automata_urls') || '[]');
+            if (!Array.isArray(urls)) urls = [];
+        } catch {
+            urls = [];
+        }
+
+        try {
+            blacklist = JSON.parse(localStorage.getItem('akari:automata_blacklist') || '[]');
+            if (!Array.isArray(blacklist)) blacklist = [];
+        } catch {
+            blacklist = [];
+        }
+
+        if (urls.length === 0) {
+            urls = [defaultUrl];
             localStorage.setItem('akari:automata_urls', JSON.stringify(urls));
         }
 
+        loader.setAutomataUrls(urls);
+        loader.setBlacklist(blacklist);
+
         console.log("Waking up the automata...");
         await loader.loadAll();
+        console.log("Loaded automata:", loader.list());
+        console.log("Conflicts:", loader.getConflicts());
     }
 
     // --- 3. Run on Load ---
@@ -453,7 +474,7 @@
 })();
 </script>
    
-    <script src="../AkariNet-Automata/ATPKLoader-1.0.0.js"></script>
+    <script src="https://76836.github.io/AkariNet-Automata/ATPKLoader-1.1.0.js"></script>
     <script>
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')

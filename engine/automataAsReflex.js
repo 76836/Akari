@@ -44,6 +44,15 @@ function emit(eventName, data) {
 window.on = on;
 window.off = off;
 window.emit = emit;
+window.log = window.log || function(level, message, extra) {
+    const fn = level === "error" ? console.error : (level === "warn" ? console.warn : console.log);
+    fn(`[automata:${level || "info"}]`, message, extra || "");
+};
+
+// Optional compatibility target used by some AkariNet Automata packages.
+window.AKARI = window.AKARI || {};
+window.AKARI.automata = window.AKARI.automata || {};
+window.AKARI.automata._registry = window.AKARI.automata._registry || {};
 
 // --- Main Reflex Logic ---
 async function respond(outcome) {
