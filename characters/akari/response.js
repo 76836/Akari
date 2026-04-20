@@ -158,8 +158,48 @@ function solve(mathExpression) {
     }
 }
 var qreplied = true;
+const __automataState = window.__akariAutomataState || {
+    activeRequestId: null,
+    handledRequestId: null
+};
+window.__akariAutomataState = __automataState;
+
+if (!window.__akariAutomataSayWrapped && typeof window.say === 'function') {
+    const __originalSay = window.say;
+    window.say = function(...args) {
+        if (__automataState.activeRequestId) {
+            __automataState.handledRequestId = __automataState.activeRequestId;
+        }
+        return __originalSay.apply(this, args);
+    };
+    window.__akariAutomataSayWrapped = true;
+}
+
 async function respond(outcome) {
     var ogtxt = outcome;
+    const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    __automataState.activeRequestId = requestId;
+    __automataState.handledRequestId = null;
+
+    if (typeof emit === 'function') {
+        emit('message_sent', {
+            message: ogtxt,
+            timestamp: Date.now(),
+            source: "text",
+            raw: ogtxt,
+            requestId
+        });
+    }
+
+    await sleep(120);
+    if (__automataState.handledRequestId === requestId) {
+        if (typeof emit === 'function') {
+            emit('message_handled', { by: "automata", requestId, message: ogtxt });
+        }
+        __automataState.activeRequestId = null;
+        return;
+    }
+
     outcome = outcome.toLowerCase();
 
 
@@ -440,10 +480,12 @@ async function respond(outcome) {
 
 
     if (serverStatus == "connected") {
+        if (__automataState.handledRequestId === requestId) return;
         typing("Akari AI");
         socket.send(ogtxt);
     } else {
         if (CloudAI == true) {
+            if (__automataState.handledRequestId === requestId) return;
             typing("Akari AI");
             GenerateResponse(ogtxt);
         }else{
@@ -461,4 +503,5 @@ async function respond(outcome) {
         };
     };
 
+    __automataState.activeRequestId = null;
 };

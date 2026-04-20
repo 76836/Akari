@@ -175,6 +175,27 @@
                 border: none;
             }
 
+            #screensaver-container {
+                position: fixed;
+                inset: 0;
+                display: none;
+                z-index: 999998;
+                background: #000;
+                pointer-events: none;
+            }
+
+            #screensaver-container.active {
+                display: block;
+                pointer-events: auto;
+            }
+
+            #screensaver-container .screensaver-media {
+                width: 100%;
+                height: 100%;
+                border: none;
+                object-fit: cover;
+            }
+
             /* Chat History and Container */
             #chat-wrapper {
                 position: fixed;
@@ -386,6 +407,7 @@
     </div>
 
     <div id="notificationArea" style="position: fixed; top: 0; right: 0; z-index: 200;"></div>
+    <div id="screensaver-container" aria-hidden="true"></div>
 
     <div id="chat-wrapper" class="hidden-chat">
         <div id="messages-container"></div>
@@ -432,16 +454,37 @@
         const loader = new AutomatonLoader();
         window.automatonLoader = loader;
 
-        // Configuration: Set the demo URL if not present
-        const demoUrl = 'https://76836.github.io/AkariNet-Automata/demo.atpk'; // <--- Update this!
-        let urls = JSON.parse(localStorage.getItem('akari:automata_urls') || '[]');
-        if (!urls.includes(demoUrl)) {
-            urls.push(demoUrl);
+        // v1.1.0 integration defaults
+        const defaultUrl = 'https://76836.github.io/AkariNet-Automata/demo.atpk';
+        let urls = [];
+        let blacklist = [];
+
+        try {
+            urls = JSON.parse(localStorage.getItem('akari:automata_urls') || '[]');
+            if (!Array.isArray(urls)) urls = [];
+        } catch {
+            urls = [];
+        }
+
+        try {
+            blacklist = JSON.parse(localStorage.getItem('akari:automata_blacklist') || '[]');
+            if (!Array.isArray(blacklist)) blacklist = [];
+        } catch {
+            blacklist = [];
+        }
+
+        if (urls.length === 0) {
+            urls = [defaultUrl];
             localStorage.setItem('akari:automata_urls', JSON.stringify(urls));
         }
 
+        loader.setAutomataUrls(urls);
+        loader.setBlacklist(blacklist);
+
         console.log("Waking up the automata...");
         await loader.loadAll();
+        console.log("Loaded automata:", loader.list());
+        console.log("Conflicts:", loader.getConflicts());
     }
 
     // --- 3. Run on Load ---
@@ -453,7 +496,7 @@
 })();
 </script>
    
-    <script src="../AkariNet-Automata/ATPKLoader-1.0.0.js"></script>
+    <script src="https://76836.github.io/AkariNet-Automata/ATPKLoader-1.1.0.js"></script>
     <script>
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
@@ -589,6 +632,7 @@ if ('serviceWorker' in navigator) {
 
         window.goakari = () => {
             console.log("Wake word detected.");
+            window.dispatchEvent(new CustomEvent('akari:user-input', { detail: { source: 'wake-word' } }));
             app.core.toggleVoice();
         };
 
@@ -604,6 +648,8 @@ if ('serviceWorker' in navigator) {
         const app = {
             isSilentMode: true,
             autoMinTimer: null,
+            screensaverTimer: null,
+            screensaverActive: false,
             config: {
                 modules: {
                     voice: localStorage.getItem('selectedVoiceScript'),
@@ -701,6 +747,7 @@ if ('serviceWorker' in navigator) {
                 init: async () => {
                     app.ui.log("Akari v2.5 initializing...");
                     app.core.loadBackground();
+                    app.core.initScreensaver();
 
                     await app.core.loadModule('avatar', app.config.modules.avatar, 'Avatar');
                     await app.core.loadModule('ai', app.config.modules.ai, 'AI Engine');
@@ -716,6 +763,7 @@ if ('serviceWorker' in navigator) {
                         const greet = app.core.getGreeting();
                         app.core.appendBubble(greet, 'responsetxt');
                         app.notify('Akari', greet);
+                        window.emit('akari_ready', { timestamp: Date.now() });
                     }, 1000);
                 },
 
@@ -732,6 +780,77 @@ if ('serviceWorker' in navigator) {
                         ifr.className = 'iframe-container';
                         container.appendChild(ifr);
                     }
+                },
+
+                getScreensaverConfig: () => {
+                    const timeoutSec = parseInt(localStorage.getItem('selectedScreensaverTimeout') || '120', 10);
+                    return {
+                        url: localStorage.getItem('selectedScreensaverURL') || app.config.modules.bg,
+                        timeoutMs: Math.max(10, isNaN(timeoutSec) ? 120 : timeoutSec) * 1000,
+                        behavior: localStorage.getItem('selectedScreensaverResumeBehavior') || 'destroy'
+                    };
+                },
+
+                buildScreensaverContent: (container, url) => {
+                    container.innerHTML = '';
+                    if (!url) return;
+                    if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+                        const img = document.createElement('img');
+                        img.className = 'screensaver-media';
+                        img.src = url;
+                        img.alt = 'Screensaver';
+                        container.appendChild(img);
+                    } else {
+                        const ifr = document.createElement('iframe');
+                        ifr.className = 'screensaver-media';
+                        ifr.src = url;
+                        container.appendChild(ifr);
+                    }
+                },
+
+                showScreensaver: () => {
+                    const container = document.getElementById('screensaver-container');
+                    if (!container || app.screensaverActive) return;
+                    const cfg = app.core.getScreensaverConfig();
+                    if (!cfg.url) return;
+
+                    if (!container.firstChild || cfg.behavior === 'destroy') {
+                        app.core.buildScreensaverContent(container, cfg.url);
+                    }
+
+                    container.style.zIndex = '999998';
+                    container.classList.add('active');
+                    app.screensaverActive = true;
+                    window.emit('screensaver_shown', { url: cfg.url, timestamp: Date.now() });
+                },
+
+                hideScreensaver: (source = 'activity') => {
+                    const container = document.getElementById('screensaver-container');
+                    if (!container || !app.screensaverActive) return;
+
+                    const cfg = app.core.getScreensaverConfig();
+                    container.classList.remove('active');
+                    if (cfg.behavior !== 'background') {
+                        container.innerHTML = '';
+                    }
+
+                    app.screensaverActive = false;
+                    window.emit('screensaver_hidden', { source, behavior: cfg.behavior, timestamp: Date.now() });
+                },
+
+                registerUserActivity: (source = 'activity') => {
+                    clearTimeout(app.screensaverTimer);
+                    const cfg = app.core.getScreensaverConfig();
+                    app.screensaverTimer = setTimeout(() => app.core.showScreensaver(), cfg.timeoutMs);
+                    app.core.hideScreensaver(source);
+                },
+
+                initScreensaver: () => {
+                    ['pointerdown', 'keydown', 'touchstart', 'mousedown'].forEach((evt) => {
+                        window.addEventListener(evt, () => app.core.registerUserActivity(evt), { passive: true });
+                    });
+                    window.addEventListener('akari:user-input', () => app.core.registerUserActivity('akari:user-input'));
+                    app.core.registerUserActivity('init');
                 },
 
                 loadModule: (key, src, label) => {
@@ -751,6 +870,8 @@ if ('serviceWorker' in navigator) {
                     if (!val) return;
 
                     app.isSilentMode = true;
+                    window.dispatchEvent(new CustomEvent('akari:user-input', { detail: { source: 'text', value: val } }));
+                    window.emit('user_input_received', { source: 'text', text: val, timestamp: Date.now() });
                     window.bubble_incoming(val);
                     box.value = '';
                     app.ui.setTyping('Akari');
@@ -767,6 +888,7 @@ if ('serviceWorker' in navigator) {
                 say: (text) => {
                     app.ui.setTyping(null);
                     window.bubble(text);
+                    window.emit('assistant_response', { text, timestamp: Date.now() });
                     app.notify('Akari', text, { borderColors: ['#A020F0', '#00FF00'] });
                     window.emote(text);
 
@@ -801,12 +923,15 @@ if ('serviceWorker' in navigator) {
                 toggleVoice: () => {
                     const btn = document.getElementById('micbutton');
                     app.isSilentMode = false;
+                    window.dispatchEvent(new CustomEvent('akari:user-input', { detail: { source: 'voice-toggle' } }));
                     if (btn.innerText === 'voice') {
                         btn.className = 'button-long mic-on';
                         btn.innerText = 'Listening...';
                         if (window.whisperTranscriber) whisperTranscriber.start(true);
+                        window.emit('voice_listening_started', { timestamp: Date.now() });
                     } else {
                         app.ui.resetMic();
+                        window.emit('voice_listening_stopped', { timestamp: Date.now() });
                     }
                 },
 
@@ -832,6 +957,8 @@ if ('serviceWorker' in navigator) {
 
         document.addEventListener('transcriptionComplete', (e) => {
             if (e.detail?.text) {
+                window.dispatchEvent(new CustomEvent('akari:user-input', { detail: { source: 'voice', value: e.detail.text } }));
+                window.emit('user_input_received', { source: 'voice', text: e.detail.text, timestamp: Date.now() });
                 app.core.appendBubble(e.detail.text, 'command');
                 if (window.respond) window.respond(e.detail.text);
             }

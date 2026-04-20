@@ -32,7 +32,7 @@ New features such as the **AkariNet Audio Console** bring richer speech/wake-wor
 ### Version 2.5: <br>
 Added AkariNet devBridge authorization flow for external app integration (safer alternative to legacy URL query command triggers).  
 Added Audio Console integration option for wake-word detection and transcription.  
-Invented the AkariNet Automata system to make customizing AkariNet easier, I plan to switch everything over to using that system soon.
+Updated AkariNet Automata integration to the ATPK loader v1.1.0 with safer runtime validation and package management defaults.
 New redesigned UI that works across mobile and desktop without compromise.  
 Improved settings app with preconfigured options and toggles.  
 Full release of the AkariNet VRM avatar module powered by emotionEngine.  

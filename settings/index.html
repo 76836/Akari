@@ -276,8 +276,8 @@
                     <div class="link-menu-header">IQ configuration panel.</div>
                 </div>
 
-                <div class="link-menu" onclick="window.location.href = 'https://76836.github.io/AkariNet-Automata/automatonManager';">
-                    <div class="link-menu-header">AkariNet Automata Registry.</div>
+                <div class="link-menu" onclick="window.location.href = 'https://76836.github.io/AkariNet-Automata/automatonManager.html';">
+                    <div class="link-menu-header">AkariNet Automata Manager.</div>
                 </div>
 
                 <details>
@@ -294,6 +294,33 @@
                         <p style="font-size: 0.7rem; opacity: 0.5; margin-top: 15px; margin-bottom: 5px;">Or enter your own URL to an image, gif, or webpage.</p>
                         <input class="box" id="bkgurl" placeholder="https://..." type="text">
                         <button class="setbutton" onclick="handlePreview(document.getElementById('bkgurl').value)" style="background:var(--cyan); color:white; font-weight:bold; margin-top:10px;">PREVIEW & APPLY</button>
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Screensaver settings.</summary>
+                    <div class="content">
+                        <p style="font-size:0.75rem; opacity:0.75; line-height:1.5;">
+                            Screensaver content works like wallpapers, but appears after inactivity and closes when you interact again.
+                        </p>
+                        <div class="grid-2">
+                            <button class="setbutton" onclick="document.getElementById('screensaverurl').value='https://76836.github.io/Akari/wallpapers/luna.png'">Luna</button>
+                            <button class="setbutton" onclick="document.getElementById('screensaverurl').value='https://76836.github.io/Akari/wallpapers/colors.jpg'">Colors</button>
+                            <button class="setbutton" onclick="document.getElementById('screensaverurl').value='https://76836.github.io/bubbles'">Bubbles (live)</button>
+                            <button class="setbutton" onclick="document.getElementById('screensaverurl').value='https://76836.github.io/squares'">Squares (live)</button>
+                        </div>
+                        <input class="box" id="screensaverurl" placeholder="https://... (blank = use wallpaper)" type="text">
+
+                        <label style="display:block; margin-top:14px; font-size:0.85rem;">Inactivity delay (seconds):</label>
+                        <input class="box" id="screensavertimeout" type="number" min="10" step="5" placeholder="120">
+
+                        <label style="display:block; margin-top:14px; font-size:0.85rem;">When activity returns:</label>
+                        <select id="screensaverbehavior" class="select-input">
+                            <option value="destroy">Destroy screensaver (default)</option>
+                            <option value="background">Move to background (faster restore)</option>
+                        </select>
+
+                        <button class="setbutton" onclick="saveScreensaverSettings()" style="background:var(--cyan); color:white; font-weight:bold; margin-top:12px;">SAVE SCREENSAVER SETTINGS</button>
                     </div>
                 </details>
 
@@ -381,6 +408,9 @@
             document.getElementById('avatarurl').value = (avatar === "off") ? "" : (avatar || "");
             document.getElementById('wakeurl').value = (wake === "off") ? "" : (wake || "");
             document.getElementById('bkgurl').value = localStorage.getItem('selectedBKGURL') || "";
+            document.getElementById('screensaverurl').value = localStorage.getItem('selectedScreensaverURL') || "";
+            document.getElementById('screensavertimeout').value = localStorage.getItem('selectedScreensaverTimeout') || "120";
+            document.getElementById('screensaverbehavior').value = localStorage.getItem('selectedScreensaverResumeBehavior') || "destroy";
 
             document.getElementById('toggle_avatar').checked = (avatar !== "off" && avatar !== null && avatar !== "");
             document.getElementById('toggle_wake').checked = (wake !== "off" && wake !== null && wake !== "");
@@ -434,6 +464,23 @@
             localStorage.setItem('selectedBKGURL', url);
             closeOverlay();
             alert("Wallpaper set.");
+        }
+
+        function saveScreensaverSettings() {
+            const url = document.getElementById('screensaverurl').value.trim();
+            const timeoutRaw = parseInt(document.getElementById('screensavertimeout').value, 10);
+            const timeout = Math.max(10, isNaN(timeoutRaw) ? 120 : timeoutRaw);
+            const behavior = document.getElementById('screensaverbehavior').value || 'destroy';
+
+            if (url) {
+                localStorage.setItem('selectedScreensaverURL', url);
+            } else {
+                localStorage.removeItem('selectedScreensaverURL');
+            }
+
+            localStorage.setItem('selectedScreensaverTimeout', String(timeout));
+            localStorage.setItem('selectedScreensaverResumeBehavior', behavior);
+            alert("Screensaver settings saved.");
         }
 
         function closeOverlay() {
