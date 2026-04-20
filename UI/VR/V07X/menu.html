@@ -189,12 +189,20 @@
                 pointer-events: auto;
             }
 
-            #screensaver-container .screensaver-media {
-                width: 100%;
-                height: 100%;
-                border: none;
-                object-fit: cover;
-            }
+        #screensaver-container .screensaver-media {
+            width: 100%;
+            height: 100%;
+            border: none;
+            object-fit: cover;
+        }
+
+        #screensaver-container .screensaver-input-shield {
+            position: absolute;
+            inset: 0;
+            background: transparent;
+            z-index: 1;
+            pointer-events: auto;
+        }
 
             /* Chat History and Container */
             #chat-wrapper {
@@ -680,6 +688,7 @@
                 getScreensaverConfig: () => {
                     const timeoutSec = parseInt(localStorage.getItem('selectedScreensaverTimeout') || '120', 10);
                     return {
+                        enabled: localStorage.getItem('selectedScreensaverEnabled') === 'true',
                         url: fixPath(localStorage.getItem('selectedScreensaverURL') || localStorage.getItem('selectedBKGURL') || '../squares'),
                         timeoutMs: Math.max(10, isNaN(timeoutSec) ? 120 : timeoutSec) * 1000,
                         behavior: localStorage.getItem('selectedScreensaverResumeBehavior') || 'destroy'
@@ -701,13 +710,17 @@
                         ifr.src = url;
                         container.appendChild(ifr);
                     }
+
+                    const inputShield = document.createElement('div');
+                    inputShield.className = 'screensaver-input-shield';
+                    container.appendChild(inputShield);
                 },
 
                 showScreensaver: () => {
                     const container = document.getElementById('screensaver-container');
                     if (!container || app.screensaverActive) return;
                     const cfg = app.core.getScreensaverConfig();
-                    if (!cfg.url) return;
+                    if (!cfg.enabled || !cfg.url) return;
 
                     if (!container.firstChild || cfg.behavior === 'destroy') {
                         app.core.buildScreensaverContent(container, cfg.url);
@@ -735,6 +748,10 @@
                 registerUserActivity: (source = 'activity') => {
                     clearTimeout(app.screensaverTimer);
                     const cfg = app.core.getScreensaverConfig();
+                    if (!cfg.enabled) {
+                        app.core.hideScreensaver(source);
+                        return;
+                    }
                     app.screensaverTimer = setTimeout(() => app.core.showScreensaver(), cfg.timeoutMs);
                     app.core.hideScreensaver(source);
                 },

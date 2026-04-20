@@ -196,6 +196,14 @@
                 object-fit: cover;
             }
 
+            #screensaver-container .screensaver-input-shield {
+                position: absolute;
+                inset: 0;
+                background: transparent;
+                z-index: 1;
+                pointer-events: auto;
+            }
+
             /* Chat History and Container */
             #chat-wrapper {
                 position: fixed;
@@ -785,6 +793,7 @@ if ('serviceWorker' in navigator) {
                 getScreensaverConfig: () => {
                     const timeoutSec = parseInt(localStorage.getItem('selectedScreensaverTimeout') || '120', 10);
                     return {
+                        enabled: localStorage.getItem('selectedScreensaverEnabled') === 'true',
                         url: localStorage.getItem('selectedScreensaverURL') || app.config.modules.bg,
                         timeoutMs: Math.max(10, isNaN(timeoutSec) ? 120 : timeoutSec) * 1000,
                         behavior: localStorage.getItem('selectedScreensaverResumeBehavior') || 'destroy'
@@ -806,13 +815,17 @@ if ('serviceWorker' in navigator) {
                         ifr.src = url;
                         container.appendChild(ifr);
                     }
+
+                    const inputShield = document.createElement('div');
+                    inputShield.className = 'screensaver-input-shield';
+                    container.appendChild(inputShield);
                 },
 
                 showScreensaver: () => {
                     const container = document.getElementById('screensaver-container');
                     if (!container || app.screensaverActive) return;
                     const cfg = app.core.getScreensaverConfig();
-                    if (!cfg.url) return;
+                    if (!cfg.enabled || !cfg.url) return;
 
                     if (!container.firstChild || cfg.behavior === 'destroy') {
                         app.core.buildScreensaverContent(container, cfg.url);
@@ -841,6 +854,10 @@ if ('serviceWorker' in navigator) {
                 registerUserActivity: (source = 'activity') => {
                     clearTimeout(app.screensaverTimer);
                     const cfg = app.core.getScreensaverConfig();
+                    if (!cfg.enabled) {
+                        app.core.hideScreensaver(source);
+                        return;
+                    }
                     app.screensaverTimer = setTimeout(() => app.core.showScreensaver(), cfg.timeoutMs);
                     app.core.hideScreensaver(source);
                 },
