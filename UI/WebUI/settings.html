@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AkariNet WebUI Settings</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main class="settings-shell">
+        <header class="topbar">
+            <div>
+                <h1>WebUI Settings</h1>
+                <p class="subtitle">Simple controls inspired by earlier Akari layouts.</p>
+            </div>
+            <button id="back-home" class="btn">Back to WebUI</button>
+        </header>
+
+        <section class="settings-grid">
+            <article class="card">
+                <h2>Provider Models</h2>
+                <label for="pollinations-model">Pollinations model</label>
+                <input id="pollinations-model" type="text" value="openai-large">
+                <label for="gemini-model">Gemini model</label>
+                <input id="gemini-model" type="text" value="gemini-2.0-flash">
+                <button id="save-models" class="btn btn-primary">Save Models</button>
+            </article>
+
+            <article class="card">
+                <h2>Gemini Key</h2>
+                <label for="gemini-key">API key</label>
+                <input id="gemini-key" type="password" placeholder="AIza...">
+                <p class="small">Stored in localStorage as webui.gemini.key.</p>
+                <button id="save-key" class="btn btn-primary">Save Key</button>
+            </article>
+
+            <article class="card">
+                <h2>Audio / KittenTTS</h2>
+                <label for="voice-select">Voice profile</label>
+                <select id="voice-select">
+                    <option value="default">default</option>
+                </select>
+                <button id="refresh-voices" class="btn">Refresh Voices</button>
+                <button id="save-audio" class="btn btn-primary">Save Audio</button>
+            </article>
+
+            <article class="card">
+                <h2>Automata Manager</h2>
+                <p class="small">Enable or disable automata modules for testing.</p>
+                <div id="automata-manager"></div>
+                <button id="save-automata" class="btn btn-primary">Save Automata States</button>
+            </article>
+        </section>
+
+        <section class="card" style="margin-top:12px;">
+            <h2>Status</h2>
+            <pre id="status-box">Ready.</pre>
+        </section>
+    </main>
+
+    <script type="module" src="./settings.js"></script>
+</body>
+</html>
