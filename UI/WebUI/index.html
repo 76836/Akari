@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AkariNet WebUI (Automata Native)</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main class="shell">
+        <header class="topbar">
+            <div>
+                <h1>AkariNet WebUI</h1>
+                <p class="subtitle">Automata-native assistant experiment</p>
+            </div>
+            <div class="topbar-actions">
+                <button id="open-settings" class="btn">Automata Settings</button>
+            </div>
+        </header>
+
+        <section class="layout">
+            <aside class="panel automata-panel">
+                <h2>Automata Graph</h2>
+                <p>All modules communicate through automata events only.</p>
+                <div id="automata-list" class="automata-list"></div>
+            </aside>
+
+            <section class="panel chat-panel">
+                <div id="chat-log" class="chat-log"></div>
+                <form id="chat-form" class="chat-form">
+                    <input id="chat-input" type="text" autocomplete="off" placeholder="Type a prompt for AkariNet..." required>
+                    <button type="submit" class="btn btn-primary">Send</button>
+                </form>
+                <div class="quick-row">
+                    <button id="provider-pollinations" class="btn">Use Pollinations</button>
+                    <button id="provider-gemini" class="btn">Use Gemini</button>
+                    <button id="speak-last" class="btn">Speak Last Reply</button>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <script type="module" src="./automata-app.js"></script>
+</body>
+</html>
