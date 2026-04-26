@@ -1,0 +1,370 @@
+atpk-name: akari-core-scripts
+atpk-description: Ported legacy scripts into Automata System
+
+!AUTOMATON
+name: akari-reflex
+version: 1.0.0
+description: Default reflexive response script
+author: AkariNet
+priority: 200
+respondsto: message_sent
+controls: say, showNotification
+code>
+module.exports.default = {
+  setup() {
+    on('message_sent', (event) => {
+      let index = parseInt(localStorage.getItem('index_akari-reflex'));
+      if (isNaN(index)) index = 200;
+
+      const outcome = event.message.toLowerCase();
+      const shouldHandle = 
+          (outcome.includes("exit")) ||
+          (outcome.includes("solve ")) ||
+          (outcome.includes("time") && outcome.includes("what")) ||
+          (outcome.includes("what") && outcome.includes("up")) ||
+          (outcome.includes("who") && outcome.includes("you")) ||
+          (outcome.includes("weather") && outcome.includes("what")) ||
+          (outcome.includes("open")) ||
+          (outcome.includes("youtube")) ||
+          (outcome.includes("search"));
+
+      if (shouldHandle) {
+          event.apply(async () => {
+              if (outcome.includes("exit")) { say("Shutting down", event.source); return; }
+              if (outcome.includes("solve ")) {
+                  const mathExpression = outcome.replace("solve", "").replace(/[^-()\d/*+.]/g, '');
+                  try {
+                      const result = new Function(`return ${mathExpression}`)();
+                      say(result.toString(), event.source);
+                  } catch(e) { say("Error solving math.", event.source); }
+                  return;
+              }
+              if (outcome.includes("time") && outcome.includes("what")) {
+                  say('The time is... ' + new Date().toLocaleTimeString(), event.source);
+                  return;
+              }
+              if (outcome.includes("what") && outcome.includes("up")) {
+                  say('Akari Framework Automata Edition!', event.source);
+                  return;
+              }
+              if (outcome.includes("who") && outcome.includes("you")) {
+                  say("I'm Akari.", event.source);
+                  return;
+              }
+              if (outcome.includes("weather") && outcome.includes("what")) {
+                  say("I can't access weather, try searching Bing.", event.source);
+                  return;
+              }
+              say("I have intercepted this command but have not fully implemented its legacy logic yet.", event.source);
+          }, index);
+      }
+    });
+  }
+};
+<code
+
+!AUTOMATON
+name: akari-pollinations
+version: 1.0.0
+description: Pollinations AI Provider (Always available)
+author: AkariNet
+priority: 100
+respondsto: message_sent
+controls: say
+code>
+module.exports.default = {
+  setup() {
+    let history = [{ role: 'system', content: 'Your name is Akari, an AI girl.' }];
+    
+    on('message_sent', (event) => {
+      // Always volunteer if online
+      if (!navigator.onLine) return;
+      
+      let index = parseInt(localStorage.getItem('index_akari-pollinations'));
+      if (isNaN(index)) index = 100;
+      
+      event.apply(async () => {
+          history.push({ role: 'user', content: event.message });
+          if (typeof window.setVoiceStatus === 'function') window.setVoiceStatus('processing');
+          
+          try {
+              const res = await fetch('https://text.pollinations.ai/', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ messages: history, model: 'openai' })
+              });
+              if (res.ok) {
+                  const text = await res.text();
+                  history.push({ role: 'assistant', content: text });
+                  if (history.length > 20) history.splice(0, 2);
+                  say(text, event.source);
+              } else {
+                  say("[ERROR] Akari's connection flickered...", event.source);
+              }
+          } catch (e) {
+              say("[ERROR] NO_CARRIER_SIGNAL", event.source);
+          }
+          if (typeof window.setVoiceStatus === 'function') window.setVoiceStatus('idle');
+      }, index);
+    });
+  }
+};
+<code
+
+!AUTOMATON
+name: akari-gemini
+version: 1.6.0
+description: Google Gemini AI Provider (Requires API Key)
+author: AkariNet
+priority: 110
+respondsto: message_sent
+controls: say
+code>
+module.exports.default = {
+  setup() {
+    let chat = null;
+    let initialized = false;
+    let cachedApiKey = localStorage.getItem('genAI_API_KEY');
+
+    async function initGemini() {
+        const apiKey = localStorage.getItem('genAI_API_KEY');
+        if (!apiKey) return false;
+        try {
+            const { GoogleGenerativeAI } = await import("https://esm.run/@google/generative-ai");
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            chat = model.startChat({ history: [] });
+            initialized = true;
+            cachedApiKey = apiKey;
+            return true;
+        } catch(e) { return false; }
+    }
+
+    on('message_sent', (event) => {
+      const currentKey = localStorage.getItem('genAI_API_KEY');
+      if (!currentKey) return; // Don't apply if no key
+      
+      if (currentKey !== cachedApiKey) { initialized = false; } // Re-init if key changed
+
+      let index = parseInt(localStorage.getItem('index_akari-gemini'));
+      if (isNaN(index)) index = 110;
+      
+      event.apply(async () => {
+          if (!initialized) {
+              const ok = await initGemini();
+              if (!ok) {
+                  say("Gemini initialization failed.", event.source);
+                  return;
+              }
+          }
+          if (typeof window.setVoiceStatus === 'function') window.setVoiceStatus('processing');
+          try {
+              const result = await chat.sendMessage(event.message);
+              const response = await result.response;
+              say(response.text(), event.source);
+          } catch(e) {
+              say("Gemini Error: " + e.message, event.source);
+          }
+          if (typeof window.setVoiceStatus === 'function') window.setVoiceStatus('idle');
+      }, index);
+    });
+  }
+};
+<code
+
+!AUTOMATON
+name: akari-lcpp
+version: 1.3.0
+description: Llama.cpp Local AI Provider (Requires connected server)
+author: AkariNet
+priority: 120
+respondsto: message_sent
+controls: say
+code>
+module.exports.default = {
+  setup() {
+    let history = [{ role: 'system', content: 'Your name is Akari, an AI girl.' }];
+    
+    function getServer() {
+      try {
+        const servers = JSON.parse(localStorage.getItem('lcpp_servers') || '[]');
+        return servers.find(s => s.online) || null;
+      } catch(e) { return null; }
+    }
+
+    on('message_sent', (event) => {
+      const server = getServer();
+      if (!server) return; // Don't apply if no active server
+      
+      let index = parseInt(localStorage.getItem('index_akari-lcpp'));
+      if (isNaN(index)) index = 120;
+      
+      event.apply(async () => {
+          history.push({ role: 'user', content: event.message });
+          if (typeof window.setVoiceStatus === 'function') window.setVoiceStatus('processing');
+
+          try {
+              const res = await fetch(`${server.url}/v1/chat/completions`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                      model: 'local',
+                      messages: history,
+                      max_tokens: 1000,
+                      stream: false
+                  })
+              });
+              const data = await res.json();
+              let text = data?.choices?.[0]?.message?.content;
+              if (text) {
+                  text = text.replace(/<\/?s>|<\|end(?:_of_turn|_of_text)?\|>|<\|eot_id\|>/g, '').trim();
+                  history.push({ role: 'assistant', content: text });
+                  say(text, event.source);
+              }
+          } catch (err) {
+              say(`⚠️ Connection error: ${err.message}`, event.source);
+              history.pop();
+          }
+          if (typeof window.setVoiceStatus === 'function') window.setVoiceStatus('idle');
+      }, index);
+    });
+  }
+};
+<code
+
+!AUTOMATON
+name: akari-kittentts
+version: 1.0.0
+description: KittenTTS Engine
+author: AkariNet
+priority: 150
+respondsto: tts_request
+controls: say
+code>
+module.exports.default = {
+  async setup() {
+    try {
+        const { KittenTTS } = await import('https://76836.github.io/AkariNet-KittenTTS/AkariNet-KittenTTS-1.0.0.js');
+        window.initTTS({
+            voiceUrl: 'https://76836.github.io/AkariNet-KittenTTS/default.bin',
+            speed: 1.123,
+            concurrency: 2,
+            segmentMax: 220,
+            debug: false
+        });
+    } catch(e) { console.error("KittenTTS init error", e); }
+
+    on('tts_request', (event) => {
+      let index = parseInt(localStorage.getItem('index_akari-kittentts'));
+      if (isNaN(index)) index = 150;
+      
+      event.apply(async () => {
+          if (event.source === 'text') return; // Do not speak typed inputs
+          if (window.tts && window.tts.isReady) {
+              window.tts.speak(event.text);
+          }
+      }, index);
+    });
+  }
+};
+<code
+
+!AUTOMATON
+name: akari-webspeechtts
+version: 1.0.0
+description: Fallback Browser TTS Engine
+author: AkariNet
+priority: 10
+respondsto: tts_request
+code>
+module.exports.default = {
+  setup() {
+    if (!('speechSynthesis' in window)) return;
+    
+    on('tts_request', (event) => {
+      let index = parseInt(localStorage.getItem('index_akari-webspeechtts'));
+      if (isNaN(index)) index = 10;
+
+      event.apply(async () => {
+          if (event.source === 'text') return; // Do not speak typed inputs
+          const utterance = new SpeechSynthesisUtterance(event.text);
+          window.speechSynthesis.speak(utterance);
+      }, index);
+    });
+  }
+};
+<code
+
+!AUTOMATON
+name: akari-webspeechstt
+version: 1.0.0
+description: Fallback Browser Speech Recognition
+author: AkariNet
+priority: 10
+respondsto: voice_toggle_on, voice_toggle_off
+code>
+module.exports.default = {
+  setup() {
+    if (!('webkitSpeechRecognition' in window)) return;
+    
+    let recognition = new webkitSpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    
+    recognition.onresult = (e) => {
+        const text = e.results[0][0].transcript;
+        if (window.bubble_incoming) window.bubble_incoming(text);
+        if (window.requestHandling) window.requestHandling('message_sent', { message: text, source: 'voice' });
+        if (window.toggleVoice) window.toggleVoice(); // turn off mic
+    };
+
+    on('voice_toggle_on', (event) => {
+        try { recognition.start(); } catch(e){}
+    });
+    
+    on('voice_toggle_off', (event) => {
+        recognition.stop();
+    });
+  }
+};
+<code
+
+!AUTOMATON
+name: akari-audioconsole
+version: 3.4.0
+description: Audio Console for advanced STT
+author: AkariNet
+priority: 150
+respondsto: boot
+controls: emit
+code>
+module.exports.default = {
+  async setup() {
+      try {
+          const { AkarinetVoice } = await import('https://76836.github.io/AkariNet-AudioConsole/audioConsole-3.4.0.js');
+          const config = {
+              modelId: "onnx-community/moonshine-base-ONNX",
+              modelQuantization: "q8",
+              wakesoundThreshold: parseFloat(localStorage.getItem('wakeSense') || "0.80"),
+              requireWakeSound: true
+          };
+          const assistant = new AkarinetVoice(config);
+          
+          assistant.addEventListener('result', (e) => {
+              if (window.bubble_incoming) window.bubble_incoming(e.detail.text);
+              window.requestHandling('message_sent', { message: e.detail.text, source: 'voice' });
+          });
+
+          assistant.addEventListener('speechstart', () => {
+              if (typeof window.setVoiceStatus === 'function') window.setVoiceStatus('active', 'listening');
+          });
+
+          assistant.addEventListener('speechend', () => {
+              if (typeof window.setVoiceStatus === 'function') window.setVoiceStatus('idle');
+          });
+          
+          await assistant.init();
+      } catch(e) {}
+  }
+};
+<code

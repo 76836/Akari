@@ -3,61 +3,227 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AkariNet WebUI Settings</title>
-    <link rel="stylesheet" href="./styles.css">
+    <title>AkariNet Automata Settings</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cyan: darkcyan;
+            --bg: #1a1a1a;
+            --card: #2a3333;
+            --input-bg: rgba(0, 0, 0, 0.3);
+            --danger: #933;
+            --accent-glow: rgba(0, 139, 139, 0.3);
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow-y: auto;
+            background-color: var(--bg);
+            font-family: 'Orbitron', sans-serif;
+            color: white;
+            scrollbar-width: none;
+        }
+
+        .container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 100px;
+        }
+
+        .title {
+            font-size: clamp(1.2rem, 6vw, 2.2rem);
+            color: var(--cyan);
+            margin: 20px 0;
+            text-align: center;
+            text-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        details, .link-menu {
+            background: var(--card);
+            margin: 2px 0;
+            width: 100%;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        summary, .link-menu-header {
+            padding: 18px 24px;
+            cursor: pointer;
+            font-size: clamp(0.9rem, 4vw, 1.2rem);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.02);
+            transition: 0.2s;
+        }
+
+        summary:hover, .link-menu-header:hover {
+            background: rgba(255,255,255,0.08);
+        }
+
+        summary::-webkit-details-marker { display: none; }
+        summary::after { content: '⮛'; font-size: 0.8rem; opacity: 0.5; transition: 0.3s; }
+        details[open] summary::after { transform: rotate(180deg); color: var(--cyan); }
+        .link-menu-header::after { content: 'Go ▶'; font-size: 0.8rem; color: var(--cyan); }
+
+        .content {
+            padding: 24px;
+            background: rgba(0,0,0,0.25);
+            animation: slideDown 0.2s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .box, .setbutton {
+            font-size: 1rem;
+            width: 100%;
+            margin: 8px 0;
+            background-color: #3d4747;
+            border: 0;
+            color: white;
+            border-radius: 8px;
+            padding: 14px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .box { background-color: var(--input-bg); border: 1px solid rgba(255,255,255,0.1); }
+        .setbutton:hover { background-color: #4d5757; cursor: pointer; }
+        .setbutton-cyan { background: var(--cyan); font-weight: bold; }
+        .setbutton-cyan:hover { filter: brightness(1.2); }
+        .setbutton-danger { background: var(--danger); }
+
+        .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #111; transition: .4s; border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px;
+            left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--cyan); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        .list-item {
+            background: #222;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            word-break: break-all;
+            border-left: 4px solid var(--cyan);
+        }
+
+        .danger-zone { border-top: 2px solid var(--danger) !important; margin-top: 10px; }
+        .danger-zone summary { color: #ff6b6b; }
+        
+        .flex-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    </style>
 </head>
 <body>
-    <main class="settings-shell">
-        <header class="topbar">
-            <div>
-                <h1>WebUI Settings</h1>
-                <p class="subtitle">Simple controls inspired by earlier Akari layouts.</p>
+    <div class="container">
+        <p class="title">AkariNet Config</p>
+
+        <div class="link-menu" onclick="window.location.href = '../../settings/voice.html';">
+            <div class="link-menu-header">Legacy Voice configuration panel.</div>
+        </div>
+
+        <div class="link-menu" onclick="window.location.href = '../../settings/AI.html';">
+            <div class="link-menu-header">Legacy IQ configuration panel.</div>
+        </div>
+
+        <details>
+            <summary>Visuals: Wallpapers</summary>
+            <div class="content">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <button class="setbutton" onclick="handlePreview('https://76836.github.io/Akari/wallpapers/luna.png')">Luna</button>
+                    <button class="setbutton" onclick="handlePreview('https://76836.github.io/Akari/wallpapers/colors.jpg')">Colors</button>
+                    <button class="setbutton" onclick="handlePreview('https://76836.github.io/Akari/wallpapers/backdrop.png')">Backdrop</button>
+                    <button class="setbutton" onclick="handlePreview('https://76836.github.io/Akari/wallpapers/Foreshadowing.jpg')">Foreshadowing</button>
+                    <button class="setbutton" onclick="handlePreview('https://76836.github.io/bubbles')">Bubbles (live)</button>
+                    <button class="setbutton" onclick="handlePreview('https://76836.github.io/squares')">Squares (live)</button>
+                </div>
+                <p style="font-size: 0.7rem; opacity: 0.5; margin-top: 15px; margin-bottom: 5px;">Or enter your own URL to an image, gif, or webpage.</p>
+                <input class="box" id="bkgurl" placeholder="https://..." type="text">
+                <button class="setbutton setbutton-cyan" onclick="applyBKG(document.getElementById('bkgurl').value)">Apply Wallpaper</button>
             </div>
-            <button id="back-home" class="btn">Back to WebUI</button>
-        </header>
+        </details>
 
-        <section class="settings-grid">
-            <article class="card">
-                <h2>Provider Models</h2>
-                <label for="pollinations-model">Pollinations model</label>
-                <input id="pollinations-model" type="text" value="openai-large">
-                <label for="gemini-model">Gemini model</label>
-                <input id="gemini-model" type="text" value="gemini-2.0-flash">
-                <button id="save-models" class="btn btn-primary">Save Models</button>
-            </article>
+        <details>
+            <summary>Visuals: Screensaver</summary>
+            <div class="content">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <span style="font-size:0.85rem">Enable screensaver?</span>
+                    <label class="switch">
+                        <input type="checkbox" id="screensaverenabled">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <button class="setbutton" onclick="document.getElementById('screensaverurl').value='https://76836.github.io/Akari/wallpapers/luna.png'">Luna</button>
+                    <button class="setbutton" onclick="document.getElementById('screensaverurl').value='https://76836.github.io/bubbles'">Bubbles</button>
+                </div>
+                <input class="box" id="screensaverurl" placeholder="https://... (blank = use wallpaper)" type="text">
+                <label style="display:block; margin-top:14px; font-size:0.85rem;">Inactivity delay (seconds):</label>
+                <input class="box" id="screensavertimeout" type="number" min="10" step="5" placeholder="120">
+                <button class="setbutton setbutton-cyan" onclick="saveScreensaverSettings()">Save Screensaver Settings</button>
+            </div>
+        </details>
 
-            <article class="card">
-                <h2>Gemini Key</h2>
-                <label for="gemini-key">API key</label>
-                <input id="gemini-key" type="password" placeholder="AIza...">
-                <p class="small">Stored in localStorage as webui.gemini.key.</p>
-                <button id="save-key" class="btn btn-primary">Save Key</button>
-            </article>
+        <details open>
+            <summary>Automata Manager</summary>
+            <div class="content">
+                <p style="font-size:0.85rem; opacity:0.8; margin-bottom: 10px;">Install and manage ATPK Packages here.</p>
+                
+                <h4 style="color:var(--cyan); margin-top: 0;">Installed Packages (URLs)</h4>
+                <div id="url-list"></div>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <input type="text" id="new-url" class="box" placeholder="https://..." style="margin:0;">
+                    <button class="setbutton setbutton-cyan" onclick="addUrl()" style="width: auto; margin:0; padding: 0 20px;">Add</button>
+                </div>
 
-            <article class="card">
-                <h2>Audio / KittenTTS</h2>
-                <label for="voice-select">Voice profile</label>
-                <select id="voice-select">
-                    <option value="default">default</option>
-                </select>
-                <button id="refresh-voices" class="btn">Refresh Voices</button>
-                <button id="save-audio" class="btn btn-primary">Save Audio</button>
-            </article>
+                <div style="margin-top: 20px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                    <span style="font-size: 0.8rem; color: #aaa; display:block; margin-bottom: 10px;">Quick Installs</span>
+                    <button class="setbutton setbutton-cyan" onclick="setupAkariDefaults()">Apply Full Akari Preset (Installs Core, Avatar, & Wallpapers)</button>
+                    <button class="setbutton" onclick="quickInstall('./core_scripts.atpk')">Install Default Core Automata</button>
+                    <button class="setbutton" onclick="quickInstall('https://76836.github.io/AkariNet-Automata/demo.atpk')">Install Demo Package</button>
+                </div>
+            </div>
+        </details>
 
-            <article class="card">
-                <h2>Automata Manager</h2>
-                <p class="small">Enable or disable automata modules for testing.</p>
-                <div id="automata-manager"></div>
-                <button id="save-automata" class="btn btn-primary">Save Automata States</button>
-            </article>
-        </section>
+        <details open>
+            <summary>Loaded Automata & Toggles</summary>
+            <div class="content">
+                <button class="setbutton" onclick="refreshAutomata()" style="margin-top: 0;">Refresh Status</button>
+                <div id="automata-list" style="margin-top: 15px;"></div>
+            </div>
+        </details>
 
-        <section class="card" style="margin-top:12px;">
-            <h2>Status</h2>
-            <pre id="status-box">Ready.</pre>
-        </section>
-    </main>
+        <details>
+            <summary>Automata Priority Tweaks</summary>
+            <div class="content">
+                <p style="font-size:0.85rem; opacity:0.8;">Set custom priority indexes. Higher executes first.</p>
+                <div id="priority-list"></div>
+            </div>
+        </details>
 
-    <script type="module" src="./settings.js"></script>
+        <details class="danger-zone">
+            <summary>System Settings</summary>
+            <div class="content">
+                <button class="setbutton setbutton-danger" onclick="clearAllData()">Wipe Automata Data</button>
+            </div>
+        </details>
+    </div>
+
+    <script src="settings.js"></script>
 </body>
 </html>

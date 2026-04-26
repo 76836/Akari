@@ -1,45 +1,222 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE HTML>
+<html id="html">
 <head>
-    <meta charset="UTF-8">
+    <title>Akari v2.5b</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AkariNet WebUI (Automata Native)</title>
-    <link rel="stylesheet" href="./styles.css">
+    <link rel="manifest" href="../../app.webmanifest">
+    <meta charset="utf-8" />
+    <link rel="apple-touch-icon" sizes="180x180" href="../../images/apple-touch-icon.png">
+    <link rel="shortcut icon" href="../../images/favicon.ico">
+    <meta name="msapplication-TileColor" content="#603cba">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --notification-bg: rgba(32, 33, 36, 0.65);
+            --notification-text: #fff;
+            --notification-subtext: rgba(205, 205, 255, 0.8);
+        }
+
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Notification System */
+        .notification-container {
+            position: fixed;
+            top: 100px;
+            right: 0px;
+            margin: 0;
+            padding: 16px;
+            background: var(--notification-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom-left-radius: 12px;
+            border-top-left-radius: 12px;
+            width: 320px;
+            transform: translateX(100%);
+            opacity: 0;
+            transition: transform 0.4s cubic-bezier(0.2, 0, 0, 1), opacity 0.3s ease-in-out;
+            z-index: 200;
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            color: var(--notification-text);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .notification-container.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .notification-container.animated-border::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border: 3px solid transparent;
+            border-right: none;
+            border-top-left-radius: 12px;
+            border-bottom-left-radius: 12px;
+            background: linear-gradient(var(--notification-bg), var(--notification-bg)) padding-box,
+                repeating-linear-gradient(var(--angle, 0deg), var(--border-colors)) border-box;
+            -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: destination-out;
+            mask-composite: exclude;
+            animation: rotate 4s linear infinite, glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes rotate { 0% { --angle: 0deg; } 100% { --angle: 360deg; } }
+        @keyframes glow { 0% { filter: drop-shadow(0 0 15px rgba(var(--glow-color), 1)); } 100% { filter: drop-shadow(0 0 25px rgba(var(--glow-color), 1)); } }
+
+        @property --angle {
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
+        }
+
+        .notification-image { width: 48px; height: 48px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+        .notification-content { flex-grow: 1; margin-right: 24px; }
+        .notification-title { font-weight: bold; margin-bottom: 4px; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); }
+        .notification-body { color: var(--notification-subtext); font-size: 0.9em; }
+
+        /* Background/Overlays */
+        #overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 98vh;
+            background-color: black; opacity: 1; transition: opacity 1s ease-out;
+            z-index: 300; border-bottom: 2vh solid red;
+            animation: borderAnim 2.5s forwards;
+            display: flex; flex-direction: column; justify-content: left; align-items: top;
+        }
+
+        @keyframes borderAnim { 0% { border-color: red; } 100% { border-color: green; } }
+        #overlay.fade-out { opacity: 0; pointer-events: none; }
+
+        #bkg-container { position: fixed; inset: 0; z-index: -2; width: 100vw; height: 100vh; pointer-events: auto; }
+        .iframe-container { width: 100%; height: 100%; border: none; }
+
+        #screensaver-container {
+            position: fixed; inset: 0; display: none; z-index: 999998; background: #000; pointer-events: none;
+        }
+        #screensaver-container.active { display: block; pointer-events: auto; }
+
+        /* Chat History and Container */
+        #chat-wrapper {
+            position: fixed; top: 0; left: 0; width: 100%; height: calc(100% - 100px);
+            display: flex; flex-direction: column; justify-content: flex-end;
+            transition: background 0.5s ease, height 0.5s ease; z-index: 10;
+        }
+        #chat-wrapper.full-view { background: rgba(0, 0, 0, 0.4); }
+
+        #messages-container {
+            max-height: 100%; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px;
+            scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+            mask-image: linear-gradient(to bottom, transparent 0%, black 15%);
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%);
+        }
+
+        #chat-wrapper.hidden-chat #messages-container {
+            pointer-events: none;
+            mask-image: linear-gradient(to top, black 0%, black 150px, transparent 300px);
+            -webkit-mask-image: linear-gradient(to top, black 0%, black 150px, transparent 300px);
+        }
+
+        #chat-wrapper.hidden-chat {
+            height: 350px; bottom: 100px; top: auto; pointer-events: none;
+        }
+
+        #chat-wrapper.hidden-chat .responsetxt,
+        #chat-wrapper.hidden-chat .command {
+            pointer-events: none;
+        }
+
+        .responsetxt {
+            background: rgba(2, 2, 2, 0.61); padding: 12px; border-radius: 12px; max-width: 75%;
+            align-self: flex-start; backdrop-filter: blur(5px); pointer-events: auto;
+        }
+
+        .command {
+            background: rgba(2, 2, 2, 0.61); padding: 12px; border-radius: 12px; max-width: 75%;
+            align-self: flex-end; backdrop-filter: blur(5px); pointer-events: auto;
+            color: #00ffcc; text-align: right; font-style: italic;
+        }
+
+        /* Controls */
+        .controls {
+            position: fixed; bottom: 20px; left: 0; width: 100%; display: flex; justify-content: center; align-items: center; gap: 10px; z-index: 50;
+        }
+
+        .box {
+            background: rgba(0, 0, 0, 0.7); border: 2px solid #333; color: white; padding: 12px; border-radius: 20px;
+            width: 40vw; outline: none; transition: border-color 0.3s; pointer-events: auto;
+        }
+        .box:focus { border-color: crimson; }
+
+        .button-menu {
+            padding: 5px 10px; border-radius: 20px; background-color: #111111; color: red;
+            text-align: center; line-height: 30px; font-size: large; position: fixed; top: 7px; right: 7px;
+            width: 50px; border: 2px solid black; z-index: 21; cursor: pointer;
+        }
+
+        .button-long, .toggle-btn {
+            background: crimson; border: 2px solid #333; color: white; padding: 10px 20px; border-radius: 20px;
+            cursor: pointer; font-family: inherit; font-size: 14px; pointer-events: auto;
+        }
+
+        .mic-on { background: #00ff00; color: black; }
+        .toggle-btn { background: #333; }
+        .toggle-btn.active { background: #555; }
+
+        /* Window Style */
+        .windowstyle {
+            border: 4px solid #111; background: black; width: 86vw; height: 80vh; position: fixed;
+            top: 7vh; left: 7vw; z-index: 100; border-radius: 2vh;
+        }
+        .close-btn {
+            position: fixed; top: 88vh; left: 7vw; background: darkred; color: white; border: 2px solid red;
+            padding: 10px; border-radius: 8px; width: 86vw; z-index: 101;
+        }
+    </style>
 </head>
 <body>
-    <main class="shell">
-        <header class="topbar">
-            <div>
-                <h1>AkariNet WebUI</h1>
-                <p class="subtitle">Automata-native assistant experiment</p>
-            </div>
-            <div class="topbar-actions">
-                <button id="open-settings" class="btn">Automata Settings</button>
-            </div>
-        </header>
+    <div id="bkg-container"></div>
+    <div id="avatar"></div>
+    <div id="overlay">
+        <div class="console" id="boot-log" style="font-size: 1rem; color: #fff;"></div>
+        <img src="../../images/logo512.png" alt="Logo" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.6);">
+        <img src="../../images/loading.gif" alt="Logo Small" style="position:fixed; top:65%; left:50%; transform:translate(-50%, -50%) scale(0.2);">
+    </div>
 
-        <section class="layout">
-            <aside class="panel automata-panel">
-                <h2>Automata Graph</h2>
-                <p>All modules communicate through automata events only.</p>
-                <div id="automata-list" class="automata-list"></div>
-            </aside>
+    <!-- Legacy nodes -->
+    <div id="legacy-anchor" style="display:none; position:absolute;">
+        <div id="messages"></div>
+    </div>
 
-            <section class="panel chat-panel">
-                <div id="chat-log" class="chat-log"></div>
-                <form id="chat-form" class="chat-form">
-                    <input id="chat-input" type="text" autocomplete="off" placeholder="Type a prompt for AkariNet..." required>
-                    <button type="submit" class="btn btn-primary">Send</button>
-                </form>
-                <div class="quick-row">
-                    <button id="provider-pollinations" class="btn">Use Pollinations</button>
-                    <button id="provider-gemini" class="btn">Use Gemini</button>
-                    <button id="speak-last" class="btn">Speak Last Reply</button>
-                </div>
-            </section>
-        </section>
-    </main>
+    <div id="notificationArea" style="position: fixed; top: 0; right: 0; z-index: 200;"></div>
+    <div id="screensaver-container" aria-hidden="true"></div>
 
-    <script type="module" src="./automata-app.js"></script>
+    <div id="chat-wrapper" class="hidden-chat">
+        <div id="messages-container"></div>
+    </div>
+
+    <div id="status-area" style="position: fixed; bottom: 80px; left: 20px; color: #888; z-index: 51;"></div>
+    <div id="window-layer"></div>
+
+    <div class="controls">
+        <button class="button-menu" onclick="window.newwindow('settings.html')">⁝</button>
+        <button class="toggle-btn" id="chatToggle" onclick="window.toggleChat()">+</button>
+        <button class="button-long" id="micbutton" onclick="window.toggleVoice()">voice</button>
+        <input type="text" id="box" class="box" placeholder="What's up?" onkeydown="if(event.keyCode==13) window.handleInput()">
+    </div>
+
+    <script src="ATPKLoader-1.1.0.js"></script>
+    <script src="index.js"></script>
 </body>
 </html>
