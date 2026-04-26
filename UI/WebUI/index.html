@@ -164,6 +164,11 @@
             text-align: center; line-height: 30px; font-size: large; position: fixed; top: 7px; right: 7px;
             width: 50px; border: 2px solid black; z-index: 21; cursor: pointer;
         }
+        .button-manager {
+            padding: 5px 10px; border-radius: 20px; background-color: #111111; color: #6ce8ff;
+            text-align: center; line-height: 30px; font-size: large; position: fixed; top: 7px; right: 68px;
+            width: 50px; border: 2px solid black; z-index: 21; cursor: pointer;
+        }
 
         .button-long, .toggle-btn {
             background: crimson; border: 2px solid #333; color: white; padding: 10px 20px; border-radius: 20px;
@@ -183,6 +188,33 @@
             position: fixed; top: 88vh; left: 7vw; background: darkred; color: white; border: 2px solid red;
             padding: 10px; border-radius: 8px; width: 86vw; z-index: 101;
         }
+
+        #task-manager-sidebar {
+            position: fixed; top: 0; right: 0; width: min(460px, 95vw); height: 100vh;
+            background: rgba(10, 10, 12, 0.92); backdrop-filter: blur(12px);
+            border-left: 2px solid rgba(108, 232, 255, 0.25);
+            transform: translateX(100%); transition: transform 0.25s ease;
+            z-index: 160; display: flex; flex-direction: column;
+        }
+        #task-manager-sidebar.open { transform: translateX(0); }
+        .tm-header { padding: 14px 16px; border-bottom: 1px solid #1c2a33; display: flex; justify-content: space-between; align-items: center; }
+        .tm-title { font-size: 1rem; color: #6ce8ff; }
+        .tm-body { padding: 14px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+        .tm-card { border: 1px solid #212f3a; border-radius: 10px; padding: 12px; background: rgba(255, 255, 255, 0.03); }
+        .tm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; color: #9fb5c2; }
+        .tm-btn { background: #123143; border: 1px solid #2f6f8f; color: #d2f6ff; border-radius: 8px; padding: 8px; cursor: pointer; font-family: inherit; }
+        .tm-btn.danger { background: #441717; border-color: #b64d4d; color: #ffd0d0; }
+        .tm-btn.subtle { background: #1d1d1d; border-color: #555; color: #ddd; }
+        .tm-row { display: flex; gap: 8px; }
+        .tm-input, .tm-select {
+            width: 100%; box-sizing: border-box; border-radius: 8px; border: 1px solid #344652; background: #050709;
+            color: #fff; padding: 8px; font-family: inherit;
+        }
+        .tm-list { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
+        .tm-item { border: 1px solid #2a3640; border-radius: 8px; padding: 8px; background: rgba(0, 0, 0, 0.2); }
+        .tm-meta { color: #9fb5c2; font-size: 0.75rem; margin-top: 4px; }
+        .tm-eventlog { font-family: monospace; font-size: 0.75rem; max-height: 180px; overflow-y: auto; color: #a8ecff; white-space: pre-wrap; }
+        .tm-pill { display:inline-block; border-radius: 999px; padding: 2px 8px; font-size: 0.72rem; background: #21313a; color:#9be8ff; margin-left: 6px; }
     </style>
 </head>
 <body>
@@ -208,9 +240,57 @@
 
     <div id="status-area" style="position: fixed; bottom: 80px; left: 20px; color: #888; z-index: 51;"></div>
     <div id="window-layer"></div>
+    <aside id="task-manager-sidebar" aria-label="Task manager">
+        <div class="tm-header">
+            <div class="tm-title">Task Manager <span id="tm-live-count" class="tm-pill">0 online</span></div>
+            <button class="tm-btn subtle" onclick="window.toggleTaskManager(false)">Close</button>
+        </div>
+        <div class="tm-body">
+            <div class="tm-card">
+                <div class="tm-grid">
+                    <div>Total Loaded: <b id="tm-stat-loaded">0</b></div>
+                    <div>Blacklisted: <b id="tm-stat-blacklisted">0</b></div>
+                    <div>Packages: <b id="tm-stat-packages">0</b></div>
+                    <div>Conflicts: <b id="tm-stat-conflicts">0</b></div>
+                </div>
+                <div class="tm-row" style="margin-top:8px;">
+                    <button class="tm-btn" onclick="window.taskManagerRefresh()">Refresh</button>
+                    <button class="tm-btn" onclick="window.taskManagerReloadAll()">Reload Packages</button>
+                    <button class="tm-btn danger" onclick="window.taskManagerShutdownAll()">Shutdown All</button>
+                </div>
+            </div>
+
+            <div class="tm-card">
+                <div style="font-size:0.85rem; margin-bottom:8px;">Package URLs</div>
+                <div class="tm-row">
+                    <input class="tm-input" id="tm-new-url" placeholder="https://.../package.atpk">
+                    <button class="tm-btn" onclick="window.taskManagerAddUrl()">Add</button>
+                </div>
+                <div id="tm-url-list" class="tm-list" style="margin-top:8px;"></div>
+            </div>
+
+            <div class="tm-card">
+                <div style="font-size:0.85rem; margin-bottom:8px;">Automata Runtime</div>
+                <div class="tm-row" style="margin-bottom:8px;">
+                    <select id="tm-sort" class="tm-select" onchange="window.taskManagerRefresh()">
+                        <option value="priority">Sort: Priority</option>
+                        <option value="name">Sort: Name</option>
+                        <option value="source">Sort: Source URL</option>
+                    </select>
+                </div>
+                <div id="tm-automata-list" class="tm-list"></div>
+            </div>
+
+            <div class="tm-card">
+                <div style="font-size:0.85rem; margin-bottom:8px;">Runtime Events</div>
+                <div id="tm-event-log" class="tm-eventlog"></div>
+            </div>
+        </div>
+    </aside>
 
     <div class="controls">
         <button class="button-menu" onclick="window.newwindow('settings.html')">⁝</button>
+        <button class="button-manager" onclick="window.toggleTaskManager()">⚙</button>
         <button class="toggle-btn" id="chatToggle" onclick="window.toggleChat()">+</button>
         <button class="button-long" id="micbutton" onclick="window.toggleVoice()">voice</button>
         <input type="text" id="box" class="box" placeholder="What's up?" onkeydown="if(event.keyCode==13) window.handleInput()">

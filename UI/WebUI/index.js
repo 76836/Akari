@@ -193,6 +193,213 @@
         }
     };
 
+    // 3.5 Task Manager Sidebar
+    const STORAGE_URLS = 'akari:automata_urls';
+    const STORAGE_BLACKLIST = 'akari:automata_blacklist';
+    const tmState = { events: [] };
+
+    function readJSONList(key) {
+        try {
+            const val = JSON.parse(localStorage.getItem(key) || '[]');
+            return Array.isArray(val) ? val : [];
+        } catch {
+            return [];
+        }
+    }
+
+    function writeJSONList(key, values) {
+        localStorage.setItem(key, JSON.stringify(Array.isArray(values) ? values : []));
+    }
+
+    function tmLog(line) {
+        tmState.events.unshift(`[${new Date().toLocaleTimeString()}] ${line}`);
+        tmState.events = tmState.events.slice(0, 60);
+        const logEl = document.getElementById('tm-event-log');
+        if (logEl) logEl.textContent = tmState.events.join('\n');
+    }
+
+    function formatMeta(a) {
+        const tags = [];
+        if (a.respondsto?.length) tags.push(`responds: ${a.respondsto.join(', ')}`);
+        if (a.controls?.length) tags.push(`controls: ${a.controls.join(', ')}`);
+        if (a.dependencies?.length) tags.push(`deps: ${a.dependencies.join(', ')}`);
+        return tags.join(' | ');
+    }
+
+    function renderUrlList() {
+        const urls = readJSONList(STORAGE_URLS);
+        const list = document.getElementById('tm-url-list');
+        if (!list) return;
+        list.innerHTML = '';
+        if (!urls.length) {
+            list.innerHTML = `<div class="tm-item tm-meta">No package URLs configured.</div>`;
+            return;
+        }
+
+        urls.forEach((url) => {
+            const node = document.createElement('div');
+            node.className = 'tm-item';
+            node.innerHTML = `
+                <div style="word-break:break-word; font-size:0.78rem;">${url}</div>
+                <div class="tm-row" style="margin-top:8px;">
+                    <button class="tm-btn" data-tm-action="reload-url" data-url="${url}">Reload</button>
+                    <button class="tm-btn danger" data-tm-action="remove-url" data-url="${url}">Remove</button>
+                </div>
+            `;
+            list.appendChild(node);
+        });
+    }
+
+    function renderAutomataList() {
+        const listEl = document.getElementById('tm-automata-list');
+        if (!listEl) return;
+        const loader = window.automatonLoader;
+        const blacklist = readJSONList(STORAGE_BLACKLIST);
+        const automata = loader ? loader.listAll() : [];
+        const sortBy = document.getElementById('tm-sort')?.value || 'priority';
+        const conflicts = loader ? loader.getConflicts() : [];
+        const conflictNames = new Set(conflicts.flatMap(c => c.automata));
+
+        automata.sort((a, b) => {
+            if (sortBy === 'name') return a.name.localeCompare(b.name);
+            if (sortBy === 'source') return String(a.sourceUrl).localeCompare(String(b.sourceUrl));
+            return (a.priority ?? 100) - (b.priority ?? 100);
+        });
+
+        document.getElementById('tm-stat-loaded').textContent = String(automata.length);
+        document.getElementById('tm-stat-blacklisted').textContent = String(blacklist.length);
+        document.getElementById('tm-stat-packages').textContent = String(readJSONList(STORAGE_URLS).length);
+        document.getElementById('tm-stat-conflicts').textContent = String(conflicts.length);
+        document.getElementById('tm-live-count').textContent = `${automata.length} online`;
+
+        if (!automata.length) {
+            listEl.innerHTML = `<div class="tm-item tm-meta">No automata loaded.</div>`;
+            return;
+        }
+
+        listEl.innerHTML = '';
+        automata.forEach((a) => {
+            const blacklisted = blacklist.includes(a.name);
+            const item = document.createElement('div');
+            item.className = 'tm-item';
+            item.style.opacity = blacklisted ? '0.55' : '1';
+            item.innerHTML = `
+                <div style="display:flex; justify-content:space-between; gap:8px;">
+                    <div>
+                        <div>${a.name} <span class="tm-pill">v${a.version}</span>${conflictNames.has(a.name) ? '<span class="tm-pill" style="background:#5d341f;color:#ffceaa;">Conflict</span>' : ''}</div>
+                        <div class="tm-meta">priority: ${a.priority} | source: ${a.sourceUrl || 'unknown'}</div>
+                        <div class="tm-meta">${a.description || ''}</div>
+                        <div class="tm-meta">${formatMeta(a)}</div>
+                    </div>
+                </div>
+                <div class="tm-row" style="margin-top:8px;">
+                    <button class="tm-btn" data-tm-action="restart" data-name="${a.name}">Restart</button>
+                    <button class="tm-btn danger" data-tm-action="kill" data-name="${a.name}">Kill</button>
+                    <button class="tm-btn subtle" data-tm-action="toggle" data-name="${a.name}">
+                        ${blacklisted ? 'Enable' : 'Disable'}
+                    </button>
+                </div>
+            `;
+            listEl.appendChild(item);
+        });
+    }
+
+    async function refreshTaskManager(note) {
+        renderUrlList();
+        renderAutomataList();
+        if (note) tmLog(note);
+    }
+
+    window.toggleTaskManager = function(forceState) {
+        const sidebar = document.getElementById('task-manager-sidebar');
+        if (!sidebar) return;
+        const shouldOpen = typeof forceState === 'boolean' ? forceState : !sidebar.classList.contains('open');
+        sidebar.classList.toggle('open', shouldOpen);
+        if (shouldOpen) refreshTaskManager('Task manager opened');
+    };
+
+    window.taskManagerRefresh = async function() {
+        await refreshTaskManager('Status refreshed');
+    };
+
+    window.taskManagerAddUrl = async function() {
+        const input = document.getElementById('tm-new-url');
+        const url = input?.value?.trim();
+        if (!url) return;
+        const urls = readJSONList(STORAGE_URLS);
+        if (!urls.includes(url)) {
+            urls.push(url);
+            writeJSONList(STORAGE_URLS, urls);
+            tmLog(`Package URL added: ${url}`);
+        } else {
+            tmLog(`Package URL already exists: ${url}`);
+        }
+        if (input) input.value = '';
+        await window.taskManagerReloadAll();
+    };
+
+    window.taskManagerReloadAll = async function() {
+        if (!window.automatonLoader) return;
+        window.automatonLoader.setAutomataUrls(readJSONList(STORAGE_URLS));
+        window.automatonLoader.setBlacklist(readJSONList(STORAGE_BLACKLIST));
+        await window.automatonLoader.loadAll();
+        await refreshTaskManager('Reloaded package URLs');
+    };
+
+    window.taskManagerShutdownAll = async function() {
+        if (!window.automatonLoader) return;
+        const names = window.automatonLoader.list();
+        names.forEach((name) => window.automatonLoader.shutdown(name));
+        await refreshTaskManager(`Shutdown all automata (${names.length})`);
+    };
+
+    document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('[data-tm-action]');
+        if (!btn || !window.automatonLoader) return;
+
+        const action = btn.getAttribute('data-tm-action');
+        const name = btn.getAttribute('data-name');
+        const url = btn.getAttribute('data-url');
+        const blacklist = readJSONList(STORAGE_BLACKLIST);
+        const urls = readJSONList(STORAGE_URLS);
+
+        if (action === 'restart' && name) {
+            await window.automatonLoader.restart(name);
+            tmLog(`Restarted ${name}`);
+        } else if (action === 'kill' && name) {
+            window.automatonLoader.kill(name);
+            tmLog(`Killed ${name}`);
+        } else if (action === 'toggle' && name) {
+            const idx = blacklist.indexOf(name);
+            if (idx >= 0) {
+                blacklist.splice(idx, 1);
+                writeJSONList(STORAGE_BLACKLIST, blacklist);
+                await window.automatonLoader.loadAll();
+                tmLog(`Enabled ${name}`);
+            } else {
+                blacklist.push(name);
+                writeJSONList(STORAGE_BLACKLIST, blacklist);
+                window.automatonLoader.setBlacklist(blacklist);
+                window.automatonLoader.kill(name);
+                tmLog(`Disabled ${name}`);
+            }
+        } else if (action === 'remove-url' && url) {
+            writeJSONList(STORAGE_URLS, urls.filter(u => u !== url));
+            tmLog(`Removed package URL: ${url}`);
+            await window.taskManagerReloadAll();
+            return;
+        } else if (action === 'reload-url' && url) {
+            await window.automatonLoader.loadPackage(url);
+            tmLog(`Reloaded package: ${url}`);
+        }
+
+        await refreshTaskManager();
+    });
+
+    window.on('automaton_loaded', (payload) => tmLog(`Loaded ${payload?.name || 'unknown'}`));
+    window.on('automaton_unloaded', (payload) => tmLog(`Unloaded ${payload?.name || 'unknown'} (${payload?.reason || 'n/a'})`));
+    window.on('error_occurred', (payload) => tmLog(`Error: ${payload?.message || 'unknown'}`));
+
     // 3. Automata Loader Integration
     async function initAkariAutomata() {
         if (typeof AutomatonLoader === 'undefined') {
@@ -217,6 +424,7 @@
         window.log('info', "Waking up the automata...");
         await loader.loadAll();
         console.log("Loaded automata:", loader.list());
+        refreshTaskManager('Automata initialized');
         
         setTimeout(() => {
             const overlay = document.getElementById('overlay');
@@ -297,6 +505,7 @@
                 window.automatonLoader.setBlacklist(bl);
                 await window.automatonLoader.loadAll();
                 respond({ action: 'automata_list', automata: window.automatonLoader.listAll() });
+                refreshTaskManager('Automata updated from settings');
             }
         }
         else if (e.data.action === 'automata_kill') {
@@ -304,12 +513,14 @@
                 window.automatonLoader.setBlacklist(JSON.parse(localStorage.getItem('akari:automata_blacklist') || '[]'));
                 window.automatonLoader.kill(e.data.name);
                 respond({ action: 'automata_list', automata: window.automatonLoader.listAll() });
+                refreshTaskManager(`Automaton killed from settings: ${e.data.name}`);
             }
         }
         else if (e.data.action === 'automata_restart') {
             if (window.automatonLoader) {
                 await window.automatonLoader.restart(e.data.name);
                 respond({ action: 'automata_list', automata: window.automatonLoader.listAll() });
+                refreshTaskManager(`Automaton restarted from settings: ${e.data.name}`);
             }
         }
         else if (e.data.action === 'apply_visuals') {
