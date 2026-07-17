@@ -65,7 +65,7 @@ function initWakeAudio() {
                 wakewords: [],
                 wakeWordProvider: 'openwakeword',
     openWakeWord: {
-        keywordURL: 'https://76836.github.io/Akari/engine/models/hey_A_khari.onnx'
+        keywordURL: 'https://76836.github.io/Akari/engine/models/hey_Akari.onnx'
     },
                 wakesoundThreshold: ${localStorage.getItem('wakeSense') || "0.80"},
                 wakesoundIndex: 2,
@@ -159,7 +159,7 @@ if (!window.whisperTranscriber) {
         }
     };
 }
-    loadscreen("AkariNet Audio Console version n starting up...");
+    loadscreen("AkariNet Audio Console version n 0x3 starting up...");
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initAudioConsole);
     } else {
