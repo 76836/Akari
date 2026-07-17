@@ -65,7 +65,7 @@ function initWakeAudio() {
                 wakewords: [],
                 wakeWordProvider: 'openwakeword',
     openWakeWord: {
-        keywordURL: 'https://huggingface.co/12384-0ashntoi/hey-fable-openwakeword/resolve/main/hey_fable.onnx'
+        keywordURL: 'https://76836.github.io/Akari/engine/models/hey_A_khari.onnx'
     },
                 wakesoundThreshold: ${localStorage.getItem('wakeSense') || "0.80"},
                 wakesoundIndex: 2,
