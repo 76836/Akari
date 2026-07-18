@@ -65,7 +65,7 @@ function initWakeAudio() {
                 wakewords: [],
                 wakeWordProvider: 'openwakeword',
     openWakeWord: {
-        keywordURL: 'https://76836.github.io/Akari/engine/models/A_kar_e.onnx'
+        keywordURL: 'https://76836.github.io/Akari/engine/models/v2_A_kar_e.onnx'
     },
                 wakesoundThreshold: ${localStorage.getItem('wakeSense') || "0.80"},
                 wakesoundIndex: 2,
@@ -91,7 +91,7 @@ function initWakeAudio() {
     }
 
     window.addEventListener('audioConsoleReady', () => {
-        app.notify('AkariNet', 'Audio Console (adapter 4c) has started successfully!', {
+        app.notify('AkariNet', 'Audio Console (adapter 4d) has started successfully!', {
             borderColors: ['#00ccff', '#00FF00']
         });
     });
