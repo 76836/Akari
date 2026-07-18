@@ -16,7 +16,7 @@
             opacity: 0;
             transition: opacity 0.3s;
             pointer-events: none;
-            background: linear-gradient(90deg, red, orange, yellow, green, cyan, blue, violet, red);
+            background: linear-gradient(90deg, red, orange, violet, green, cyan, blue, violet, red);
             background-size: 200% 100%;
         }
         #audio-status-bar.active {
@@ -65,14 +65,14 @@ function initWakeAudio() {
                 wakewords: [],
                 wakeWordProvider: 'openwakeword',
     openWakeWord: {
-        keywordURL: 'https://76836.github.io/Akari/engine/models/v3_hey_Akari.onnx'
+        keywordURL: 'https://76836.github.io/Akari/engine/models/A_kar_e.onnx'
     },
                 wakesoundThreshold: ${localStorage.getItem('wakeSense') || "0.80"},
                 wakesoundIndex: 2,
                 wakesoundDuration: 2750,
                 wakesoundDelay: 5000,
                 requireWakeSound: true,
-                vadThreshold: 0.95,
+                vadThreshold: 0.85,
                 cleanup: false,
                 debugWakeSound: false
             };
@@ -91,7 +91,7 @@ function initWakeAudio() {
     }
 
     window.addEventListener('audioConsoleReady', () => {
-        app.notify('AkariNet', 'Audio Console (adapter 4b) has started successfully!', {
+        app.notify('AkariNet', 'Audio Console (adapter 4c) has started successfully!', {
             borderColors: ['#00ccff', '#00FF00']
         });
     });
@@ -159,7 +159,7 @@ if (!window.whisperTranscriber) {
         }
     };
 }
-    loadscreen("AkariNet Audio Console version n 0x3 starting up...");
+    loadscreen("AkariNet Audio Console version 4.0.0 is starting up...");
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initAudioConsole);
     } else {
