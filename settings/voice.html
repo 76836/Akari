@@ -34,7 +34,6 @@
             flex-direction: column;
         }
 
-        /* Full Viewport Stretch */
         .viewport-wrapper {
             flex: 1;
             display: flex;
@@ -71,7 +70,6 @@
             flex-shrink: 0;
         }
 
-        /* Full-Width Menus */
         details {
             background: var(--card);
             margin: 2px 0;
@@ -90,10 +88,7 @@
             transition: 0.2s;
         }
 
-        summary:hover {
-            background: rgba(255,255,255,0.08);
-        }
-
+        summary:hover { background: rgba(255,255,255,0.08); }
         summary::-webkit-details-marker { display: none; }
         summary::after { content: '⮛'; font-size: 0.8rem; opacity: 0.5; transition: 0.3s; }
         details[open] summary::after { transform: rotate(180deg); color: var(--cyan); }
@@ -109,7 +104,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Organized Sections */
         .script-group {
             background: rgba(255, 255, 255, 0.03);
             border-radius: 12px;
@@ -129,7 +123,6 @@
             font-weight: bold;
         }
 
-        /* Controls */
         .setbutton, .box {
             font-size: 1rem;
             width: 100%;
@@ -144,22 +137,65 @@
             transition: 0.2s;
         }
 
-        .box { 
-            background-color: var(--input-bg); 
-            border: 1px solid rgba(255,255,255,0.1); 
+        .box {
+            background-color: var(--input-bg);
+            border: 1px solid rgba(255,255,255,0.1);
             text-align: left;
         }
-        
-        .setbutton {
-            cursor: pointer;
-        }
 
+        .setbutton { cursor: pointer; }
         .setbutton:hover { background-color: #4d5757; }
         .setbutton:active { filter: brightness(1.2); }
 
-        .save-btn {
+        .setbutton.selected {
             background: var(--cyan);
-            margin-top: 15px;
+            color: black;
+            font-weight: bold;
+        }
+
+        .save-btn { background: var(--cyan); margin-top: 15px; }
+
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 12px 0;
+        }
+
+        .toggle-row span { font-size: 0.9rem; }
+
+        .toggle {
+            width: 52px;
+            height: 28px;
+            background: #444;
+            border-radius: 14px;
+            position: relative;
+            cursor: pointer;
+            transition: 0.2s;
+            flex-shrink: 0;
+        }
+
+        .toggle.on { background: var(--cyan); }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+
+        .toggle.on::after { left: 27px; }
+
+        .hint {
+            font-size: 0.75rem;
+            opacity: 0.6;
+            margin: 4px 0 10px;
+            line-height: 1.4;
         }
 
         .version-tag {
@@ -170,7 +206,6 @@
             letter-spacing: 2px;
         }
 
-        /* Floating Scroll Buttons */
         .scroll-controls {
             position: fixed;
             bottom: 25px;
@@ -210,35 +245,176 @@
             <div class="container">
                 <h1 class="title">Voice & Synthesis</h1>
 
-                <!-- Wake Word Section -->
+                <!-- ============================================================ -->
+                <!-- AKARINET AUDIO CONSOLE v4.1 (NEW)                             -->
+                <!-- ============================================================ -->
                 <details open>
-                    <summary>Wake Word Configuration</summary>
+                    <summary>Audio Console v4.1 (Recommended)</summary>
                     <div class="content">
+
+                        <!-- Console Script -->
                         <div class="script-group">
-    <span class="group-label">Sensitivity Settings</span>
-    <p style="font-size: 0.8rem; margin-bottom: 10px; opacity: 0.8;">Wake word confidence (hey Akari):</p>
-    
-    <input class="box" id="sensitivityBox" placeholder="0.97" type="text" 
-           oninput="document.getElementById('sensitivitySlider').value = this.value">
-    
-    <input type="range" min="0.01" max="1.0" step="0.01" value="0.97" id="sensitivitySlider" 
-           style="width: 100%; margin: 15px 0; accent-color: var(--cyan); cursor: pointer;"
-           oninput="document.getElementById('sensitivityBox').value = this.value; setsense();">
-    
-    <button class="setbutton save-btn" onclick="setsense()">Save Changes</button>
-</div>
+                            <span class="group-label">Console Adapter Script</span>
+                            <p class="hint">Path to the audio console adapter. This is loaded as the "wake" module in Akari.</p>
+                            <input class="box" id="ac41Script" placeholder="./engine/audioConsole.js" type="text">
+                            <button class="setbutton save-btn" onclick="saveAc41Script()">Save Changes</button>
+                        </div>
+
+                        <!-- Wake Word Provider -->
+                        <div class="script-group">
+                            <span class="group-label">Wake Word Detection</span>
+                            <p class="hint">How Akari detects the wake word. openWakeWord is recommended (local, on-device, ONNX models).</p>
+                            <button class="setbutton" data-wake="openwakeword" onclick="selectWakeProvider(this)">openWakeWord (Recommended)</button>
+                            <button class="setbutton" data-wake="teachablemachine" onclick="selectWakeProvider(this)">Teachable Machine (Legacy)</button>
+                            <button class="setbutton" data-wake="none" onclick="selectWakeProvider(this)">None (Manual / Push-to-talk)</button>
+                        </div>
+
+                        <!-- openWakeWord Model -->
+                        <div class="script-group" id="owwGroup">
+                            <span class="group-label">openWakeWord Model URL</span>
+                            <p class="hint">URL to a .onnx keyword model. The keyword name is auto-extracted from the filename.</p>
+                            <input class="box" id="owwUrl" placeholder="https://76836.github.io/Akari/engine/models/v2_hey_A_kar_e.onnx" type="text">
+                            <button class="setbutton save-btn" onclick="saveOwwUrl()">Save Changes</button>
+                        </div>
+
+                        <!-- Speech Recognition Provider -->
+                        <div class="script-group">
+                            <span class="group-label">Speech Recognition (ASR)</span>
+                            <p class="hint">How Akari transcribes your speech after the wake word.</p>
+                            <button class="setbutton" data-sr="transformers" onclick="selectSrProvider(this)">Transformers.js — Moonshine (Local, Default)</button>
+                            <button class="setbutton" data-sr="whispercpp" onclick="selectSrProvider(this)">whisper.cpp Server (llamafile whisperfile)</button>
+                            <button class="setbutton" data-sr="webspeech" onclick="selectSrProvider(this)">Web Speech API (Wake-gated, Cloud in Chrome)</button>
+                            <button class="setbutton" data-sr="none" onclick="selectSrProvider(this)">None (Wake events only)</button>
+                        </div>
+
+                        <!-- Transformers Model -->
+                        <div class="script-group" id="transformersGroup">
+                            <span class="group-label">Transformers Model</span>
+                            <p class="hint">Which ASR model to download and run in-browser. Smaller = faster but less accurate.</p>
+                            <button class="setbutton" data-model="onnx-community/moonshine-tiny-ONNX" onclick="selectTransformersModel(this)">Moonshine Tiny (~40MB, Fast)</button>
+                            <button class="setbutton" data-model="onnx-community/moonshine-base-ONNX" onclick="selectTransformersModel(this)">Moonshine Base (~100MB, Balanced)</button>
+                            <button class="setbutton" data-model="onnx-community/whisper-tiny-ONNX" onclick="selectTransformersModel(this)">Whisper Tiny (~40MB)</button>
+                        </div>
+
+                        <!-- whisper.cpp Server -->
+                        <div class="script-group" id="whisperGroup">
+                            <span class="group-label">whisper.cpp Server URL</span>
+                            <p class="hint">Base URL of your whisper-server (llamafile whisperfile). Example: http://127.0.0.1:8080</p>
+                            <input class="box" id="whisperUrl" placeholder="http://127.0.0.1:8080" type="text">
+                            <button class="setbutton save-btn" onclick="saveWhisperUrl()">Save Changes</button>
+                        </div>
+
+                        <!-- Web Speech Language -->
+                        <div class="script-group" id="webspeechGroup">
+                            <span class="group-label">Web Speech Language</span>
+                            <p class="hint">BCP-47 language code for browser SpeechRecognition.</p>
+                            <input class="box" id="webspeechLang" placeholder="en-US" type="text">
+                            <button class="setbutton save-btn" onclick="saveWebspeechLang()">Save Changes</button>
+                        </div>
+
+                        <!-- Sensitivity -->
+                        <div class="script-group">
+                            <span class="group-label">Wake Sensitivity</span>
+                            <p class="hint">How confident Akari must be before triggering. Lower = more sensitive (more false triggers). Higher = stricter.</p>
+                            <input class="box" id="sensitivityBox" placeholder="0.50" type="text"
+                                   oninput="document.getElementById('sensitivitySlider').value = this.value">
+                            <input type="range" min="0.01" max="1.0" step="0.01" value="0.50" id="sensitivitySlider"
+                                   style="width: 100%; margin: 15px 0; accent-color: var(--cyan); cursor: pointer;"
+                                   oninput="document.getElementById('sensitivityBox').value = this.value;">
+                            <button class="setbutton save-btn" onclick="saveSensitivity()">Save Changes</button>
+                        </div>
+
+                        <!-- VAD Sensitivity -->
+                        <div class="script-group">
+                            <span class="group-label">Voice Activity Detection</span>
+                            <p class="hint">How sensitive the silence/speech detector is. Lower = picks up quieter speech. Higher = needs louder speech.</p>
+                            <input class="box" id="vadBox" placeholder="0.50" type="text"
+                                   oninput="document.getElementById('vadSlider').value = this.value">
+                            <input type="range" min="0.1" max="0.9" step="0.05" value="0.50" id="vadSlider"
+                                   style="width: 100%; margin: 15px 0; accent-color: var(--cyan); cursor: pointer;"
+                                   oninput="document.getElementById('vadBox').value = this.value;">
+                            <button class="setbutton save-btn" onclick="saveVad()">Save Changes</button>
+                        </div>
+
+                        <!-- Text Wake Words -->
+                        <div class="script-group">
+                            <span class="group-label">Text Wake Words</span>
+                            <p class="hint">Comma-separated words to strip from transcripts. Example: "hey akari, akari, computer". If no sound wake is used, these words trigger recognition.</p>
+                            <input class="box" id="wakewords" placeholder="hey akari,akari" type="text">
+                            <button class="setbutton save-btn" onclick="saveWakewords()">Save Changes</button>
+                        </div>
+
+                        <!-- Require Wake -->
+                        <div class="script-group">
+                            <span class="group-label">Privacy</span>
+                            <div class="toggle-row">
+                                <span>Require wake word before listening</span>
+                                <div class="toggle" id="requireWakeToggle" onclick="toggleRequireWake(this)"></div>
+                            </div>
+                            <p class="hint">When ON, Akari only transcribes speech after a wake word (sound or manual). When OFF, all speech is transcribed and text wake words are checked in the transcript.</p>
+                        </div>
+
+                        <!-- XL Audio Cache -->
+                        <div class="script-group">
+                            <span class="group-label">XL Audio Cache (Retroactive Recording)</span>
+                            <p class="hint">Keeps a rolling window of mic audio in RAM. You can retrieve it after the fact (playback, transcribe, or save). Must be set before the console starts.</p>
+                            <div class="toggle-row">
+                                <span>Enable XL Cache</span>
+                                <div class="toggle" id="xlToggle" onclick="toggleXl(this)"></div>
+                            </div>
+                            <div id="xlOptions" style="display:none;">
+                                <p class="hint" style="margin-top:14px;">Cache duration:</p>
+                                <input class="box" id="xlDuration" placeholder="60000 (1 minute)" type="number" min="1000" max="3600000" step="1000">
+                                <p class="hint">In milliseconds. Range: 1000 (1 second) to 3600000 (1 hour). At 16kHz mono, 1 minute ≈ 1.9MB, 1 hour ≈ 115MB.</p>
+                                <div class="toggle-row">
+                                    <span>Only store detected speech (saves RAM)</span>
+                                    <div class="toggle" id="xlVadOnlyToggle" onclick="toggleXlVadOnly(this)"></div>
+                                </div>
+                            </div>
+                            <button class="setbutton save-btn" onclick="saveXl()">Save Changes</button>
+                        </div>
+
+                        <!-- Debug -->
+                        <div class="script-group">
+                            <span class="group-label">Diagnostics</span>
+                            <div class="toggle-row">
+                                <span>Debug mode (verbose console logging)</span>
+                                <div class="toggle" id="debugToggle" onclick="toggleDebug(this)"></div>
+                            </div>
+                        </div>
+
                     </div>
                 </details>
 
-                <!-- Voice Input Section -->
+                <!-- ============================================================ -->
+                <!-- LEGACY: Wake Word Configuration (sensitivity — shared)       -->
+                <!-- ============================================================ -->
                 <details>
-                    <summary>Speech Recognition (Input)</summary>
+                    <summary>Wake Word Configuration (Legacy)</summary>
+                    <div class="content">
+                        <div class="script-group">
+                            <span class="group-label">Sensitivity Settings</span>
+                            <p class="hint" style="font-size: 0.8rem; margin-bottom: 10px;">This slider is shared with Audio Console v4.1. It sets the wake word confidence threshold.</p>
+                            <p style="font-size: 0.8rem; margin-bottom: 10px; opacity: 0.8;">Wake word confidence (hey Akari):</p>
+                            <input class="box" id="sensitivityBoxLegacy" placeholder="0.50" type="text"
+                                   oninput="document.getElementById('sensitivitySliderLegacy').value = this.value; document.getElementById('sensitivityBox').value = this.value;">
+                            <input type="range" min="0.01" max="1.0" step="0.01" value="0.50" id="sensitivitySliderLegacy"
+                                   style="width: 100%; margin: 15px 0; accent-color: var(--cyan); cursor: pointer;"
+                                   oninput="document.getElementById('sensitivityBoxLegacy').value = this.value; document.getElementById('sensitivityBox').value = this.value; setsenseLegacy();">
+                            <button class="setbutton save-btn" onclick="setsenseLegacy()">Save Changes</button>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Voice Input Section (Legacy standalone scripts) -->
+                <details>
+                    <summary>Speech Recognition (Legacy Scripts)</summary>
                     <div class="content">
                         <div class="script-group">
                             <span class="group-label">Select Script</span>
+                            <p class="hint">These are the old standalone ASR scripts. If you're using Audio Console v4.1 above, these are not needed — the console manages ASR internally.</p>
                             <button class="setbutton" onclick="setWhisperVal('./engine/web-speech-recognition.js')">Browser built-in (Web speech API)</button>
                             <button class="setbutton" onclick="setWhisperVal('./engine/whisper-tiny-cpu.js')">OpenAI Whisper Tiny English (local)</button>
-                            
                             <input class="box" id="whisperurl" placeholder="./engine/whisper-tiny-cpu.js" type="text" style="margin-top: 20px;">
                             <button class="setbutton save-btn" onclick="setwhisper()">Save Changes</button>
                         </div>
@@ -254,16 +430,15 @@
                             <button class="setbutton" onclick="setVoiceVal('./engine/web-speech-synthesis.js')">Browser built-in (Web speech API)</button>
                             <button class="setbutton" onclick="setVoiceVal('./characters/akari/KittenTTS.js')">Akari (KittenTTS ONNX ~30MB) (fast)</button>
                             <button class="setbutton" onclick="setVoiceVal('./characters/akari/PocketTTS.js')">Akari (PocketTTS ONNX ~200MB) (recommended)</button>
-                            <button class="setbutton" onclick="setVoiceVal('./characters/akari/ProTTS.js')" >Akari (SpeechT5 ONNX ~500MB) (depreciated)</button>
+                            <button class="setbutton" onclick="setVoiceVal('./characters/akari/ProTTS.js')">Akari (SpeechT5 ONNX ~500MB) (depreciated)</button>
                             <button class="setbutton" onclick="setVoiceVal('')">Disable this feature.</button>
-                            
                             <input class="box" id="voiceurl" placeholder="~disabled~" type="text" style="margin-top: 20px;">
                             <button class="setbutton save-btn" onclick="setvoice()">Save Changes</button>
                         </div>
                     </div>
                 </details>
 
-                <div class="version-tag">VOICE CFG PANEL V1.4</div>
+                <div class="version-tag">VOICE CFG PANEL V2.0 · AUDIO CONSOLE v4.1</div>
             </div>
         </div>
     </div>
@@ -275,13 +450,184 @@
     </div>
 
     <script>
+        // ===================================================================
+        // INIT — load saved values into the form
+        // ===================================================================
         window.onload = () => {
-            const savedSense = localStorage.getItem('wakeSense') || "0.81";
-    document.getElementById('voiceurl').value = localStorage.getItem('selectedVoiceScript') || "";
-    document.getElementById('whisperurl').value = localStorage.getItem('selectedWhisperScript') || "";
-    document.getElementById('sensitivityBox').value = savedSense;
-    document.getElementById('sensitivitySlider').value = savedSense;
+            // Console script
+            document.getElementById('ac41Script').value = localStorage.getItem('selectedWakeScript') || './engine/audioConsole.js';
+
+            // Wake provider
+            const wakeProv = localStorage.getItem('ac41_wakeProvider') || 'openwakeword';
+            document.querySelectorAll('[data-wake]').forEach(b => {
+                b.classList.toggle('selected', b.dataset.wake === wakeProv);
+            });
+
+            // OWW URL
+            document.getElementById('owwUrl').value = localStorage.getItem('ac41_owwUrl') || '';
+
+            // SR provider
+            const srProv = localStorage.getItem('ac41_srProvider') || 'transformers';
+            document.querySelectorAll('[data-sr]').forEach(b => {
+                b.classList.toggle('selected', b.dataset.sr === srProv);
+            });
+
+            // Transformers model
+            const tModel = localStorage.getItem('ac41_transformersModel') || 'onnx-community/moonshine-base-ONNX';
+            document.querySelectorAll('[data-model]').forEach(b => {
+                b.classList.toggle('selected', b.dataset.model === tModel);
+            });
+
+            // whisper URL
+            document.getElementById('whisperUrl').value = localStorage.getItem('ac41_whisperUrl') || '';
+
+            // webspeech lang
+            document.getElementById('webspeechLang').value = localStorage.getItem('ac41_webspeechLang') || 'en-US';
+
+            // Sensitivity (shared between v4.1 and legacy)
+            const savedSense = localStorage.getItem('ac41_owwThreshold') || localStorage.getItem('wakeSense') || '0.50';
+            document.getElementById('sensitivityBox').value = savedSense;
+            document.getElementById('sensitivitySlider').value = savedSense;
+            const legacySense = localStorage.getItem('wakeSense') || savedSense;
+            document.getElementById('sensitivityBoxLegacy').value = legacySense;
+            document.getElementById('sensitivitySliderLegacy').value = legacySense;
+
+            // VAD
+            const savedVad = localStorage.getItem('ac41_vadThreshold') || '0.50';
+            document.getElementById('vadBox').value = savedVad;
+            document.getElementById('vadSlider').value = savedVad;
+
+            // Text wake words
+            document.getElementById('wakewords').value = localStorage.getItem('ac41_wakewords') || 'hey akari,akari';
+
+            // requireWake toggle
+            const requireWake = localStorage.getItem('ac41_requireWake') !== 'false'; // default true
+            document.getElementById('requireWakeToggle').classList.toggle('on', requireWake);
+
+            // XL cache
+            const xlEnabled = localStorage.getItem('ac41_xlEnabled') === 'true';
+            document.getElementById('xlToggle').classList.toggle('on', xlEnabled);
+            document.getElementById('xlOptions').style.display = xlEnabled ? 'block' : 'none';
+            document.getElementById('xlDuration').value = localStorage.getItem('ac41_xlDuration') || '60000';
+            const xlVadOnly = localStorage.getItem('ac41_xlVadOnly') === 'true';
+            document.getElementById('xlVadOnlyToggle').classList.toggle('on', xlVadOnly);
+
+            // Debug
+            const debug = localStorage.getItem('ac41_debug') === 'true';
+            document.getElementById('debugToggle').classList.toggle('on', debug);
+
+            // Legacy voice/whisper scripts
+            document.getElementById('voiceurl').value = localStorage.getItem('selectedVoiceScript') || '';
+            document.getElementById('whisperurl').value = localStorage.getItem('selectedWhisperScript') || '';
+
+            // Show/hide provider-specific option groups
+            updateProviderGroups(wakeProv, srProv);
         };
+
+        // ===================================================================
+        // SAVE FUNCTIONS — Audio Console v4.1
+        // ===================================================================
+
+        function saveAc41Script() {
+            localStorage.setItem('selectedWakeScript', document.getElementById('ac41Script').value);
+            showFeedback(event.target);
+        }
+
+        function selectWakeProvider(btn) {
+            document.querySelectorAll('[data-wake]').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            localStorage.setItem('ac41_wakeProvider', btn.dataset.wake);
+            const wakeProv = btn.dataset.wake;
+            const srProv = localStorage.getItem('ac41_srProvider') || 'transformers';
+            updateProviderGroups(wakeProv, srProv);
+        }
+
+        function saveOwwUrl() {
+            localStorage.setItem('ac41_owwUrl', document.getElementById('owwUrl').value);
+            showFeedback(event.target);
+        }
+
+        function selectSrProvider(btn) {
+            document.querySelectorAll('[data-sr]').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            localStorage.setItem('ac41_srProvider', btn.dataset.sr);
+            const srProv = btn.dataset.sr;
+            const wakeProv = localStorage.getItem('ac41_wakeProvider') || 'openwakeword';
+            updateProviderGroups(wakeProv, srProv);
+        }
+
+        function selectTransformersModel(btn) {
+            document.querySelectorAll('[data-model]').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            localStorage.setItem('ac41_transformersModel', btn.dataset.model);
+        }
+
+        function saveWhisperUrl() {
+            localStorage.setItem('ac41_whisperUrl', document.getElementById('whisperUrl').value);
+            showFeedback(event.target);
+        }
+
+        function saveWebspeechLang() {
+            localStorage.setItem('ac41_webspeechLang', document.getElementById('webspeechLang').value);
+            showFeedback(event.target);
+        }
+
+        function saveSensitivity() {
+            const val = document.getElementById('sensitivityBox').value;
+            localStorage.setItem('ac41_owwThreshold', val);
+            localStorage.setItem('wakeSense', val); // keep legacy in sync
+            showFeedback(event.target);
+        }
+
+        function saveVad() {
+            localStorage.setItem('ac41_vadThreshold', document.getElementById('vadBox').value);
+            showFeedback(event.target);
+        }
+
+        function saveWakewords() {
+            localStorage.setItem('ac41_wakewords', document.getElementById('wakewords').value);
+            showFeedback(event.target);
+        }
+
+        function toggleRequireWake(el) {
+            el.classList.toggle('on');
+            localStorage.setItem('ac41_requireWake', el.classList.contains('on') ? 'true' : 'false');
+        }
+
+        function toggleXl(el) {
+            el.classList.toggle('on');
+            const on = el.classList.contains('on');
+            localStorage.setItem('ac41_xlEnabled', on ? 'true' : 'false');
+            document.getElementById('xlOptions').style.display = on ? 'block' : 'none';
+        }
+
+        function toggleXlVadOnly(el) {
+            el.classList.toggle('on');
+            localStorage.setItem('ac41_xlVadOnly', el.classList.contains('on') ? 'true' : 'false');
+        }
+
+        function saveXl() {
+            const dur = parseInt(document.getElementById('xlDuration').value) || 60000;
+            localStorage.setItem('ac41_xlDuration', String(Math.max(1000, Math.min(3600000, dur))));
+            showFeedback(event.target);
+        }
+
+        function toggleDebug(el) {
+            el.classList.toggle('on');
+            localStorage.setItem('ac41_debug', el.classList.contains('on') ? 'true' : 'false');
+        }
+
+        // Show/hide option groups based on selected providers
+        function updateProviderGroups(wakeProv, srProv) {
+            document.getElementById('owwGroup').style.display = (wakeProv === 'openwakeword') ? 'block' : 'none';
+            document.getElementById('transformersGroup').style.display = (srProv === 'transformers') ? 'block' : 'none';
+            document.getElementById('whisperGroup').style.display = (srProv === 'whispercpp') ? 'block' : 'none';
+            document.getElementById('webspeechGroup').style.display = (srProv === 'webspeech') ? 'block' : 'none';
+        }
+
+        // ===================================================================
+        // LEGACY SAVE FUNCTIONS (preserved for backwards compatibility)
+        // ===================================================================
 
         function setVoiceVal(val) { document.getElementById('voiceurl').value = val; }
         function setWhisperVal(val) { document.getElementById('whisperurl').value = val; }
@@ -296,8 +642,10 @@
             showFeedback(event.target);
         }
 
-        function setsense() {
-            localStorage.setItem('wakeSense', document.getElementById('sensitivityBox').value);
+        function setsenseLegacy() {
+            const val = document.getElementById('sensitivityBoxLegacy').value;
+            localStorage.setItem('wakeSense', val);
+            localStorage.setItem('ac41_owwThreshold', val); // keep v4.1 in sync
             showFeedback(event.target);
         }
 
