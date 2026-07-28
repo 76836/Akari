@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,149 +11,273 @@
             --hsr-dark: #020617;
         }
 
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; background: black;
-            font-family: 'Segoe UI', system-ui, sans-serif;
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: black;
+            font-family: 'Segoe UI', sans-serif;
             color: white;
-            display: flex; justify-content: center; align-items: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .glass-scanner {
-            position: absolute; top: -50vh; left: -40%;
-            width: 220px; height: 200vh;
+            position: absolute;
+            top: -50vh;
+            left: -40%;
+            width: 220px;
+            height: 200vh;
             background: rgba(255, 255, 255, 0.05);
             filter: invert(100%);
+            backdrop-filter: blur(0px) saturate(10);
+            -webkit-backdrop-filter: blur(0px) saturate(10);
             border-left: 4px solid rgba(0, 229, 255, 0.3);
             border-right: 2px solid rgba(255, 50, 50, 0.3);
             box-shadow: -5px 0 15px rgba(0, 229, 255, 0.1), 5px 0 15px rgba(255, 50, 50, 0.1);
             transform: rotate(10deg);
             animation: sweep 10s cubic-bezier(0.4, 0, 0.2, 0.1) infinite;
-            z-index: 10; pointer-events: none;
+            z-index: 10;
+            pointer-events: none;
         }
 
         @keyframes sweep {
-            0% { left: -50%; opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { left: 150%; opacity: 0; }
+            0% {
+                left: -50%;
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                left: 150%;
+                opacity: 0;
+            }
         }
 
         .container {
-            display: flex; flex-direction: column; align-items: center;
-            width: 100%; z-index: 5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            z-index: 5;
         }
 
         .progress-container {
-            width: 90%; max-width: 800px; position: relative;
+            width: 90%;
+            max-width: 800px;
+            position: relative;
         }
 
         .time-text {
             font-family: monospace;
-            font-size: 2.5rem;
+            font-size: 3.5rem;
             font-weight: bold;
-            letter-spacing: 4px;
+            letter-spacing: 5px;
             color: white;
             display: none;
+            /* Hidden by default */
         }
 
+        /* Offset Corner Accents from Image */
         .corner-accent {
-            position: absolute; width: 1.5rem; height: 1.5rem;
-            border-color: white; border-style: solid; z-index: 6;
+            position: absolute;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-color: white;
+            border-style: solid;
+            z-index: 6;
         }
-        .top-left { top: -15px; left: -15px; border-width: 4px 0 0 4px; }
-        .top-right { top: -15px; right: -15px; border-width: 4px 4px 0 0; }
-        .bottom-left { bottom: -15px; left: -15px; border-width: 0 0 4px 4px; }
-        .bottom-right { bottom: -15px; right: -15px; border-width: 0 4px 4px 0; }
+
+        .top-left {
+            top: -15px;
+            left: -15px;
+            border-width: 4px 0 0 4px;
+        }
+
+        .top-right {
+            top: -15px;
+            right: -15px;
+            border-width: 4px 4px 0 0;
+        }
+
+        .bottom-left {
+            bottom: -15px;
+            left: -15px;
+            border-width: 0 0 4px 4px;
+        }
+
+        .bottom-right {
+            bottom: -15px;
+            right: -15px;
+            border-width: 0 4px 4px 0;
+        }
 
         .progress-outer {
             background-color: rgba(0, 0, 0, 0.8);
-            position: relative; display: block;
+            position: relative;
+            display: block;
+            flex-direction: column;
         }
 
         .bar-section {
-            border: 2px solid white; padding: 1rem;
-            border-bottom: 2px solid white; position: relative;
+            border: 2px solid white;
+            padding: 1rem;
+            border-bottom: 2px solid white;
+            position: relative;
         }
 
         .progress-inner {
-            position: relative; height: 2.5rem; width: 100%;
+            position: relative;
+            height: 2.5rem;
+            width: 100%;
             overflow: hidden;
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .progress-fill {
-            height: 100%; width: 0%;
+            height: 100%;
+            width: 0%;
             background: linear-gradient(to right,
-                rgba(255, 255, 255, 0.1),
-                rgba(255, 255, 255, 0.8),
-                rgba(255, 255, 255, 1));
-            transition: width 0.35s ease-out;
+                    rgba(255, 255, 255, 0.1),
+                    rgba(255, 255, 255, 0.8),
+                    rgba(255, 255, 255, 1));
+            transition: width 0.3s ease-out;
             position: relative;
         }
 
         .scanline {
-            position: absolute; inset: 0;
-            background: linear-gradient(transparent 49%, rgba(255,255,255,0.1) 50%, transparent 51%);
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(transparent 49%,
+                    rgba(255, 255, 255, 0.1) 50%,
+                    transparent 51%);
             animation: scanline 2s linear infinite;
             background-size: 100% 12px;
             pointer-events: none;
         }
 
         @keyframes scanline {
-            from { background-position: 0 0; }
-            to { background-position: 0 100%; }
+            from {
+                background-position: 0 0;
+            }
+
+            to {
+                background-position: 0 100%;
+            }
         }
 
         .percentage {
-            position: absolute; right: 0.5rem; top: 50%;
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
             transform: translateY(-50%);
-            background: black; padding: 2px 8px;
-            border: 1px solid white; color: white;
-            font-family: monospace; font-size: 0.9rem; z-index: 2;
+            background: black;
+            padding: 2px 8px;
+            border: 1px solid white;
+            color: white;
+            font-family: monospace;
+            font-size: 0.9rem;
+            z-index: 2;
         }
 
         .info-section {
-            border: 2px solid white; margin-top: 1rem;
+            border: 2px solid white;
+            margin-top: 1rem;
             padding: 0.8rem 1rem;
             background: rgba(255, 255, 255, 0.03);
-            text-align: left; font-family: monospace;
-            font-size: 1rem; width: min(90%, 420px);
-            letter-spacing: 1px; word-break: break-word;
+            text-align: left;
+            font-family: monospace;
+            font-size: 1.1rem;
+            width: 40%;
+            letter-spacing: 2px;
         }
 
         .corner-spinner {
-            position: fixed; bottom: 40px; right: 40px;
-            width: 120px; height: 120px; z-index: 1;
+            position: fixed;
+            bottom: 40px;
+            right: 40px;
+            width: 120px;
+            height: 120px;
+            z-index: 1;
             animation: spin 3s linear infinite;
         }
 
-        .plus-shape { position: relative; width: 100%; height: 100%; }
-        .plus-shape::before, .plus-shape::after {
-            content: ''; position: absolute; background: white;
-            top: 50%; left: 50%; transform: translate(-50%, -50%);
+        .plus-shape {
+            position: relative;
+            width: 100%;
+            height: 100%;
         }
-        .plus-shape::before { width: 36px; height: 100%; }
-        .plus-shape::after { width: 100%; height: 36px; }
+
+        .plus-shape::before,
+        .plus-shape::after {
+            content: '';
+            position: absolute;
+            background: white;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .plus-shape::before {
+            width: 36px;
+            height: 100%;
+        }
+
+        .plus-shape::after {
+            width: 100%;
+            height: 36px;
+        }
 
         @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
         }
 
-        #particles { position: absolute; width: 100%; height: 100%; z-index: 1; }
+        #particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
         .star {
-            position: absolute; width: 36px; height: 6px;
-            background: white; border-radius: 0%;
+            position: absolute;
+            width: 36px;
+            height: 6px;
+            background: white;
+            border-radius: 0%;
             animation: moveStar linear infinite;
         }
+
         @keyframes moveStar {
-            from { left: 110%; }
-            to { left: -10%; }
+            from {
+                left: 110%;
+            }
+
+            to {
+                left: -10%;
+            }
         }
     </style>
 </head>
+
 <body>
     <div id="particles"></div>
     <div class="glass-scanner"></div>
@@ -169,23 +294,166 @@
             <div class="corner-accent bottom-right"></div>
 
             <div class="progress-outer">
-                <div class="bar-section" id="bar-section">
-                    <div class="progress-inner" id="progress-inner">
+                <div class="bar-section">
+                    <div class="progress-inner">
                         <div class="progress-fill" id="progress"></div>
                         <div class="scanline"></div>
                         <div class="percentage" id="percent-text">0%</div>
-                        <div class="time-text" id="time-val"></div>
                     </div>
                 </div>
-                <div class="info-section" id="status">Autopilot standby</div>
+                <div class="info-section" id="status">Loading...</div>
             </div>
         </div>
     </div>
 
     <script>
-        let busyMode = false;
-        let lastBusyAt = 0;
-        let clockRaf = null;
+        const CLOCK_MODE = true; // Toggle this variable
+
+        // Live status from AkariNet (downloads / audio console) — design unchanged
+        let liveBusy = false;
+        let lastLiveText = '';
+
+        function init() {
+            createStars();
+            const progressInner = document.querySelector('.progress-inner');
+            const statusText = document.getElementById('status');
+            const timeDisplay = document.createElement('div');
+
+            timeDisplay.className = 'time-text';
+            timeDisplay.id = 'time-val';
+            progressInner.appendChild(timeDisplay);
+
+            if (CLOCK_MODE) {
+                document.getElementById('progress').style.display = 'none';
+                document.getElementById('percent-text').style.display = 'none';
+
+                const inner = document.querySelector('.progress-inner');
+                inner.style.height = 'auto';
+                inner.style.background = 'transparent';
+                inner.style.border = 'none';
+
+                const bar = document.querySelector('.bar-section');
+                bar.style.height = 'auto';
+                bar.style.minHeight = '4rem';
+                bar.style.display = 'flex';
+                bar.style.alignItems = 'center';
+                bar.style.justifyContent = 'center';
+
+                timeDisplay.style.display = 'block';
+                timeDisplay.style.fontSize = '2.5rem';
+
+                const info = document.getElementById('status');
+                info.style.width = 'fit-content';
+                info.style.padding = '0.8rem 2rem';
+
+                updateClock();
+            }
+
+            // Subscribe to AkariNet status bus (minimal)
+            try {
+                const raw = localStorage.getItem('akari:autopilot');
+                if (raw) applyLiveStatus(JSON.parse(raw));
+            } catch (e) {}
+
+            try {
+                const bc = new BroadcastChannel('akarinet-autopilot');
+                bc.onmessage = (e) => applyLiveStatus(e.data);
+            } catch (e) {}
+
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'akari:autopilot' && e.newValue) {
+                    try { applyLiveStatus(JSON.parse(e.newValue)); } catch (err) {}
+                }
+            });
+
+            window.addEventListener('message', (e) => {
+                if (e.data && e.data.channel === 'akarinet-autopilot') {
+                    applyLiveStatus(e.data);
+                }
+            });
+        }
+
+        function applyLiveStatus(msg) {
+            if (!msg || typeof msg !== 'object') return;
+            const text = msg.text || msg.status || '';
+            const percent = typeof msg.percent === 'number' ? msg.percent : null;
+            const busy = !!(msg.busy || msg.download || (percent != null && percent < 100));
+
+            if (text) {
+                lastLiveText = text;
+                document.getElementById('status').innerText = text;
+            }
+
+            if (busy) {
+                liveBusy = true;
+                // Switch from clock to progress bar when actively downloading
+                document.getElementById('progress').style.display = 'block';
+                document.getElementById('percent-text').style.display = 'block';
+                const timeVal = document.getElementById('time-val');
+                if (timeVal) timeVal.style.display = 'none';
+
+                const inner = document.querySelector('.progress-inner');
+                inner.style.height = '2.5rem';
+                inner.style.background = 'rgba(255, 255, 255, 0.05)';
+                inner.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+
+                if (percent != null) {
+                    const display = Math.max(0, Math.min(100, Math.round(percent)));
+                    document.getElementById('progress').style.width = display + '%';
+                    document.getElementById('percent-text').innerText = display + '%';
+                }
+            } else if (msg.idle || msg.busy === false) {
+                liveBusy = false;
+                // Restore clock presentation
+                if (CLOCK_MODE) {
+                    document.getElementById('progress').style.display = 'none';
+                    document.getElementById('percent-text').style.display = 'none';
+                    const timeVal = document.getElementById('time-val');
+                    if (timeVal) timeVal.style.display = 'block';
+                    const inner = document.querySelector('.progress-inner');
+                    inner.style.height = 'auto';
+                    inner.style.background = 'transparent';
+                    inner.style.border = 'none';
+                }
+            }
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const timeEl = document.getElementById('time-val');
+            if (timeEl && !liveBusy) {
+                timeEl.innerText = `${h}:${m} //Autopilot standby`;
+            }
+
+            // Keep live status text while busy; otherwise show the date
+            if (!liveBusy && !lastLiveText) {
+                const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+                const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                document.getElementById('status').innerText = `${days[now.getDay()]} ${months[now.getMonth()]} ${now.getDate()} ${now.getFullYear()}`;
+            } else if (!liveBusy && lastLiveText) {
+                // After a live message clears, fall back to date on next idle cycle
+                // (lastLiveText cleared when idle:true arrives without text — optional)
+            }
+
+            requestAnimationFrame(updateClock);
+        }
+
+        function updateLoading(percent) {
+            const progressBar = document.getElementById('progress');
+            const percentText = document.getElementById('percent-text');
+
+            if (percent < 100) {
+                percent += Math.random() * 0.5;
+                const display = Math.min(Math.round(percent), 100);
+                progressBar.style.width = display + '%';
+                percentText.innerText = display + '%';
+                setTimeout(() => updateLoading(percent), 50);
+            } else {
+                setTimeout(() => updateLoading(0), 3000);
+            }
+        }
 
         function createStars() {
             const p = document.getElementById('particles');
@@ -203,119 +471,8 @@
             }
         }
 
-        function setClockMode(on) {
-            const progress = document.getElementById('progress');
-            const percentText = document.getElementById('percent-text');
-            const timeDisplay = document.getElementById('time-val');
-            const inner = document.getElementById('progress-inner');
-            const bar = document.getElementById('bar-section');
-
-            if (on) {
-                progress.style.display = 'none';
-                percentText.style.display = 'none';
-                timeDisplay.style.display = 'block';
-                inner.style.height = 'auto';
-                inner.style.background = 'transparent';
-                inner.style.border = 'none';
-                bar.style.minHeight = '4rem';
-                bar.style.display = 'flex';
-                bar.style.alignItems = 'center';
-                bar.style.justifyContent = 'center';
-            } else {
-                progress.style.display = 'block';
-                percentText.style.display = 'block';
-                timeDisplay.style.display = 'none';
-                inner.style.height = '2.5rem';
-                inner.style.background = 'rgba(255,255,255,0.05)';
-                inner.style.border = '1px solid rgba(255,255,255,0.2)';
-                bar.style.minHeight = '';
-                bar.style.display = 'block';
-            }
-        }
-
-        function updateClock() {
-            if (busyMode) {
-                clockRaf = requestAnimationFrame(updateClock);
-                return;
-            }
-            const now = new Date();
-            const h = String(now.getHours()).padStart(2, '0');
-            const m = String(now.getMinutes()).padStart(2, '0');
-            document.getElementById('time-val').innerText = h + ':' + m + ' //Autopilot standby';
-
-            const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-            const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-            // Only overwrite status when idle (no recent busy message)
-            if (Date.now() - lastBusyAt > 2000) {
-                document.getElementById('status').innerText =
-                    days[now.getDay()] + ' ' + months[now.getMonth()] + ' ' + now.getDate() + ' ' + now.getFullYear();
-            }
-            clockRaf = requestAnimationFrame(updateClock);
-        }
-
-        function applyStatus(msg) {
-            if (!msg || typeof msg !== 'object') return;
-            const text = msg.text || msg.status || '';
-            const percent = typeof msg.percent === 'number' ? msg.percent : null;
-            const busy = !!(msg.busy || msg.download || (percent != null && percent < 100));
-
-            if (text) {
-                document.getElementById('status').innerText = text;
-                lastBusyAt = Date.now();
-            }
-
-            if (busy) {
-                busyMode = true;
-                setClockMode(false);
-                if (percent != null) {
-                    const display = Math.max(0, Math.min(100, Math.round(percent)));
-                    document.getElementById('progress').style.width = display + '%';
-                    document.getElementById('percent-text').innerText = display + '%';
-                } else {
-                    // Indeterminate: pulse width
-                    document.getElementById('progress').style.width = '35%';
-                    document.getElementById('percent-text').innerText = '…';
-                }
-            } else if (msg.idle || msg.busy === false) {
-                busyMode = false;
-                setClockMode(true);
-                document.getElementById('progress').style.width = '0%';
-            }
-        }
-
-        function readShared() {
-            try {
-                const raw = localStorage.getItem('akari:autopilot');
-                if (raw) applyStatus(JSON.parse(raw));
-            } catch (e) {}
-        }
-
-        function init() {
-            createStars();
-            setClockMode(true);
-            updateClock();
-            readShared();
-
-            try {
-                const bc = new BroadcastChannel('akarinet-autopilot');
-                bc.onmessage = (e) => applyStatus(e.data);
-            } catch (e) {}
-
-            window.addEventListener('storage', (e) => {
-                if (e.key === 'akari:autopilot' && e.newValue) {
-                    try { applyStatus(JSON.parse(e.newValue)); } catch (err) {}
-                }
-            });
-
-            // Parent page may postMessage
-            window.addEventListener('message', (e) => {
-                if (e.data && e.data.channel === 'akarinet-autopilot') {
-                    applyStatus(e.data);
-                }
-            });
-        }
-
         window.onload = init;
     </script>
 </body>
+
 </html>
