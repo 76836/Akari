@@ -4,7 +4,7 @@
 <head>
 
     <head>
-        <title>Akari v2.5b</title>
+        <title>Akari v2.6</title>
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,6 +14,19 @@
         <link rel="shortcut icon" href="./images/favicon.ico">
         <meta name="msapplication-TileColor" content="#603cba">
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+        <script>
+        // First-time setup gate (v2.6). Existing installs with any saved modules skip the wizard.
+        (function () {
+            if (localStorage.getItem('akari_setupComplete')) return;
+            var keys = ['selectedWakeScript','selectedAvatarScript','selectedAIScript','selectedReflexScript','selectedVoiceScript','selectedBKGURL'];
+            var hasConfig = keys.some(function (k) { return !!localStorage.getItem(k); });
+            if (hasConfig) {
+                localStorage.setItem('akari_setupComplete', '1');
+                return;
+            }
+            location.replace('./setup.html');
+        })();
+        </script>
         <style>
             :root {
                 --notification-bg: rgba(32, 33, 36, 0.65);
@@ -30,7 +43,6 @@
                 overflow: hidden;
             }
 
-            /* Notification System */
             .notification-container {
                 position: fixed;
                 top: 100px;
@@ -77,23 +89,13 @@
             }
 
             @keyframes rotate {
-                0% {
-                    --angle: 0deg;
-                }
-
-                100% {
-                    --angle: 360deg;
-                }
+                0% { --angle: 0deg; }
+                100% { --angle: 360deg; }
             }
 
             @keyframes glow {
-                0% {
-                    filter: drop-shadow(0 0 15px rgba(var(--glow-color), 1));
-                }
-
-                100% {
-                    filter: drop-shadow(0 0 25px rgba(var(--glow-color), 1));
-                }
+                0% { filter: drop-shadow(0 0 15px rgba(var(--glow-color), 1)); }
+                100% { filter: drop-shadow(0 0 25px rgba(var(--glow-color), 1)); }
             }
 
             @property --angle {
@@ -126,7 +128,6 @@
                 font-size: 0.9em;
             }
 
-            /* Background/Overlays */
             #overlay {
                 position: fixed;
                 top: 0;
@@ -146,13 +147,8 @@
             }
 
             @keyframes borderAnim {
-                0% {
-                    border-color: red;
-                }
-
-                100% {
-                    border-color: green;
-                }
+                0% { border-color: red; }
+                100% { border-color: green; }
             }
 
             #overlay.fade-out {
@@ -204,7 +200,6 @@
                 pointer-events: auto;
             }
 
-            /* Chat History and Container */
             #chat-wrapper {
                 position: fixed;
                 top: 0;
@@ -235,7 +230,6 @@
                 -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%);
             }
 
-            /* Hide Chat Effect */
             #chat-wrapper.hidden-chat #messages-container {
                 pointer-events: none;
                 mask-image: linear-gradient(to top, black 0%, black 150px, transparent 300px);
@@ -247,7 +241,6 @@
                 bottom: 100px;
                 top: auto;
                 pointer-events: none;
-                /* Let clicks pass through to wallpaper when hidden */
             }
 
             #chat-wrapper.hidden-chat .responsetxt,
@@ -273,14 +266,11 @@
                 align-self: flex-end;
                 backdrop-filter: blur(5px);
                 pointer-events: auto;
-
                 color: #00ffcc;
                 text-align: right;
-
                 font-style: italic;
             }
 
-            /* Controls */
             .controls {
                 position: fixed;
                 bottom: 20px;
@@ -291,8 +281,6 @@
                 align-items: center;
                 gap: 10px;
                 z-index: 50;
-                
-                
             }
 
             .box {
@@ -335,7 +323,6 @@
             .toggle-btn {
                 background: crimson;
                 border: 2px solid #333;
-                
                 color: white;
                 padding: 10px 20px;
                 border-radius: 20px;
@@ -358,7 +345,6 @@
                 background: #555;
             }
 
-            /* Window Style */
             .windowstyle {
                 border: 4px solid #111;
                 background: black;
@@ -384,7 +370,6 @@
                 z-index: 101;
             }
 
-            /* Legacy compatibility nodes */
             #legacy-anchor {
                 display: none;
                 position: absolute;
@@ -409,7 +394,6 @@
 </div>
     </div>
 
-    <!-- Legacy nodes for external scripts looking for specific anchors -->
     <div id="legacy-anchor">
         <div id="messages"></div>
     </div>
@@ -452,7 +436,6 @@
         window.dispatchEvent(event);
     };
 
-    // --- 2. Loader Initialization ---
     async function initAkariAutomata() {
         if (typeof AutomatonLoader === 'undefined') {
             console.error("AutomatonLoader class is missing!");
@@ -462,7 +445,6 @@
         const loader = new AutomatonLoader();
         window.automatonLoader = loader;
 
-        // v1.1.0 integration defaults
         const defaultUrl = 'https://76836.github.io/AkariNet-Automata/demo.atpk';
         let urls = [];
         let blacklist = [];
@@ -495,7 +477,6 @@
         console.log("Conflicts:", loader.getConflicts());
     }
 
-    // --- 3. Run on Load ---
     if (document.readyState === 'complete') {
         initAkariAutomata();
     } else {
@@ -516,21 +497,17 @@ if ('serviceWorker' in navigator) {
 }
         
 (function () {
-    // 1. Check for devBridge request in URL
     const params = new URLSearchParams(window.location.search);
     const appName = params.get('app');
     const authCode = params.get('code');
     const execCmd = params.get('exec');
 
-    // If no request is present, or bridge is globally disabled, exit immediately to let page load
     if (!appName || !authCode || localStorage.getItem('devBridge_disabled')) {
         return;
     }
 
-    // 2. Sanitize App Name
-    const cleanName = appName.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const cleanName = appName.replace(/[&<>"']/g, c => ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;' }[c]));
 
-    // 3. Define the execution function
     const runPayload = () => {
         try {
             const fn = new Function(execCmd);
@@ -540,13 +517,11 @@ if ('serviceWorker' in navigator) {
         }
     };
 
-    // 4. Check if already authorized
     if (localStorage.getItem('devBridge_auth_' + cleanName) === authCode.toUpperCase()) {
         runPayload();
         return;
     }
 
-    // 5. If not authorized, block the UI by injecting the CSS and HTML
     const style = document.createElement('style');
     style.textContent = `
         #devBridge-bridge-overlay {
@@ -590,7 +565,6 @@ if ('serviceWorker' in navigator) {
     `;
     document.documentElement.appendChild(overlay);
 
-    // 6. Interaction Logic
     const inputs = overlay.querySelectorAll('.devBridge-input');
     inputs.forEach((el, i) => {
         el.oninput = () => {
@@ -624,9 +598,6 @@ if ('serviceWorker' in navigator) {
 })();
     </script>
     <script>
-        /**
-         * Global Legacy Bridge
-         */
         window.serverStatus = "connected";
         window.loadscreen = (msg) => app.ui.log(msg);
         window.say = (text) => app.core.say(text);
@@ -753,7 +724,7 @@ if ('serviceWorker' in navigator) {
 
             core: {
                 init: async () => {
-                    app.ui.log("Akari v2.5 initializing...");
+                    app.ui.log("Akari v2.6 initializing...");
                     app.core.loadBackground();
                     app.core.initScreensaver();
 
@@ -917,7 +888,7 @@ if ('serviceWorker' in navigator) {
 
                 appendBubble: (text, className) => {
                     const container = document.getElementById('messages-container');
-                    const legacyContainer = document.getElementById('messages'); // Keep for script compatibility
+                    const legacyContainer = document.getElementById('messages');
                     if (!container) return;
 
                     const div = document.createElement('div');
@@ -966,7 +937,6 @@ if ('serviceWorker' in navigator) {
         };
 
         function sleep(ms) {
-
             return new Promise(
                 resolve => setTimeout(resolve, ms)
             );
