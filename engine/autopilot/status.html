@@ -307,16 +307,17 @@
     </div>
 
     <script>
-        const CLOCK_MODE = true; // Toggle this variable
+        const CLOCK_MODE = true;
 
-        // Live status from AkariNet (downloads / audio console) — design unchanged
+        // liveBusy = download / progress bar mode
+        // liveActive = AkariNet is doing something (voice, load, etc.) — show on clock line
         let liveBusy = false;
+        let liveActive = false;
         let lastLiveText = '';
 
         function init() {
             createStars();
             const progressInner = document.querySelector('.progress-inner');
-            const statusText = document.getElementById('status');
             const timeDisplay = document.createElement('div');
 
             timeDisplay.className = 'time-text';
@@ -349,7 +350,6 @@
                 updateClock();
             }
 
-            // Subscribe to AkariNet status bus (minimal)
             try {
                 const raw = localStorage.getItem('akari:autopilot');
                 if (raw) applyLiveStatus(JSON.parse(raw));
@@ -375,36 +375,16 @@
 
         function applyLiveStatus(msg) {
             if (!msg || typeof msg !== 'object') return;
-            const text = msg.text || msg.status || '';
+            const text = (msg.text || msg.status || '').trim();
             const percent = typeof msg.percent === 'number' ? msg.percent : null;
-            const busy = !!(msg.busy || msg.download || (percent != null && percent < 100));
+            const isDownload = !!(msg.download || (percent != null && percent < 100 && msg.busy));
+            const isBusy = !!(msg.busy || isDownload);
+            const isIdle = !!(msg.idle || msg.busy === false);
 
-            if (text) {
-                lastLiveText = text;
-                document.getElementById('status').innerText = text;
-            }
-
-            if (busy) {
-                liveBusy = true;
-                // Switch from clock to progress bar when actively downloading
-                document.getElementById('progress').style.display = 'block';
-                document.getElementById('percent-text').style.display = 'block';
-                const timeVal = document.getElementById('time-val');
-                if (timeVal) timeVal.style.display = 'none';
-
-                const inner = document.querySelector('.progress-inner');
-                inner.style.height = '2.5rem';
-                inner.style.background = 'rgba(255, 255, 255, 0.05)';
-                inner.style.border = '1px solid rgba(255, 255, 255, 0.2)';
-
-                if (percent != null) {
-                    const display = Math.max(0, Math.min(100, Math.round(percent)));
-                    document.getElementById('progress').style.width = display + '%';
-                    document.getElementById('percent-text').innerText = display + '%';
-                }
-            } else if (msg.idle || msg.busy === false) {
+            if (isIdle && !isBusy) {
                 liveBusy = false;
-                // Restore clock presentation
+                liveActive = false;
+                lastLiveText = '';
                 if (CLOCK_MODE) {
                     document.getElementById('progress').style.display = 'none';
                     document.getElementById('percent-text').style.display = 'none';
@@ -415,6 +395,37 @@
                     inner.style.background = 'transparent';
                     inner.style.border = 'none';
                 }
+                return;
+            }
+
+            if (text) {
+                lastLiveText = text;
+                liveActive = true;
+            }
+
+            if (isDownload || (isBusy && percent != null)) {
+                liveBusy = true;
+                document.getElementById('progress').style.display = 'block';
+                document.getElementById('percent-text').style.display = 'block';
+                const timeVal = document.getElementById('time-val');
+                if (timeVal) timeVal.style.display = 'none';
+
+                const inner = document.querySelector('.progress-inner');
+                inner.style.height = '2.5rem';
+                inner.style.background = 'rgba(255, 255, 255, 0.05)';
+                inner.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+
+                if (text) document.getElementById('status').innerText = text;
+
+                if (percent != null) {
+                    const display = Math.max(0, Math.min(100, Math.round(percent)));
+                    document.getElementById('progress').style.width = display + '%';
+                    document.getElementById('percent-text').innerText = display + '%';
+                }
+            } else if (text) {
+                // Active but not a download bar — keep clock layout, status shows activity
+                liveBusy = false;
+                document.getElementById('status').innerText = text;
             }
         }
 
@@ -423,18 +434,27 @@
             const h = String(now.getHours()).padStart(2, '0');
             const m = String(now.getMinutes()).padStart(2, '0');
             const timeEl = document.getElementById('time-val');
+
             if (timeEl && !liveBusy) {
-                timeEl.innerText = `${h}:${m} //Autopilot standby`;
+                if (liveActive && lastLiveText) {
+                    // What AkariNet is doing
+                    timeEl.innerText = h + ':' + m + ' //' + lastLiveText;
+                } else {
+                    // Fully idle — classic standby clock line
+                    timeEl.innerText = h + ':' + m + ' //Autopilot standby';
+                }
             }
 
-            // Keep live status text while busy; otherwise show the date
-            if (!liveBusy && !lastLiveText) {
-                const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-                const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-                document.getElementById('status').innerText = `${days[now.getDay()]} ${months[now.getMonth()]} ${now.getDate()} ${now.getFullYear()}`;
-            } else if (!liveBusy && lastLiveText) {
-                // After a live message clears, fall back to date on next idle cycle
-                // (lastLiveText cleared when idle:true arrives without text — optional)
+            // Info strip: date when fully idle; activity text when active
+            if (!liveBusy) {
+                if (liveActive && lastLiveText) {
+                    document.getElementById('status').innerText = lastLiveText;
+                } else {
+                    const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+                    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                    document.getElementById('status').innerText =
+                        days[now.getDay()] + ' ' + months[now.getMonth()] + ' ' + now.getDate() + ' ' + now.getFullYear();
+                }
             }
 
             requestAnimationFrame(updateClock);

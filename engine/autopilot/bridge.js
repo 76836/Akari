@@ -2,7 +2,7 @@
  * AkariNet Autopilot bridge
  * - Shared status bus for screensaver / status UI
  * - Download-aware screensaver (autopilot after 15s while busy)
- * - Fixes normal screensaver so it actually arms and shows
+ * - Touch / wake-word activity always resets the idle timer
  */
 (function () {
     'use strict';
@@ -17,7 +17,7 @@
         downloadCount: 0,
         downloadTimer: null,
         forcedScreensaver: false,
-        lastStatus: { text: 'Autopilot standby', busy: false, percent: null }
+        lastStatus: { text: '', busy: false, idle: true, percent: null }
     };
 
     function publish(msg) {
@@ -28,7 +28,6 @@
         if (bc) {
             try { bc.postMessage(state.lastStatus); } catch (e) {}
         }
-        // Push into live screensaver iframe if present
         var iframe = document.querySelector('#screensaver-container iframe.screensaver-media');
         if (iframe && iframe.contentWindow) {
             try {
@@ -43,7 +42,7 @@
     function setStatus(text, opts) {
         opts = opts || {};
         publish({
-            text: text || state.lastStatus.text,
+            text: text || '',
             percent: opts.percent != null ? opts.percent : null,
             busy: !!opts.busy,
             download: !!opts.download,
@@ -60,7 +59,7 @@
     function endDownload(label) {
         state.downloadCount = Math.max(0, state.downloadCount - 1);
         if (state.downloadCount === 0) {
-            setStatus(label || 'Ready', { busy: false, download: false, idle: true, percent: 100 });
+            setStatus('', { busy: false, download: false, idle: true, percent: 100 });
             clearDownloadScreensaver();
         } else {
             setStatus(label || ('Working… (' + state.downloadCount + ')'), { busy: true, download: true });
@@ -85,7 +84,6 @@
         if (state.forcedScreensaver && window.app && app.core) {
             app.core.hideScreensaverForced();
         }
-        // Resume normal idle timer if user has screensaver enabled
         if (window.app && app.core && app.core.armUserScreensaver) {
             app.core.armUserScreensaver();
         }
@@ -94,8 +92,6 @@
     function patchApp(app) {
         if (!app || !app.core || app.core.__autopilotPatched) return;
         app.core.__autopilotPatched = true;
-
-        // Expose for modules
         window.app = app;
 
         var AUTOPILOT = AUTOPILOT_URL;
@@ -103,8 +99,6 @@
         app.core.getScreensaverConfig = function () {
             var timeoutSec = parseInt(localStorage.getItem('selectedScreensaverTimeout') || '120', 10);
             var url = localStorage.getItem('selectedScreensaverURL') || '';
-            // Don't fall back to broken relative bg paths for screensaver
-            if (!url) url = '';
             return {
                 enabled: localStorage.getItem('selectedScreensaverEnabled') === 'true',
                 url: url,
@@ -126,7 +120,6 @@
                 var ifr = document.createElement('iframe');
                 ifr.className = 'screensaver-media';
                 ifr.src = url;
-                // allow same-origin-ish messaging
                 container.appendChild(ifr);
             }
             var inputShield = document.createElement('div');
@@ -148,7 +141,6 @@
             container.classList.add('active');
             app.screensaverActive = true;
             window.emit && window.emit('screensaver_shown', { url: cfg.url, timestamp: Date.now() });
-            // Push latest status into iframe
             setTimeout(function () { publish(state.lastStatus); }, 300);
         };
 
@@ -174,12 +166,6 @@
 
         app.core.hideScreensaver = function (source) {
             source = source || 'activity';
-            // While a forced download screensaver is up, ignore soft activity hides
-            // except explicit user interaction (pointer/key)
-            if (state.forcedScreensaver && state.downloadCount > 0) {
-                if (source === 'init' || source === 'akari:user-input') return;
-                // pointer/key still dismisses
-            }
             var container = document.getElementById('screensaver-container');
             if (!container || !app.screensaverActive) return;
 
@@ -198,7 +184,7 @@
             var cfg = app.core.getScreensaverConfig();
             if (!cfg.enabled || !cfg.url) return;
             app.screensaverTimer = setTimeout(function () {
-                if (state.downloadCount > 0) return; // download policy owns it
+                if (state.downloadCount > 0) return;
                 app.core.showScreensaver();
             }, cfg.timeoutMs);
         };
@@ -207,12 +193,11 @@
             source = source || 'activity';
             clearTimeout(app.screensaverTimer);
 
-            // Always hide on real user input (unless we want download SS sticky until click — click dismisses)
+            // Any real interaction (tap, key, wake word, voice) dismisses screensaver
             if (source !== 'init') {
                 app.core.hideScreensaver(source);
             }
 
-            // If downloads active, keep download arm instead of user timer
             if (state.downloadCount > 0) {
                 armDownloadScreensaver();
                 return;
@@ -221,7 +206,30 @@
             app.core.armUserScreensaver();
         };
 
-        // Wrap loadModule to report downloads
+        // Reliable mobile + desktop activity listeners (capture so nothing eats the event)
+        if (!app.core.__ssListenersBound) {
+            app.core.__ssListenersBound = true;
+            var activityEvents = [
+                'pointerdown', 'pointerup', 'touchstart', 'touchend',
+                'mousedown', 'mouseup', 'keydown', 'click'
+            ];
+            activityEvents.forEach(function (evt) {
+                document.addEventListener(evt, function () {
+                    app.core.registerUserActivity(evt);
+                }, { passive: true, capture: true });
+            });
+            // Wake word / voice / text input — dismiss like a tap
+            window.addEventListener('akari:user-input', function () {
+                app.core.registerUserActivity('akari:user-input');
+            });
+            window.addEventListener('audioConsoleWakeSound', function () {
+                app.core.registerUserActivity('wake-word');
+            });
+            window.addEventListener('audioConsoleSpeechStart', function () {
+                app.core.registerUserActivity('speech');
+            });
+        }
+
         var _loadModule = app.core.loadModule.bind(app.core);
         app.core.loadModule = function (key, src, label) {
             if (!src || src === 'off') return _loadModule(key, src, label);
@@ -231,7 +239,6 @@
             });
         };
 
-        // Re-bind activity listeners once (initScreensaver may have already run)
         app.core.armUserScreensaver();
     }
 
@@ -244,19 +251,16 @@
         get state() { return state; }
     };
 
-    // Attach when app appears
     var tries = 0;
     (function wait() {
         if (window.app && window.app.core) {
             patchApp(window.app);
             return;
         }
-        // app may be a const — poll after scripts
         tries++;
         if (tries < 200) setTimeout(wait, 50);
     })();
 
-    // Also listen for custom events from adapters
     window.addEventListener('akari:autopilot', function (e) {
         if (e.detail) {
             if (e.detail.downloadStart) beginDownload(e.detail.text);
