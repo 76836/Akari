@@ -15,227 +15,75 @@
             --dim: rgba(255,255,255,0.55);
             --accent-glow: rgba(0, 180, 180, 0.3);
         }
-
         * { box-sizing: border-box; }
-
-        html, body {
-            margin: 0;
-            min-height: 100%;
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Orbitron', system-ui, sans-serif;
-        }
-
+        html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font-family: 'Orbitron', system-ui, sans-serif; }
         body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100dvh;
+            display: flex; flex-direction: column; min-height: 100dvh;
             background:
                 radial-gradient(ellipse at 20% 0%, rgba(0,100,100,0.25), transparent 50%),
                 radial-gradient(ellipse at 80% 100%, rgba(40,0,60,0.2), transparent 45%),
                 var(--bg);
         }
-
-        .wrap {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            max-width: 520px;
-            width: 100%;
-            margin: 0 auto;
-            padding: 24px 18px 32px;
-        }
-
-        .brand {
-            text-align: center;
-            margin-bottom: 18px;
-        }
-        .brand img {
-            width: 72px;
-            height: 72px;
-            border-radius: 16px;
-            margin-bottom: 10px;
-        }
-        .brand h1 {
-            margin: 0;
-            font-size: clamp(1.2rem, 5vw, 1.6rem);
-            color: var(--cyan-bright);
-            text-shadow: 0 0 14px var(--accent-glow);
-            letter-spacing: 0.04em;
-        }
-        .brand p {
-            margin: 8px 0 0;
-            font-size: 0.75rem;
-            color: var(--dim);
-            font-family: system-ui, sans-serif;
-            line-height: 1.4;
-            font-weight: 400;
-        }
-
-        .progress {
-            height: 4px;
-            background: #222;
-            border-radius: 2px;
-            margin: 8px 0 20px;
-            overflow: hidden;
-        }
-        .progress > i {
-            display: block;
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, var(--cyan), var(--cyan-bright));
-            border-radius: 2px;
-            transition: width 0.35s ease;
-        }
-
+        .wrap { flex: 1; display: flex; flex-direction: column; max-width: 520px; width: 100%; margin: 0 auto; padding: 24px 18px 32px; }
+        .brand { text-align: center; margin-bottom: 18px; }
+        .brand img { width: 72px; height: 72px; border-radius: 16px; margin-bottom: 10px; }
+        .brand h1 { margin: 0; font-size: clamp(1.2rem, 5vw, 1.6rem); color: var(--cyan-bright); text-shadow: 0 0 14px var(--accent-glow); letter-spacing: 0.04em; }
+        .brand p { margin: 8px 0 0; font-size: 0.75rem; color: var(--dim); font-family: system-ui, sans-serif; line-height: 1.4; font-weight: 400; }
+        .progress { height: 4px; background: #222; border-radius: 2px; margin: 8px 0 20px; overflow: hidden; }
+        .progress > i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--cyan), var(--cyan-bright)); border-radius: 2px; transition: width 0.35s ease; }
         .stage { display: none; }
         .stage.active { display: block; animation: in 0.25s ease; }
-        @keyframes in {
-            from { opacity: 0; transform: translateY(6px); }
-            to { opacity: 1; transform: none; }
-        }
-
-        h2 {
-            margin: 0 0 6px;
-            font-size: 1.05rem;
-            color: #fff;
-        }
-        .hint {
-            margin: 0 0 16px;
-            font-size: 0.78rem;
-            color: var(--dim);
-            font-family: system-ui, sans-serif;
-            line-height: 1.45;
-            font-weight: 400;
-        }
-
-        .options {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
+        @keyframes in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        h2 { margin: 0 0 6px; font-size: 1.05rem; color: #fff; }
+        .hint { margin: 0 0 16px; font-size: 0.78rem; color: var(--dim); font-family: system-ui, sans-serif; line-height: 1.45; font-weight: 400; }
+        .options { display: flex; flex-direction: column; gap: 8px; }
         .opt {
-            background: var(--card);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 12px;
-            padding: 14px 16px;
-            cursor: pointer;
-            text-align: left;
-            color: #fff;
-            font-family: inherit;
-            font-size: 0.9rem;
-            transition: border-color 0.15s, background 0.15s;
+            background: var(--card); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
+            padding: 14px 16px; cursor: pointer; text-align: left; color: #fff; font-family: inherit; font-size: 0.9rem;
         }
         .opt:hover { border-color: rgba(0,200,200,0.4); }
-        .opt.selected {
-            border-color: var(--cyan-bright);
-            background: rgba(0, 100, 100, 0.25);
-            box-shadow: 0 0 0 1px rgba(0,200,200,0.2);
-        }
-        .opt small {
-            display: block;
-            margin-top: 4px;
-            font-size: 0.72rem;
-            color: var(--dim);
-            font-family: system-ui, sans-serif;
-            font-weight: 400;
-            line-height: 1.35;
-        }
-
-        .chars {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-        @media (max-width: 380px) {
-            .chars { grid-template-columns: 1fr; }
-        }
+        .opt.selected { border-color: var(--cyan-bright); background: rgba(0, 100, 100, 0.25); box-shadow: 0 0 0 1px rgba(0,200,200,0.2); }
+        .opt small { display: block; margin-top: 4px; font-size: 0.72rem; color: var(--dim); font-family: system-ui, sans-serif; font-weight: 400; line-height: 1.35; }
+        .chars { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        @media (max-width: 380px) { .chars { grid-template-columns: 1fr; } }
         .char {
-            background: var(--card);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 14px;
-            padding: 16px 12px;
-            text-align: center;
-            cursor: pointer;
-            transition: border-color 0.15s;
+            background: var(--card); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px;
+            padding: 16px 12px; text-align: center; cursor: pointer;
         }
-        .char.selected {
-            border-color: var(--cyan-bright);
-            background: rgba(0, 100, 100, 0.25);
-        }
-        .char img {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-bottom: 8px;
-            background: #222;
-        }
-        .char h3 {
-            margin: 0 0 4px;
-            font-size: 0.95rem;
-        }
-        .char p {
-            margin: 0;
-            font-size: 0.7rem;
-            color: var(--dim);
-            font-family: system-ui, sans-serif;
-            font-weight: 400;
-            line-height: 1.3;
-        }
-
-        .nav {
-            display: flex;
-            gap: 10px;
-            margin-top: 22px;
-        }
-        .nav button {
-            flex: 1;
-            padding: 14px 12px;
-            border-radius: 10px;
-            border: 0;
-            font-family: inherit;
-            font-size: 0.9rem;
-            cursor: pointer;
-        }
-        .btn-secondary {
-            background: transparent;
-            border: 1px solid #444 !important;
-            color: #ccc;
-        }
-        .btn-primary {
-            background: var(--cyan);
-            color: #fff;
-            font-weight: 600;
-        }
-        .btn-primary:disabled,
-        .btn-secondary:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-
+        .char.selected { border-color: var(--cyan-bright); background: rgba(0, 100, 100, 0.25); }
+        .char img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; background: #222; }
+        .char h3 { margin: 0 0 4px; font-size: 0.95rem; }
+        .char p { margin: 0; font-size: 0.7rem; color: var(--dim); font-family: system-ui, sans-serif; font-weight: 400; line-height: 1.3; }
+        .nav { display: flex; gap: 10px; margin-top: 22px; }
+        .nav button { flex: 1; padding: 14px 12px; border-radius: 10px; border: 0; font-family: inherit; font-size: 0.9rem; cursor: pointer; }
+        .btn-secondary { background: transparent; border: 1px solid #444 !important; color: #ccc; }
+        .btn-primary { background: var(--cyan); color: #fff; font-weight: 600; }
+        .btn-primary:disabled, .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
         .skip {
-            display: block;
-            width: 100%;
-            margin-top: 14px;
-            padding: 12px;
-            background: transparent;
-            border: 0;
-            color: var(--dim);
-            font-family: system-ui, sans-serif;
-            font-size: 0.8rem;
-            cursor: pointer;
-            text-decoration: underline;
-            text-underline-offset: 3px;
+            display: block; width: 100%; margin-top: 14px; padding: 12px; background: transparent; border: 0;
+            color: var(--dim); font-family: system-ui, sans-serif; font-size: 0.8rem; cursor: pointer;
+            text-decoration: underline; text-underline-offset: 3px;
         }
-        .skip:hover { color: #aaa; }
-
-        .done-msg {
-            text-align: center;
-            padding: 24px 8px;
-        }
+        .done-msg { text-align: center; padding: 24px 8px; }
         .done-msg h2 { color: var(--cyan-bright); margin-bottom: 10px; }
+        .tune-card {
+            background: var(--card); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
+            padding: 14px; margin-bottom: 12px;
+        }
+        .tune-card label {
+            display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px;
+            font-family: system-ui, sans-serif; font-weight: 500;
+        }
+        .tune-card input[type=range] { width: 100%; accent-color: var(--cyan-bright); }
+        .test-log {
+            font-family: system-ui, monospace; font-size: 0.75rem; color: var(--cyan-bright);
+            min-height: 2.4em; margin-top: 8px; padding: 10px; background: rgba(0,0,0,0.35);
+            border-radius: 8px; line-height: 1.4;
+        }
+        .test-btn {
+            width: 100%; margin-top: 8px; padding: 12px; border-radius: 10px; border: 1px solid var(--cyan);
+            background: rgba(0,100,100,0.2); color: #fff; font-family: inherit; cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -248,7 +96,6 @@
 
         <div class="progress"><i id="bar"></i></div>
 
-        <!-- Stage 1: Character -->
         <div class="stage active" data-stage="1">
             <h2>Who should greet you?</h2>
             <p class="hint">Pick a character. This sets the avatar, voice personality defaults, and wallpaper.</p>
@@ -271,7 +118,6 @@
             </div>
         </div>
 
-        <!-- Stage 2: Listening -->
         <div class="stage" data-stage="2">
             <h2>How should Akari listen?</h2>
             <p class="hint">Choose how you start talking to Akari. You can refine this later.</p>
@@ -295,7 +141,41 @@
             </div>
         </div>
 
-        <!-- Stage 3: Voice out -->
+        <!-- Stage 2b: Audio Console tuning (only in flow when listen=console) -->
+        <div class="stage" data-stage="2b">
+            <h2>Tune listening</h2>
+            <p class="hint">Pick a speech recognizer, then test wake word and voice activity. Mic permission is required for the test.</p>
+
+            <div class="options" id="srOpts" style="margin-bottom:14px;">
+                <button type="button" class="opt selected" data-sr="transformers">
+                    Moonshine (on-device)
+                    <small>Recommended — runs in your browser after a one-time download</small>
+                </button>
+                <button type="button" class="opt" data-sr="webspeech">
+                    Browser speech
+                    <small>No model download — uses the device’s built-in recognizer</small>
+                </button>
+                <button type="button" class="opt" data-sr="whispercpp">
+                    Whisper.cpp server
+                    <small>For advanced users with a local whisper.cpp server</small>
+                </button>
+            </div>
+
+            <div class="tune-card">
+                <label>Wake sensitivity <span id="owwVal">0.50</span></label>
+                <input type="range" id="owwSlider" min="0.1" max="0.95" step="0.01" value="0.5">
+                <p class="hint" style="margin:6px 0 0;">Lower = easier to trigger. Higher = fewer false wakes.</p>
+            </div>
+            <div class="tune-card">
+                <label>Voice activity (VAD) <span id="vadVal">0.50</span></label>
+                <input type="range" id="vadSlider" min="0.1" max="0.95" step="0.01" value="0.5">
+                <p class="hint" style="margin:6px 0 0;">Lower picks up quieter speech; higher ignores more noise.</p>
+            </div>
+
+            <button type="button" class="test-btn" id="testWakeBtn">Start wake-word test</button>
+            <div class="test-log" id="testLog">Press the button, allow the mic, then say “Hey Akari”.</div>
+        </div>
+
         <div class="stage" data-stage="3">
             <h2>How should Akari talk?</h2>
             <p class="hint">Spoken replies. Text chat always works either way.</p>
@@ -319,7 +199,6 @@
             </div>
         </div>
 
-        <!-- Stage 4: AI -->
         <div class="stage" data-stage="4">
             <h2>How should Akari think?</h2>
             <p class="hint">Smarter answers use an AI model. You can switch anytime.</p>
@@ -343,7 +222,6 @@
             </div>
         </div>
 
-        <!-- Stage 5: Done -->
         <div class="stage" data-stage="5">
             <div class="done-msg">
                 <h2>You’re all set</h2>
@@ -360,29 +238,56 @@
 
     <script>
     (function () {
-        const TOTAL = 5;
-        let stage = 1;
+        // Logical stages: 1, 2, (2b if console), 3, 4, 5
+        const flowBase = [1, 2, 3, 4, 5];
+        let flow = flowBase.slice();
+        let flowIndex = 0;
 
         const picks = {
             char: 'Akari',
             listen: 'console',
+            sr: 'transformers',
+            oww: 0.5,
+            vad: 0.5,
             tts: 'pocket',
             ai: 'pollinations'
         };
+
+        let testVoice = null;
+        let testRunning = false;
 
         const bar = document.getElementById('bar');
         const prevBtn = document.getElementById('prevBtn');
         const nextBtn = document.getElementById('nextBtn');
         const skipBtn = document.getElementById('skipBtn');
+        const testLog = document.getElementById('testLog');
+
+        function rebuildFlow() {
+            if (picks.listen === 'console') {
+                flow = [1, 2, '2b', 3, 4, 5];
+            } else {
+                flow = [1, 2, 3, 4, 5];
+                stopTest();
+            }
+        }
+
+        function currentStage() { return flow[flowIndex]; }
 
         function showStage() {
+            const id = currentStage();
             document.querySelectorAll('.stage').forEach(el => {
-                el.classList.toggle('active', Number(el.dataset.stage) === stage);
+                el.classList.toggle('active', el.dataset.stage === String(id));
             });
-            prevBtn.disabled = stage === 1;
-            nextBtn.textContent = stage === TOTAL ? 'Start Akari' : 'Next';
-            bar.style.width = ((stage - 1) / (TOTAL - 1) * 100) + '%';
-            skipBtn.style.display = stage === TOTAL ? 'none' : 'block';
+            prevBtn.disabled = flowIndex === 0;
+            nextBtn.textContent = flowIndex === flow.length - 1 ? 'Start Akari' : 'Next';
+            bar.style.width = (flowIndex / (flow.length - 1) * 100) + '%';
+            skipBtn.style.display = flowIndex === flow.length - 1 ? 'none' : 'block';
+
+            if (id === '2b') {
+                // leave test stopped until user taps
+            } else {
+                stopTest();
+            }
         }
 
         function selectIn(container, attr, value, key) {
@@ -402,7 +307,16 @@
 
         document.getElementById('listenOpts').onclick = (e) => {
             const btn = e.target.closest('[data-listen]');
-            if (btn) selectIn(document.getElementById('listenOpts'), 'data-listen', btn.dataset.listen, 'listen');
+            if (!btn) return;
+            selectIn(document.getElementById('listenOpts'), 'data-listen', btn.dataset.listen, 'listen');
+            rebuildFlow();
+        };
+        document.getElementById('srOpts').onclick = (e) => {
+            const btn = e.target.closest('[data-sr]');
+            if (btn) {
+                selectIn(document.getElementById('srOpts'), 'data-sr', btn.dataset.sr, 'sr');
+                stopTest();
+            }
         };
         document.getElementById('ttsOpts').onclick = (e) => {
             const btn = e.target.closest('[data-tts]');
@@ -412,6 +326,107 @@
             const btn = e.target.closest('[data-ai]');
             if (btn) selectIn(document.getElementById('aiOpts'), 'data-ai', btn.dataset.ai, 'ai');
         };
+
+        const owwSlider = document.getElementById('owwSlider');
+        const vadSlider = document.getElementById('vadSlider');
+        owwSlider.oninput = () => {
+            picks.oww = parseFloat(owwSlider.value);
+            document.getElementById('owwVal').textContent = picks.oww.toFixed(2);
+        };
+        vadSlider.oninput = () => {
+            picks.vad = parseFloat(vadSlider.value);
+            document.getElementById('vadVal').textContent = picks.vad.toFixed(2);
+        };
+
+        function logTest(msg) {
+            testLog.textContent = msg;
+        }
+
+        function stopTest() {
+            testRunning = false;
+            const btn = document.getElementById('testWakeBtn');
+            if (btn) btn.textContent = 'Start wake-word test';
+            if (testVoice) {
+                try {
+                    if (typeof testVoice.destroy === 'function') testVoice.destroy();
+                    else if (typeof testVoice.stop === 'function') testVoice.stop();
+                } catch (e) {}
+                testVoice = null;
+            }
+        }
+
+        document.getElementById('testWakeBtn').onclick = async () => {
+            if (testRunning) {
+                stopTest();
+                logTest('Test stopped. Adjust sliders and try again if needed.');
+                return;
+            }
+            testRunning = true;
+            document.getElementById('testWakeBtn').textContent = 'Stop test';
+            logTest('Loading wake model… (first time may take a moment)');
+
+            try {
+                await new Promise((resolve, reject) => {
+                    const s = document.createElement('script');
+                    s.type = 'module';
+                    s.textContent = `
+                        import { AkarinetVoice } from 'https://76836.github.io/AkariNet-AudioConsole/audioConsole-4.1.0.js';
+                        const assistant = new AkarinetVoice({
+                            wakeWordProvider: 'openwakeword',
+                            openWakeWord: {
+                                keywordURL: 'https://76836.github.io/Akari/engine/models/v2_hey_A_kar_e.onnx',
+                                detectionThreshold: ${picks.oww}
+                            },
+                            speechRecognitionProvider: 'none',
+                            vadThreshold: ${picks.vad},
+                            requireWakeSound: true,
+                            unifiedMic: true,
+                            liveCacheMs: 2000,
+                            wakewords: ['hey akari', 'akari']
+                        });
+                        window.__setupTestVoice = assistant;
+                        assistant.addEventListener('ready', () => window.dispatchEvent(new CustomEvent('setupTestReady')));
+                        assistant.addEventListener('wakesound', (e) => window.dispatchEvent(new CustomEvent('setupTestWake', { detail: e.detail })));
+                        assistant.addEventListener('speechstart', () => window.dispatchEvent(new CustomEvent('setupTestSpeech')));
+                        assistant.addEventListener('error', (e) => window.dispatchEvent(new CustomEvent('setupTestError', { detail: e.detail })));
+                        try {
+                            await assistant.init();
+                        } catch (err) {
+                            window.dispatchEvent(new CustomEvent('setupTestError', { detail: err.message || String(err) }));
+                        }
+                    `;
+                    s.onerror = reject;
+                    document.head.appendChild(s);
+
+                    const onReady = () => { cleanup(); resolve(); };
+                    const onErr = (e) => { cleanup(); reject(new Error(e.detail || 'init failed')); };
+                    function cleanup() {
+                        window.removeEventListener('setupTestReady', onReady);
+                        window.removeEventListener('setupTestError', onErr);
+                    }
+                    window.addEventListener('setupTestReady', onReady);
+                    window.addEventListener('setupTestError', onErr);
+                });
+
+                testVoice = window.__setupTestVoice || null;
+                logTest('Listening for “Hey Akari”… speak now.');
+            } catch (err) {
+                testRunning = false;
+                document.getElementById('testWakeBtn').textContent = 'Start wake-word test';
+                logTest('Could not start test: ' + (err.message || err));
+            }
+        };
+
+        window.addEventListener('setupTestWake', (e) => {
+            const score = e.detail && e.detail.score != null ? (e.detail.score * 100).toFixed(0) + '%' : '';
+            logTest('Wake detected! ' + (score ? 'Score ' + score + '. ' : '') + 'Looks good — you can stop the test or keep tweaking.');
+        });
+        window.addEventListener('setupTestSpeech', () => {
+            logTest('Voice activity heard (VAD). If this fires on silence, raise VAD a bit.');
+        });
+        window.addEventListener('setupTestError', (e) => {
+            logTest('Error: ' + (e.detail || 'unknown'));
+        });
 
         function applyCharacter(name) {
             if (name === 'Akari') {
@@ -433,14 +448,17 @@
             if (mode === 'console') {
                 localStorage.setItem('selectedWakeScript', './engine/audioConsole.js');
                 localStorage.setItem('ac41_wakeProvider', 'openwakeword');
-                localStorage.setItem('ac41_srProvider', 'transformers');
+                localStorage.setItem('ac41_srProvider', picks.sr);
                 localStorage.setItem('ac41_requireWake', 'true');
+                localStorage.setItem('ac41_owwThreshold', String(picks.oww));
+                localStorage.setItem('ac41_vadThreshold', String(picks.vad));
+                localStorage.setItem('wakeSense', String(picks.oww));
             } else if (mode === 'classic') {
                 localStorage.setItem('selectedWakeScript', './characters/akari/wake.js');
             } else if (mode === 'push') {
                 localStorage.setItem('selectedWakeScript', './engine/audioConsole.js');
                 localStorage.setItem('ac41_wakeProvider', 'none');
-                localStorage.setItem('ac41_srProvider', 'transformers');
+                localStorage.setItem('ac41_srProvider', picks.sr || 'transformers');
                 localStorage.setItem('ac41_requireWake', 'true');
             } else {
                 localStorage.setItem('selectedWakeScript', 'off');
@@ -464,25 +482,21 @@
                 localStorage.setItem('selectedAIScript', picks.char === 'Hiyori'
                     ? './characters/hiyori/Gemini.js'
                     : './characters/akari/Gemini.js');
-            } else if (mode === 'local') {
-                localStorage.setItem('selectedAIScript', '');
             } else {
                 localStorage.setItem('selectedAIScript', '');
             }
-            // Hiyori preset historically enabled Gemini; if user picked Hiyori + pollinations, keep pollinations unless gemini chosen
         }
 
         function applyDefaultsSkip() {
-            // Same spirit as current first-run defaults in index.html
             applyCharacter('Akari');
             localStorage.setItem('selectedWakeScript', './characters/akari/wake.js');
             localStorage.setItem('selectedAIScript', './characters/akari/pollinations.js');
             localStorage.setItem('selectedReflexScript', './characters/akari/response.js');
             localStorage.setItem('selectedWhisperScript', './engine/web-speech-recognition.js');
-            // leave voice unset (same as today)
         }
 
         function finish(fromSkip) {
+            stopTest();
             if (fromSkip) {
                 applyDefaultsSkip();
             } else {
@@ -500,11 +514,11 @@
         }
 
         prevBtn.onclick = () => {
-            if (stage > 1) { stage--; showStage(); }
+            if (flowIndex > 0) { flowIndex--; showStage(); }
         };
         nextBtn.onclick = () => {
-            if (stage < TOTAL) {
-                stage++;
+            if (flowIndex < flow.length - 1) {
+                flowIndex++;
                 showStage();
             } else {
                 finish(false);
@@ -516,6 +530,7 @@
             }
         };
 
+        rebuildFlow();
         showStage();
     })();
     </script>
