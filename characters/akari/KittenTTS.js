@@ -1,5 +1,5 @@
 /**
- * KittenTTS loader + lipsync + non-blocking synthesis yields.
+ * KittenTTS 1.2.0 loader (worker inference) + lipsync playback tap.
  */
 (function () {
     'use strict';
@@ -17,43 +17,6 @@
         });
     }
 
-    function yieldToMain() {
-        return new Promise(function (resolve) {
-            // Prefer rAF so the VRM iframe can paint between jobs
-            if (typeof requestAnimationFrame === 'function') {
-                requestAnimationFrame(function () { setTimeout(resolve, 0); });
-            } else {
-                setTimeout(resolve, 0);
-            }
-        });
-    }
-
-    function hookNonBlocking(tts) {
-        if (!tts || tts.__nonBlockHooked) return;
-        tts.__nonBlockHooked = true;
-
-        // One job at a time keeps the main thread responsive during ONNX
-        if (tts.config) tts.config.concurrency = 1;
-
-        var origRun = tts._runJob.bind(tts);
-        tts._runJob = async function (job) {
-            await yieldToMain();
-            if (tts._interrupted) return;
-            return origRun(job);
-        };
-
-        // Also yield between generator pump kicks
-        var origPump = tts._pumpGenerators.bind(tts);
-        tts._pumpGenerators = function () {
-            if (tts._activeJobs > 0) return;
-            if (!tts._textQueue || tts._textQueue.length === 0) return;
-            // Schedule next job after a paint so avatar does not freeze mid-synth
-            yieldToMain().then(function () {
-                if (!tts._interrupted) origPump();
-            });
-        };
-    }
-
     function hookPlayback(tts) {
         if (!tts || tts.__lipsyncHooked) return;
         tts.__lipsyncHooked = true;
@@ -61,6 +24,15 @@
         tts._playNextInOrder = function () {
             if (tts._isPlaying) return;
             if (!tts._pendingAudio || !tts._pendingAudio.has(tts._nextPlayIndex)) return;
+
+            // Skip failed indices if present (1.2 API)
+            if (tts._failedIndices) {
+                while (tts._failedIndices.has(tts._nextPlayIndex)) {
+                    tts._failedIndices.delete(tts._nextPlayIndex);
+                    tts._nextPlayIndex++;
+                }
+                if (!tts._pendingAudio.has(tts._nextPlayIndex)) return;
+            }
 
             tts._isPlaying = true;
             var buffer = tts._pendingAudio.get(tts._nextPlayIndex);
@@ -111,15 +83,16 @@
     var loadTTS = async function () {
         try {
             await ensureLipsync();
-            console.log('[TTS] Loading KittenTTS…');
+            console.log('[TTS] Loading KittenTTS 1.2.0 (worker)…');
 
-            await import('https://76836.github.io/AkariNet-KittenTTS/AkariNet-KittenTTS-1.0.0.js');
+            await import('https://76836.github.io/AkariNet-KittenTTS/AkariNet-KittenTTS-1.2.0.js');
 
             var ttsSettings = {
                 voiceUrl: 'https://76836.github.io/AkariNet-KittenTTS/default.bin',
+                workerUrl: 'https://76836.github.io/AkariNet-KittenTTS/kitten-worker.js',
                 speed: 1.123,
                 concurrency: 1,
-                segmentMax: 180,
+                segmentMax: 160,
                 debug: false
             };
 
@@ -129,14 +102,13 @@
                 var poll = setInterval(function () {
                     if (window.tts && window.tts.isReady) {
                         clearInterval(poll);
-                        hookNonBlocking(window.tts);
                         hookPlayback(window.tts);
                         resolve();
                     }
                 }, 100);
             });
 
-            console.log('[TTS] KittenTTS ready (lipsync + non-blocking).');
+            console.log('[TTS] KittenTTS 1.2.0 ready (worker + lipsync).');
 
             if (window._speechQueue.length > 0) {
                 window._speechQueue.forEach(function (text) { window.tts.speak(text); });
