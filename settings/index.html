@@ -8,12 +8,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --cyan: darkcyan;
-            --bg: #1a1a1a;
-            --card: #2a3333;
-            --input-bg: rgba(0, 0, 0, 0.3);
-            --danger: #933;
-            --accent-glow: rgba(0, 139, 139, 0.3);
+            --cyan: #008b8b;
+            --cyan-bright: #00c8c8;
+            --bg: #141414;
+            --card: #1e2626;
+            --input-bg: rgba(0, 0, 0, 0.35);
+            --danger: #a33;
+            --accent-glow: rgba(0, 180, 180, 0.25);
+            --text-dim: rgba(255,255,255,0.55);
         }
 
         html, body {
@@ -26,13 +28,12 @@
         }
 
         body {
-            font-family: 'Orbitron', sans-serif;
-            color: white;
+            font-family: 'Orbitron', system-ui, sans-serif;
+            color: #fff;
             display: flex;
             flex-direction: column;
         }
 
-        /* Full Viewport Stretch */
         .viewport-wrapper {
             flex: 1;
             display: flex;
@@ -61,172 +62,202 @@
         }
 
         .title {
-            font-size: clamp(1.2rem, 6vw, 2.2rem);
-            color: var(--cyan);
-            margin: 20px 0;
+            font-size: clamp(1.15rem, 5.5vw, 2rem);
+            color: var(--cyan-bright);
+            margin: 18px 0 8px;
             text-align: center;
-            text-shadow: 0 0 10px var(--accent-glow);
+            text-shadow: 0 0 12px var(--accent-glow);
             flex-shrink: 0;
+            letter-spacing: 0.04em;
         }
 
-        /* Full-Width Menus */
+        .subtitle {
+            text-align: center;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin: 0 16px 16px;
+            line-height: 1.4;
+            font-family: system-ui, sans-serif;
+            letter-spacing: 0.02em;
+        }
+
         details, .link-menu {
             background: var(--card);
-            margin: 2px 0; /* Tightened stack */
+            margin: 0;
             width: 100%;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
         }
 
         summary, .link-menu-header {
-            padding: 18px 24px;
+            padding: 16px 20px;
             cursor: pointer;
-            font-size: clamp(0.9rem, 4vw, 1.2rem);
+            font-size: clamp(0.85rem, 3.8vw, 1.1rem);
             display: flex;
             justify-content: space-between;
             align-items: center;
             background: rgba(255,255,255,0.02);
-            transition: 0.2s;
+            transition: background 0.15s;
+            list-style: none;
         }
 
         summary:hover, .link-menu-header:hover {
-            background: rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.07);
         }
 
         summary::-webkit-details-marker { display: none; }
-        summary::after { content: '⮛'; font-size: 0.8rem; opacity: 0.5; transition: 0.3s; }
-        details[open] summary::after { transform: rotate(180deg); color: var(--cyan); }
-        .link-menu-header::after { content: 'Go ▶'; font-size: 0.8rem; color: var(--cyan); }
+        summary::after { content: '▼'; font-size: 0.65rem; opacity: 0.45; transition: transform 0.25s; }
+        details[open] summary::after { transform: rotate(180deg); color: var(--cyan-bright); opacity: 1; }
+        .link-menu-header::after { content: '›'; font-size: 1.2rem; color: var(--cyan-bright); opacity: 0.8; }
 
         .content {
-            padding: 24px;
-            background: rgba(0,0,0,0.25);
-            animation: slideDown 0.2s ease-out;
+            padding: 18px 20px 22px;
+            background: rgba(0,0,0,0.22);
         }
 
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Organized Sections */
         .script-group {
             background: rgba(255, 255, 255, 0.03);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 14px;
+            border: 1px solid rgba(255,255,255,0.07);
         }
-        .group-avatar { border-left: 4px solid var(--cyan); }
-        .group-wake { border-left: 4px solid #777; }
+        .group-avatar { border-left: 3px solid var(--cyan-bright); }
+        .group-wake { border-left: 3px solid #888; }
 
         .group-label {
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             text-transform: uppercase;
-            letter-spacing: 2.5px;
-            margin-bottom: 15px;
+            letter-spacing: 0.18em;
+            margin-bottom: 12px;
             display: block;
-            color: var(--cyan);
-            font-weight: bold;
+            color: var(--cyan-bright);
+            font-weight: 600;
         }
 
-        /* Controls */
+        .hint {
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            margin: 0 0 10px;
+            line-height: 1.45;
+            font-family: system-ui, sans-serif;
+            font-weight: 400;
+        }
+
         .setbutton, .box, .select-input {
-            font-size: 1rem;
+            font-size: 0.95rem;
             width: 100%;
-            margin: 8px 0;
-            background-color: #3d4747;
+            margin: 6px 0;
+            background-color: #2d3636;
             border: 0;
             color: white;
             border-radius: 8px;
-            padding: 14px;
+            padding: 12px 14px;
             box-sizing: border-box;
             font-family: inherit;
         }
 
-        .box { background-color: var(--input-bg); border: 1px solid rgba(255,255,255,0.1); }
-        .setbutton:hover { background-color: #4d5757; cursor: pointer; }
-        .setbutton:active { filter: brightness(1.2); }
- 
-
-        /* Floating Scroll Buttons */
-        .scroll-controls {
-            position: fixed;
-            bottom: 25px;
-            right: 25px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            z-index: 100;
+        .box {
+            background-color: var(--input-bg);
+            border: 1px solid rgba(255,255,255,0.1);
+            text-align: left;
+        }
+        .setbutton { cursor: pointer; transition: filter 0.15s; }
+        .setbutton:hover { filter: brightness(1.15); }
+        .setbutton:active { filter: brightness(1.25); }
+        .setbutton.primary {
+            background: var(--cyan);
+            color: #fff;
+            font-weight: 600;
+            margin-top: 10px;
         }
 
-        .scroll-btn {
-            width: 50px;
-            height: 50px;
-            border-radius: 15px;
-            background: var(--card);
-            border: 1px solid var(--cyan);
-            color: var(--cyan);
-            font-size: 1.2rem;
+        .row {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
-            backdrop-filter: blur(5px);
-            transition: 0.2s;
+            margin-bottom: 12px;
+            gap: 12px;
         }
+        .row span { font-size: 0.85rem; }
 
-        .scroll-btn:hover { background: var(--cyan); color: white; transform: translateY(-2px); }
-
-        /* Switches */
-        .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
+        .switch { position: relative; display: inline-block; width: 46px; height: 24px; flex-shrink: 0; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
-            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #111; transition: .4s; border-radius: 24px;
+            position: absolute; cursor: pointer; inset: 0;
+            background-color: #222; transition: 0.25s; border-radius: 24px;
         }
         .slider:before {
             position: absolute; content: ""; height: 18px; width: 18px;
-            left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;
+            left: 3px; bottom: 3px; background-color: #fff; transition: 0.25s; border-radius: 50%;
         }
         input:checked + .slider { background-color: var(--cyan); }
         input:checked + .slider:before { transform: translateX(22px); }
 
-        /* Overlay */
+        .scroll-controls {
+            position: fixed;
+            bottom: 22px;
+            right: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+        .scroll-btn {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            background: var(--card);
+            border: 1px solid var(--cyan);
+            color: var(--cyan-bright);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        .link-menu {
+            background: linear-gradient(90deg, rgba(40,40,40,0.4), rgba(0,140,140,0.12));
+        }
+        .update {
+            background: linear-gradient(90deg, rgba(60,0,70,0.35), rgba(0,160,80,0.12), rgba(0,140,140,0.15));
+            border-bottom: 1px solid rgba(255,255,255,0.12);
+            margin-bottom: 4px;
+        }
+
+        .danger-zone { border-top: 2px solid var(--danger); margin-top: 8px; }
+        .danger-zone summary { color: #f88; }
+
         #overlay {
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.92);
+            inset: 0;
+            background: rgba(0,0,0,0.9);
             display: none;
             align-items: center;
             justify-content: center;
             z-index: 1000;
-            padding: 20px;
+            padding: 16px;
         }
-
         .preview-container {
             width: 100%;
-            max-width: 600px;
+            max-width: 560px;
             background: var(--card);
-            border-radius: 24px;
-            padding: 25px;
+            border-radius: 16px;
+            padding: 20px;
             border: 1px solid var(--cyan);
-            box-shadow: 0 0 30px rgba(0,0,0,0.8);
         }
-
         .preview-frame {
             width: 100%;
             aspect-ratio: 16 / 9;
             background: #000;
-            border-radius: 12px;
-            margin-bottom: 20px;
+            border-radius: 10px;
+            margin-bottom: 16px;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
         }
-
         .preview-frame img, .preview-frame iframe {
             width: 100%;
             height: 100%;
@@ -234,55 +265,38 @@
             border: none;
         }
 
-        .link-menu{
-            background: linear-gradient(90deg, rgba(55, 55, 55, 0.15), rgba(77, 255, 255, 0.15));
-            color: white;
-            border: 0px solid rgba(255,255,255,0.15);
-        }
-
-         .update{
-            background: linear-gradient(90deg, rgba(54, 1, 63, 0.45), rgba(55, 255, 55, 0.15), rgba(77, 255, 255, 0.15));
-            color: white;
-            border: 2px solid rgba(255,255,255,1);
-            margin-bottom: 10px;
-        }
-
-        .danger-zone { border-top: 2px solid var(--danger) !important; margin-top: 10px; }
-        .danger-zone summary { color: #ff6b6b; }
-
         @media (min-width: 600px) {
-            .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+            .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         }
     </style>
 </head>
-
 <body>
-
     <div class="viewport-wrapper">
         <div class="scroll-area" id="mainScroll">
             <div class="container">
-                <p class="title">Settings 2.6b</p>
+                <p class="title">Settings</p>
+                <p class="subtitle">Simple options first. Open a section only when you need it.</p>
 
-  
                 <div class="update" onclick="installupdates();">
-                    <div class="link-menu-header">Check for and install updates. (potentially large download)</div>
+                    <div class="link-menu-header">Check for updates</div>
                 </div>
-                
+
                 <div class="link-menu" onclick="window.location.href = './voice';">
-                    <div class="link-menu-header">Voice configuration panel.</div>
+                    <div class="link-menu-header">Voice &amp; listening</div>
                 </div>
 
                 <div class="link-menu" onclick="window.location.href = './AI';">
-                    <div class="link-menu-header">IQ configuration panel.</div>
+                    <div class="link-menu-header">Intelligence (AI)</div>
                 </div>
 
                 <div class="link-menu" onclick="window.location.href = 'https://76836.github.io/AkariNet-Automata/automatonManager.html';">
-                    <div class="link-menu-header">AkariNet Automata Manager.</div>
+                    <div class="link-menu-header">Automata Manager</div>
                 </div>
 
                 <details>
-                    <summary>Choose a wallpaper.</summary>
+                    <summary>Wallpaper</summary>
                     <div class="content">
+                        <p class="hint">Choose a background image or live page.</p>
                         <div class="grid-2">
                             <button class="setbutton" onclick="handlePreview('https://76836.github.io/Akari/wallpapers/luna.png')">Luna</button>
                             <button class="setbutton" onclick="handlePreview('https://76836.github.io/Akari/wallpapers/colors.jpg')">Colors</button>
@@ -291,20 +305,18 @@
                             <button class="setbutton" onclick="handlePreview('https://76836.github.io/bubbles')">Bubbles (live)</button>
                             <button class="setbutton" onclick="handlePreview('https://76836.github.io/squares')">Squares (live)</button>
                         </div>
-                        <p style="font-size: 0.7rem; opacity: 0.5; margin-top: 15px; margin-bottom: 5px;">Or enter your own URL to an image, gif, or webpage.</p>
+                        <p class="hint" style="margin-top:12px;">Or paste any image / page URL</p>
                         <input class="box" id="bkgurl" placeholder="https://..." type="text">
-                        <button class="setbutton" onclick="handlePreview(document.getElementById('bkgurl').value)" style="background:var(--cyan); color:white; font-weight:bold; margin-top:10px;">PREVIEW & APPLY</button>
+                        <button class="setbutton primary" onclick="handlePreview(document.getElementById('bkgurl').value)">Preview &amp; apply</button>
                     </div>
                 </details>
 
                 <details>
-                    <summary>Screensaver settings.</summary>
+                    <summary>Screensaver</summary>
                     <div class="content">
-                        <p style="font-size:0.75rem; opacity:0.75; line-height:1.5;">
-                            Screensaver content works like wallpapers, but appears after inactivity and closes when you interact again.
-                        </p>
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                            <span style="font-size:0.85rem">Enable screensaver?</span>
+                        <p class="hint">Shows after inactivity and closes when you interact again.</p>
+                        <div class="row">
+                            <span>Enable screensaver</span>
                             <label class="switch">
                                 <input type="checkbox" id="screensaverenabled">
                                 <span class="slider"></span>
@@ -315,165 +327,167 @@
                             <button class="setbutton" onclick="document.getElementById('screensaverurl').value='https://76836.github.io/Akari/wallpapers/colors.jpg'">Colors</button>
                             <button class="setbutton" onclick="document.getElementById('screensaverurl').value='https://76836.github.io/bubbles'">Bubbles (live)</button>
                             <button class="setbutton" onclick="document.getElementById('screensaverurl').value='https://76836.github.io/squares'">Squares (live)</button>
-                            <button class="setbutton" onclick="document.getElementById('screensaverurl').value='https://76836.github.io/Akari/engine/autopilot/status'">AkariNet Autopilot Status (live)</button>
+                            <button class="setbutton" onclick="document.getElementById('screensaverurl').value='https://76836.github.io/Akari/engine/autopilot/status'">Autopilot status</button>
                         </div>
-                        <input class="box" id="screensaverurl" placeholder="https://... (blank = use wallpaper)" type="text">
-
-                        <label style="display:block; margin-top:14px; font-size:0.85rem;">Inactivity delay (seconds):</label>
+                        <input class="box" id="screensaverurl" placeholder="https://... (blank = wallpaper)" type="text">
+                        <label class="hint" style="display:block;margin-top:10px;">Inactivity delay (seconds)</label>
                         <input class="box" id="screensavertimeout" type="number" min="10" step="5" placeholder="120">
-
-                        <label style="display:block; margin-top:14px; font-size:0.85rem;">When activity returns:</label>
+                        <label class="hint" style="display:block;margin-top:10px;">When you return</label>
                         <select id="screensaverbehavior" class="select-input">
                             <option value="destroy">Destroy screensaver (default)</option>
-                            <option value="background">Move to background (faster restore)</option>
+                            <option value="background">Keep in background (faster)</option>
                         </select>
-
-                        <button class="setbutton" onclick="saveScreensaverSettings()" style="background:var(--cyan); color:white; font-weight:bold; margin-top:12px;">SAVE SCREENSAVER SETTINGS</button>
+                        <button class="setbutton primary" onclick="saveScreensaverSettings()">Save screensaver</button>
                     </div>
                 </details>
 
-             
-
                 <details>
-                    <summary>AkariNet system scripts. </summary>
+                    <summary>Character &amp; listening scripts</summary>
                     <div class="content">
+                        <p class="hint">Turn features on/off and pick which script powers them. Save after changing the path.</p>
+
                         <div class="script-group group-avatar">
-                            <span class="group-label">Character avatar.</span>
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                                <span style="font-size:0.85rem">Enable this feature?</span>
+                            <span class="group-label">Avatar</span>
+                            <div class="row">
+                                <span>Show avatar</span>
                                 <label class="switch">
                                     <input type="checkbox" id="toggle_avatar" onchange="toggleScript('avatar')">
                                     <span class="slider"></span>
                                 </label>
                             </div>
                             <select class="select-input" onchange="document.getElementById('avatarurl').value = this.value">
-                                <option value="">-- Select Preset --</option>
+                                <option value="">— Preset —</option>
                                 <option value="./characters/hiyori/avatar.js">Hiyori (Live2D)</option>
                                 <option value="./characters/akari/VRM4.js">Akari (VRM)</option>
-                                <option value="./characters/akari/winter.js">Akari (Winter outfit)</option>
+                                <option value="./characters/akari/winter.js">Akari (Winter)</option>
                             </select>
-                            <input class="box" id="avatarurl" type="text" placeholder="Custom Script Path...">
-                            <button class="setbutton" onclick="setScript('avatar')">SAVE</button>
+                            <input class="box" id="avatarurl" type="text" placeholder="Custom script path…">
+                            <button class="setbutton primary" onclick="setScript('avatar')">Save avatar</button>
                         </div>
 
                         <div class="script-group group-wake">
-                            <span class="group-label">Enviornmental awareness (wake word, etc.)</span>
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                                <span style="font-size:0.85rem">Enable this feature?</span>
+                            <span class="group-label">Listening / wake</span>
+                            <div class="row">
+                                <span>Enable listening</span>
                                 <label class="switch">
                                     <input type="checkbox" id="toggle_wake" onchange="toggleScript('wake')">
                                     <span class="slider"></span>
                                 </label>
                             </div>
                             <select class="select-input" onchange="document.getElementById('wakeurl').value = this.value">
-                                <option value="">-- Select Preset --</option>
-                                <!--<option value="./WakeOnCamera.js">Wake On Camera</option>-->
-                                <option value="./characters/akari/wake.js">hey Akari original</option>
-                                <option value="./engine/audioConsole.js">"Hey Akari" wake word and transcription powered by AkariNet Audio Console.</option>
-                                <option value="./engine/experimental-audioConsole.js">(Experimental version) "Hey Akari" wake word and transcription powered by AkariNet Audio Console.</option>
+                                <option value="">— Preset —</option>
+                                <option value="./engine/audioConsole.js">Audio Console (recommended)</option>
+                                <option value="./characters/akari/wake.js">Original “hey Akari”</option>
+                                <option value="./engine/experimental-audioConsole.js">Experimental Audio Console</option>
                             </select>
-                            <input class="box" id="wakeurl" type="text" placeholder="Custom Script Path...">
-                            <button class="setbutton" onclick="setScript('wake')">SAVE</button>
+                            <input class="box" id="wakeurl" type="text" placeholder="Custom script path…">
+                            <button class="setbutton primary" onclick="setScript('wake')">Save listening</button>
                         </div>
                     </div>
                 </details>
 
                 <details>
-                    <summary>Settings presets.</summary>
+                    <summary>Quick presets</summary>
                     <div class="content">
+                        <p class="hint">Replace your current setup with a known-good character default.</p>
                         <div class="grid-2">
                             <button class="setbutton" onclick="confirmCharacter('Akari')">Akari (default)</button>
-                            <button class="setbutton" onclick="confirmCharacter('Akari-winter')">Akari Winter 2025</button>
+                            <button class="setbutton" onclick="confirmCharacter('Akari-winter')">Akari Winter</button>
                             <button class="setbutton" onclick="confirmCharacter('Hiyori')">Hiyori</button>
                         </div>
                     </div>
                 </details>
 
                 <details class="danger-zone">
-                    <summary>DEBUG & RESET</summary>
+                    <summary>Reset &amp; debug</summary>
                     <div class="content">
-                        <button class="setbutton" onclick="localStorage.removeItem('defaultAssistant');" style="background:var(--danger)">Reset default assistant in PWA.</button>
-                        <button class="setbutton" onclick="if(confirm('Clear history?')) localStorage.removeItem('chatHistory');" style="background:transparent; border:1px solid var(--danger); color:#f88">Delete local chat history.</button>
+                        <button class="setbutton" onclick="localStorage.removeItem('defaultAssistant');" style="background:var(--danger)">Reset default assistant</button>
+                        <button class="setbutton" onclick="if(confirm('Clear chat history?')) localStorage.removeItem('chatHistory');" style="background:transparent;border:1px solid var(--danger);color:#f88">Delete chat history</button>
                     </div>
                 </details>
             </div>
         </div>
 
-        <!-- Integrated Scroll Buttons -->
         <div class="scroll-controls">
             <div class="scroll-btn" onclick="document.getElementById('mainScroll').scrollBy(0, -200)">▲</div>
             <div class="scroll-btn" onclick="document.getElementById('mainScroll').scrollBy(0, 200)">▼</div>
         </div>
     </div>
 
-    <!-- UI Overlay -->
     <div id="overlay" onclick="if(event.target == this) closeOverlay()"></div>
 
     <script>
         window.onload = () => {
             const avatar = localStorage.getItem('selectedAvatarScript');
             const wake = localStorage.getItem('selectedWakeScript');
-            
-            document.getElementById('avatarurl').value = (avatar === "off") ? "" : (avatar || "");
-            document.getElementById('wakeurl').value = (wake === "off") ? "" : (wake || "");
-            document.getElementById('bkgurl').value = localStorage.getItem('selectedBKGURL') || "";
-            document.getElementById('screensaverurl').value = localStorage.getItem('selectedScreensaverURL') || "";
-            document.getElementById('screensavertimeout').value = localStorage.getItem('selectedScreensaverTimeout') || "120";
-            document.getElementById('screensaverbehavior').value = localStorage.getItem('selectedScreensaverResumeBehavior') || "destroy";
-            document.getElementById('screensaverenabled').checked = localStorage.getItem('selectedScreensaverEnabled') === "true";
 
-            document.getElementById('toggle_avatar').checked = (avatar !== "off" && avatar !== null && avatar !== "");
-            document.getElementById('toggle_wake').checked = (wake !== "off" && wake !== null && wake !== "");
-            
+            document.getElementById('avatarurl').value = (avatar === 'off' || !avatar) ? '' : avatar;
+            document.getElementById('wakeurl').value = (wake === 'off' || !wake) ? '' : wake;
+            document.getElementById('bkgurl').value = localStorage.getItem('selectedBKGURL') || '';
+            document.getElementById('screensaverurl').value = localStorage.getItem('selectedScreensaverURL') || '';
+            document.getElementById('screensavertimeout').value = localStorage.getItem('selectedScreensaverTimeout') || '120';
+            document.getElementById('screensaverbehavior').value = localStorage.getItem('selectedScreensaverResumeBehavior') || 'destroy';
+            document.getElementById('screensaverenabled').checked = localStorage.getItem('selectedScreensaverEnabled') === 'true';
+
+            document.getElementById('toggle_avatar').checked = !!(avatar && avatar !== 'off');
+            document.getElementById('toggle_wake').checked = !!(wake && wake !== 'off');
+
             updateVisuals('avatar');
             updateVisuals('wake');
         };
 
         function updateVisuals(type) {
-            const isChecked = document.getElementById(`toggle_${type}`).checked;
-            document.querySelector(`.group-${type}`).style.filter = isChecked ? "grayscale(0)" : "grayscale(1) opacity(0.4)";
+            const on = document.getElementById('toggle_' + type).checked;
+            const el = document.querySelector('.group-' + type);
+            if (el) el.style.opacity = on ? '1' : '0.45';
         }
 
+        // Fixed: turning ON restores the path from the input; turning OFF stores "off"
         function toggleScript(type) {
-            const isChecked = document.getElementById(`toggle_${type}`).checked;
-            if (!isChecked) {
-                localStorage.setItem(`selected${type.charAt(0).toUpperCase() + type.slice(1)}Script`, "off");
+            const on = document.getElementById('toggle_' + type).checked;
+            const key = 'selected' + type.charAt(0).toUpperCase() + type.slice(1) + 'Script';
+            const input = document.getElementById(type + 'url');
+            if (!on) {
+                localStorage.setItem(key, 'off');
+            } else {
+                const path = (input.value || '').trim();
+                if (path) localStorage.setItem(key, path);
             }
             updateVisuals(type);
         }
 
         function setScript(type) {
-            const val = document.getElementById(`${type}url`).value;
-            localStorage.setItem(`selected${type.charAt(0).toUpperCase() + type.slice(1)}Script`, val || "off");
-            alert("Changes saved.");
+            const val = (document.getElementById(type + 'url').value || '').trim();
+            const key = 'selected' + type.charAt(0).toUpperCase() + type.slice(1) + 'Script';
+            localStorage.setItem(key, val || 'off');
+            document.getElementById('toggle_' + type).checked = !!val;
+            updateVisuals(type);
+            alert('Saved.');
         }
 
         function handlePreview(url) {
-            if(!url) return;
+            if (!url) return;
             const overlay = document.getElementById('overlay');
             overlay.style.display = 'flex';
-            
-            const isLive = url.includes('bubbles') || url.includes('.html');
-            const previewContent = isLive 
-                ? `<iframe src="${url}"></iframe>` 
-                : `<img src="${url}" onerror="this.outerHTML='<div style=\'padding:40px; color:#f88\'>[Media Unavailable]</div>'">`;
+            const isLive = /bubbles|squares|\.html|status/i.test(url);
+            const previewContent = isLive
+                ? '<iframe src="' + url + '"></iframe>'
+                : '<img src="' + url + '" onerror="this.outerHTML=\'<div style=padding:40px;color:#f88>[Unavailable]</div>\'">';
 
-            overlay.innerHTML = `
-                <div class="preview-container" onclick="event.stopPropagation()">
-                    <p style="font-size:0.75rem; color:var(--cyan); margin-bottom:15px; letter-spacing:2px; font-weight:bold;">Wallpaper preview...</p>
-                    <div class="preview-frame">${previewContent}</div>
-                    <div style="display:flex; gap:12px;">
-                        <button class="setbutton" onclick="applyBKG('${url}')" style="background:var(--cyan); color:white; font-weight:bold;">Apply.</button>
-                        <button class="setbutton" onclick="closeOverlay()" style="background:transparent; border:1px solid #555;">Cancel.</button>
-                    </div>
-                </div>
-            `;
+            overlay.innerHTML =
+                '<div class="preview-container" onclick="event.stopPropagation()">' +
+                '<p class="hint" style="color:var(--cyan-bright);margin-bottom:12px;">Wallpaper preview</p>' +
+                '<div class="preview-frame">' + previewContent + '</div>' +
+                '<div style="display:flex;gap:10px;">' +
+                '<button class="setbutton primary" onclick="applyBKG(\'' + url.replace(/'/g, "\\'") + '\')">Apply</button>' +
+                '<button class="setbutton" onclick="closeOverlay()" style="background:transparent;border:1px solid #555;">Cancel</button>' +
+                '</div></div>';
         }
 
         function applyBKG(url) {
             localStorage.setItem('selectedBKGURL', url);
             closeOverlay();
-            alert("Wallpaper set.");
+            alert('Wallpaper set.');
         }
 
         function saveScreensaverSettings() {
@@ -483,16 +497,13 @@
             const behavior = document.getElementById('screensaverbehavior').value || 'destroy';
             const enabled = document.getElementById('screensaverenabled').checked;
 
-            if (url) {
-                localStorage.setItem('selectedScreensaverURL', url);
-            } else {
-                localStorage.removeItem('selectedScreensaverURL');
-            }
+            if (url) localStorage.setItem('selectedScreensaverURL', url);
+            else localStorage.removeItem('selectedScreensaverURL');
 
             localStorage.setItem('selectedScreensaverTimeout', String(timeout));
             localStorage.setItem('selectedScreensaverResumeBehavior', behavior);
             localStorage.setItem('selectedScreensaverEnabled', enabled ? 'true' : 'false');
-            alert("Screensaver settings saved.");
+            alert('Screensaver saved.');
         }
 
         function closeOverlay() {
@@ -502,50 +513,47 @@
         function confirmCharacter(name) {
             const overlay = document.getElementById('overlay');
             overlay.style.display = 'flex';
-            overlay.innerHTML = `
-                <div class="preview-container" onclick="event.stopPropagation()">
-                    <h2 style="margin:0 0 10px 0; color:var(--cyan)">Use ${name.toUpperCase()}'s defaults?</h2>
-                    <p style="font-size:0.85rem; opacity:0.8; line-height:1.6;">This will replace all your settings with ${name}'s default configuration.</p>
-                    <div style="margin-top:25px; display:flex; flex-direction:column; gap:8px;">
-                        <button class="setbutton" onclick="applyPreset('${name}')" style="background:var(--cyan); color:white; font-weight:bold; padding:18px;">Continue.</button>
-                        <button class="setbutton" onclick="closeOverlay()" style="background:transparent; border:1px solid #555;">Cancel.</button>
-                    </div>
-                </div>
-            `;
+            overlay.innerHTML =
+                '<div class="preview-container" onclick="event.stopPropagation()">' +
+                '<h2 style="margin:0 0 8px;color:var(--cyan-bright);font-size:1.1rem;">Use ' + name + ' defaults?</h2>' +
+                '<p class="hint">This replaces your current character, wake, and wallpaper settings.</p>' +
+                '<div style="margin-top:18px;display:flex;flex-direction:column;gap:8px;">' +
+                '<button class="setbutton primary" onclick="applyPreset(\'' + name + '\')">Continue</button>' +
+                '<button class="setbutton" onclick="closeOverlay()" style="background:transparent;border:1px solid #555;">Cancel</button>' +
+                '</div></div>';
         }
 
         function applyPreset(name) {
-            if(name === 'Akari') {
+            if (name === 'Akari') {
                 localStorage.setItem('selectedReflexScript', './characters/akari/response.js');
                 localStorage.setItem('selectedAvatarScript', './characters/akari/VRM4.js');
                 localStorage.setItem('selectedWakeScript', './characters/akari/wake.js');
-                localStorage.setItem('selectedBKGURL', "./wallpapers/backdrop.png");
+                localStorage.setItem('selectedBKGURL', './wallpapers/backdrop.png');
                 localStorage.setItem('selectedAIScript', '');
-            } else if(name === 'Akari-winter') {
+            } else if (name === 'Akari-winter') {
                 localStorage.setItem('selectedReflexScript', './characters/akari/response.js');
                 localStorage.setItem('selectedAvatarScript', './characters/akari/winter.js');
                 localStorage.setItem('selectedWakeScript', './characters/akari/wake.js');
-                localStorage.setItem('selectedBKGURL', "./wallpapers/snow.png");
+                localStorage.setItem('selectedBKGURL', './wallpapers/snow.png');
                 localStorage.setItem('selectedAIScript', '');
             } else {
-                localStorage.setItem('selectedBKGURL', "./wallpapers/backdrop.png");
+                localStorage.setItem('selectedBKGURL', './wallpapers/backdrop.png');
                 localStorage.setItem('selectedReflexScript', './characters/hiyori/response.js');
                 localStorage.setItem('selectedAIScript', './characters/hiyori/Gemini.js');
                 localStorage.setItem('selectedAvatarScript', './characters/hiyori/avatar.js');
                 localStorage.setItem('selectedWakeScript', 'off');
             }
-            if (window.parent) {
-        window.parent.location.reload();
-    }else{location.reload();}
+            if (window.parent) window.parent.location.reload();
+            else location.reload();
         }
 
         function installupdates() {
             if (navigator.onLine) {
-                alert('System: Sent update command, reload to apply update.');
+                alert('Update requested. Reload to apply.');
                 if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.ready.then(reg => reg.active.postMessage({ action: 'updateCache' }));
+                    navigator.serviceWorker.ready.then(reg => reg.active && reg.active.postMessage({ action: 'updateCache' }));
                 }
-            } else alert('System: Internet is required to download updates...');
+            } else alert('Internet required to download updates.');
         }
     </script>
 </body>
