@@ -116,11 +116,20 @@
             motion: { lookSpeed: 1.2, idleTimeout: 1.5, maxNeckY: 0.8, maxNeckX: 0.4, maxSpineY: 0.25 },
             eye: { minIntensity: 0.125, maxIntensity: 0.248, minSpeed: 0.1, maxSpeed: 2.0, limit: 0.5 },
             idle: { rangeX: 0.6, rangeY: 0.35, minHold: 2.0, maxHold: 5.0, transitionSpeed: [0.1, 0.8] },
+            speak: {
+                // While talking: face the user (camera), with soft micro-saccades only
+                holdUser: true,
+                microRangeX: 0.08,
+                microRangeY: 0.05,
+                eyeMultiplier: 0.1,
+                eyeSpeed: 0.9,
+                lookSpeed: 1.6,
+                microHold: 1.4
+            },
             sway: { intensity: 0.032, baseFrequency: 0.4, armRelaxation: 1.375 },
             hair: { gravityPower: 0.01, stiffness: 0.25, drag: 2.5, physicsDeltaLimit: 0.05 }
         };
 
-        // Same emotion presets as original — mouth shapes stay within safe VRoid ranges
         const EMOTIONS = {
             neutral: { neutral: 1.0 },
             happy: { ih: 0.8, aa: 0.2, relaxed: 0.2, blink: 0.0 },
@@ -152,8 +161,8 @@
             currentEyeMultiplier: 0.3, currentEyeSpeed: 2.0, currentIdleSpeed: 0.1,
             currentEmotionName: 'neutral', blinkBlocked: false, requestedBlink: 0, isVrm1: false,
             lipMouth: 0,
-            // emotion mouth targets (for blend while speaking)
-            emoAa: 0, emoIh: 0
+            emoAa: 0, emoIh: 0,
+            speakMicroX: 0, speakMicroY: 0, nextSpeakMicro: 0
         };
 
         const loader = new GLTFLoader();
@@ -248,9 +257,7 @@
                 'blinkLeft', 'blinkRight', 'lookUp', 'lookDown', 'lookLeft', 'lookRight'
             ];
             trackableMorphs.forEach(morphName => {
-                // While speaking, lipsync owns aa/ih — skip pure emotion drive for those
                 if (speaking && (morphName === 'aa' || morphName === 'ih')) return;
-                // Keep ou/ee/oh from exploding during talk
                 if (speaking && (morphName === 'ou' || morphName === 'ee' || morphName === 'oh')) {
                     const cur = currentVrm.expressionManager.getValue(morphName) || 0;
                     currentVrm.expressionManager.setValue(morphName, THREE.MathUtils.lerp(cur, 0, 6 * dt));
@@ -262,10 +269,6 @@
             });
         }
 
-        /**
-         * Mild lipsync: only ih + aa (same range as happy preset).
-         * Lipsync weight >= 50% over emotion mouth while talking.
-         */
         function updateLipsync(dt) {
             if (!currentVrm || !currentVrm.expressionManager) return;
             let target = 0;
@@ -282,22 +285,17 @@
             state.lipMouth = THREE.MathUtils.lerp(state.lipMouth, target, Math.min(1, 14 * dt));
             const m = state.lipMouth;
             const em = currentVrm.expressionManager;
+            if (m < 0.03) return;
 
-            if (m < 0.03) return; // emotion system handles quiet frames
-
-            // Map amplitude into the same safe band as emotion presets (happy: ih 0.8, aa 0.2)
-            const lipIh = Math.min(0.75, m * 0.85);
-            const lipAa = Math.min(0.25, m * 0.28);
-
-            // Lipsync overrides emotion mouth by 65% (always ≥ 50%)
+            // Safe band matching happy preset (ih/aa only)
+            const lipIh = Math.min(0.8, m * 0.95);
+            const lipAa = Math.min(0.28, m * 0.32);
             const W = 0.65;
             const finalIh = state.emoIh * (1 - W) + lipIh * W;
             const finalAa = state.emoAa * (1 - W) + lipAa * W;
 
-            const curIh = em.getValue('ih') || 0;
-            const curAa = em.getValue('aa') || 0;
-            em.setValue('ih', THREE.MathUtils.lerp(curIh, finalIh, Math.min(1, 16 * dt)));
-            em.setValue('aa', THREE.MathUtils.lerp(curAa, finalAa, Math.min(1, 16 * dt)));
+            em.setValue('ih', THREE.MathUtils.lerp(em.getValue('ih') || 0, finalIh, Math.min(1, 16 * dt)));
+            em.setValue('aa', THREE.MathUtils.lerp(em.getValue('aa') || 0, finalAa, Math.min(1, 16 * dt)));
         }
 
         function animate(now) {
@@ -311,10 +309,23 @@
                 updateEmotions(safeDt);
                 updateLipsync(safeDt);
 
+                const speaking = state.lipMouth > 0.04;
                 const timeSinceMouse = (now - lastMouseMoveTime) / 1000;
                 let tx, ty, currentSpeed = PARAMS.motion.lookSpeed;
 
-                if (timeSinceMouse < PARAMS.motion.idleTimeout) {
+                if (speaking && PARAMS.speak.holdUser) {
+                    // Face the user (camera center) with tiny natural micro-saccades
+                    if (totalElapsed > state.nextSpeakMicro) {
+                        state.speakMicroX = (Math.random() - 0.5) * 2 * PARAMS.speak.microRangeX;
+                        state.speakMicroY = (Math.random() - 0.5) * 2 * PARAMS.speak.microRangeY;
+                        state.nextSpeakMicro = totalElapsed + PARAMS.speak.microHold * (0.7 + Math.random() * 0.6);
+                    }
+                    tx = state.speakMicroX;
+                    ty = 1.45 + state.speakMicroY;
+                    currentSpeed = PARAMS.speak.lookSpeed;
+                    state.currentEyeMultiplier = PARAMS.speak.eyeMultiplier;
+                    state.currentEyeSpeed = PARAMS.speak.eyeSpeed;
+                } else if (timeSinceMouse < PARAMS.motion.idleTimeout) {
                     tx = mouse.x;
                     ty = 1.45 + (mouse.y * (state.isVrm1 ? 0.5 : -0.5));
                 } else {
