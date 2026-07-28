@@ -14,16 +14,13 @@
             --card: #1e2626;
             --input-bg: rgba(0, 0, 0, 0.35);
             --danger: #a33;
+            --warn: #a86b1a;
             --accent-glow: rgba(0, 180, 180, 0.25);
             --text-dim: rgba(255,255,255,0.55);
         }
 
         html, body {
-            height: 100%;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
+            height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden;
             background-color: var(--bg);
         }
 
@@ -35,148 +32,99 @@
         }
 
         .viewport-wrapper {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            height: 100%;
-            position: relative;
+            flex: 1; display: flex; flex-direction: column;
+            width: 100%; height: 100%; position: relative;
         }
 
         .scroll-area {
-            flex: 1;
-            overflow-y: auto;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-            display: flex;
-            flex-direction: column;
+            flex: 1; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none;
+            display: flex; flex-direction: column;
         }
         .scroll-area::-webkit-scrollbar { display: none; }
 
         .container {
-            width: 100%;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            padding-bottom: 100px;
+            width: 100%; flex: 1; display: flex; flex-direction: column; padding-bottom: 100px;
         }
 
         .title {
             font-size: clamp(1.15rem, 5.5vw, 2rem);
             color: var(--cyan-bright);
-            margin: 18px 0 8px;
-            text-align: center;
+            margin: 18px 0 8px; text-align: center;
             text-shadow: 0 0 12px var(--accent-glow);
-            flex-shrink: 0;
-            letter-spacing: 0.04em;
+            flex-shrink: 0; letter-spacing: 0.04em;
         }
 
         .subtitle {
-            text-align: center;
-            font-size: 0.7rem;
-            color: var(--text-dim);
-            margin: 0 16px 16px;
-            line-height: 1.4;
-            font-family: system-ui, sans-serif;
-            letter-spacing: 0.02em;
+            text-align: center; font-size: 0.7rem; color: var(--text-dim);
+            margin: 0 16px 16px; line-height: 1.4;
+            font-family: system-ui, sans-serif; letter-spacing: 0.02em;
         }
 
         details, .link-menu {
-            background: var(--card);
-            margin: 0;
-            width: 100%;
+            background: var(--card); margin: 0; width: 100%;
             border-bottom: 1px solid rgba(255,255,255,0.06);
         }
 
         summary, .link-menu-header {
-            padding: 16px 20px;
-            cursor: pointer;
+            padding: 16px 20px; cursor: pointer;
             font-size: clamp(0.85rem, 3.8vw, 1.1rem);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(255,255,255,0.02);
-            transition: background 0.15s;
-            list-style: none;
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255,255,255,0.02); transition: background 0.15s; list-style: none;
         }
 
-        summary:hover, .link-menu-header:hover {
-            background: rgba(255,255,255,0.07);
-        }
-
+        summary:hover, .link-menu-header:hover { background: rgba(255,255,255,0.07); }
         summary::-webkit-details-marker { display: none; }
         summary::after { content: '▼'; font-size: 0.65rem; opacity: 0.45; transition: transform 0.25s; }
         details[open] summary::after { transform: rotate(180deg); color: var(--cyan-bright); opacity: 1; }
         .link-menu-header::after { content: '›'; font-size: 1.2rem; color: var(--cyan-bright); opacity: 0.8; }
 
-        .content {
-            padding: 18px 20px 22px;
-            background: rgba(0,0,0,0.22);
-        }
+        .content { padding: 18px 20px 22px; background: rgba(0,0,0,0.22); }
 
         .script-group {
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 10px;
-            padding: 16px;
-            margin-bottom: 14px;
-            border: 1px solid rgba(255,255,255,0.07);
+            background: rgba(255, 255, 255, 0.03); border-radius: 10px;
+            padding: 16px; margin-bottom: 14px; border: 1px solid rgba(255,255,255,0.07);
         }
         .group-avatar { border-left: 3px solid var(--cyan-bright); }
         .group-wake { border-left: 3px solid #888; }
 
         .group-label {
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 0.18em;
-            margin-bottom: 12px;
-            display: block;
-            color: var(--cyan-bright);
-            font-weight: 600;
+            font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.18em;
+            margin-bottom: 12px; display: block; color: var(--cyan-bright); font-weight: 600;
         }
 
         .hint {
-            font-size: 0.72rem;
-            color: var(--text-dim);
-            margin: 0 0 10px;
-            line-height: 1.45;
-            font-family: system-ui, sans-serif;
-            font-weight: 400;
+            font-size: 0.72rem; color: var(--text-dim); margin: 0 0 10px;
+            line-height: 1.45; font-family: system-ui, sans-serif; font-weight: 400;
         }
 
         .setbutton, .box, .select-input {
-            font-size: 0.95rem;
-            width: 100%;
-            margin: 6px 0;
-            background-color: #2d3636;
-            border: 0;
-            color: white;
-            border-radius: 8px;
-            padding: 12px 14px;
-            box-sizing: border-box;
-            font-family: inherit;
+            font-size: 0.95rem; width: 100%; margin: 6px 0;
+            background-color: #2d3636; border: 0; color: white;
+            border-radius: 8px; padding: 12px 14px; box-sizing: border-box; font-family: inherit;
         }
 
         .box {
-            background-color: var(--input-bg);
-            border: 1px solid rgba(255,255,255,0.1);
-            text-align: left;
+            background-color: var(--input-bg); border: 1px solid rgba(255,255,255,0.1); text-align: left;
         }
         .setbutton { cursor: pointer; transition: filter 0.15s; }
         .setbutton:hover { filter: brightness(1.15); }
         .setbutton:active { filter: brightness(1.25); }
         .setbutton.primary {
-            background: var(--cyan);
-            color: #fff;
-            font-weight: 600;
-            margin-top: 10px;
+            background: var(--cyan); color: #fff; font-weight: 600; margin-top: 10px;
+        }
+        .setbutton.safe {
+            background: transparent; border: 1px solid var(--cyan); color: var(--cyan-bright);
+        }
+        .setbutton.warn {
+            background: transparent; border: 1px solid var(--warn); color: #e0b060;
+        }
+        .setbutton.danger {
+            background: var(--danger); color: #fff;
         }
 
         .row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            gap: 12px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 12px; gap: 12px;
         }
         .row span { font-size: 0.85rem; }
 
@@ -194,27 +142,15 @@
         input:checked + .slider:before { transform: translateX(22px); }
 
         .scroll-controls {
-            position: fixed;
-            bottom: 22px;
-            right: 18px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 100;
+            position: fixed; bottom: 22px; right: 18px;
+            display: flex; flex-direction: column; gap: 10px; z-index: 100;
         }
         .scroll-btn {
-            width: 46px;
-            height: 46px;
-            border-radius: 12px;
-            background: var(--card);
-            border: 1px solid var(--cyan);
-            color: var(--cyan-bright);
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            width: 46px; height: 46px; border-radius: 12px;
+            background: var(--card); border: 1px solid var(--cyan);
+            color: var(--cyan-bright); font-size: 1.1rem;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
         }
 
         .link-menu {
@@ -230,39 +166,21 @@
         .danger-zone summary { color: #f88; }
 
         #overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.9);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 16px;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            display: none; align-items: center; justify-content: center;
+            z-index: 1000; padding: 16px;
         }
         .preview-container {
-            width: 100%;
-            max-width: 560px;
-            background: var(--card);
-            border-radius: 16px;
-            padding: 20px;
-            border: 1px solid var(--cyan);
+            width: 100%; max-width: 560px; background: var(--card);
+            border-radius: 16px; padding: 20px; border: 1px solid var(--cyan);
         }
         .preview-frame {
-            width: 100%;
-            aspect-ratio: 16 / 9;
-            background: #000;
-            border-radius: 10px;
-            margin-bottom: 16px;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 100%; aspect-ratio: 16 / 9; background: #000;
+            border-radius: 10px; margin-bottom: 16px; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
         }
         .preview-frame img, .preview-frame iframe {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border: none;
+            width: 100%; height: 100%; object-fit: cover; border: none;
         }
 
         @media (min-width: 600px) {
@@ -282,7 +200,7 @@
                 </div>
 
                 <div class="link-menu" onclick="window.location.href = './voice';">
-                    <div class="link-menu-header">Voice &amp; listening</div>
+                    <div class="link-menu-header">Voice & listening</div>
                 </div>
 
                 <div class="link-menu" onclick="window.location.href = './AI';">
@@ -307,7 +225,7 @@
                         </div>
                         <p class="hint" style="margin-top:12px;">Or paste any image / page URL</p>
                         <input class="box" id="bkgurl" placeholder="https://..." type="text">
-                        <button class="setbutton primary" onclick="handlePreview(document.getElementById('bkgurl').value)">Preview &amp; apply</button>
+                        <button class="setbutton primary" onclick="handlePreview(document.getElementById('bkgurl').value)">Preview & apply</button>
                     </div>
                 </details>
 
@@ -342,7 +260,7 @@
                 </details>
 
                 <details>
-                    <summary>Character &amp; listening scripts</summary>
+                    <summary>Character & listening scripts</summary>
                     <div class="content">
                         <p class="hint">Turn features on/off and pick which script powers them. Save after changing the path.</p>
 
@@ -399,10 +317,27 @@
                 </details>
 
                 <details class="danger-zone">
-                    <summary>Reset &amp; debug</summary>
+                    <summary>Reset & setup</summary>
                     <div class="content">
-                        <button class="setbutton" onclick="localStorage.removeItem('defaultAssistant');" style="background:var(--danger)">Reset default assistant</button>
-                        <button class="setbutton" onclick="if(confirm('Clear chat history?')) localStorage.removeItem('chatHistory');" style="background:transparent;border:1px solid var(--danger);color:#f88">Delete chat history</button>
+                        <p class="hint">Least harmful first. Nothing here clears storage from other websites — only AkariNet keys on this origin.</p>
+
+                        <button class="setbutton safe" onclick="redoSetupOnly()">
+                            Redo first-time setup
+                        </button>
+                        <p class="hint">Opens the setup wizard again. Keeps your current settings until you finish (or skip) setup.</p>
+
+                        <button class="setbutton warn" onclick="if(confirm('Clear chat history only?')) { localStorage.removeItem('chatHistory'); alert('Chat history cleared.'); }">
+                            Clear chat history
+                        </button>
+
+                        <button class="setbutton warn" onclick="localStorage.removeItem('defaultAssistant'); alert('Default assistant cleared. Next visit will ask which UI to use.');">
+                            Reset default assistant UI
+                        </button>
+
+                        <button class="setbutton danger" onclick="resetAkariNet()">
+                            Reset AkariNet settings
+                        </button>
+                        <p class="hint">Removes AkariNet preferences (voice, AI, wallpaper, Audio Console, setup flag, etc.), then restarts setup. Does not wipe unrelated localStorage.</p>
                     </div>
                 </details>
             </div>
@@ -442,7 +377,6 @@
             if (el) el.style.opacity = on ? '1' : '0.45';
         }
 
-        // Fixed: turning ON restores the path from the input; turning OFF stores "off"
         function toggleScript(type) {
             const on = document.getElementById('toggle_' + type).checked;
             const key = 'selected' + type.charAt(0).toUpperCase() + type.slice(1) + 'Script';
@@ -554,6 +488,45 @@
                     navigator.serviceWorker.ready.then(reg => reg.active && reg.active.postMessage({ action: 'updateCache' }));
                 }
             } else alert('Internet required to download updates.');
+        }
+
+        /** Only clear the setup-complete flag and open the wizard (settings stay until setup finishes). */
+        function redoSetupOnly() {
+            if (!confirm('Open the first-time setup wizard again? Your current settings stay until you finish or skip setup.')) return;
+            localStorage.removeItem('akari_setupComplete');
+            localStorage.removeItem('akari_setupVersion');
+            const target = '../setup.html';
+            if (window.parent && window.parent !== window) window.parent.location.href = target;
+            else location.href = target;
+        }
+
+        /** Remove AkariNet-related keys only, then open setup. */
+        function resetAkariNet() {
+            if (!confirm('Reset all AkariNet settings and restart setup? This does not clear unrelated localStorage on this site.')) return;
+            if (!confirm('Last chance — module paths, Audio Console options, wallpaper, screensaver, and setup flags will be removed.')) return;
+
+            const exact = [
+                'akari_setupComplete', 'akari_setupVersion', 'akari:autopilot',
+                'akari:automata_urls', 'akari:automata_blacklist',
+                'defaultAssistant', 'chatHistory', 'emote', 'wakeSense',
+                'devBridge_disabled'
+            ];
+            const prefixes = [
+                'selected', 'ac41_', 'akari', 'devBridge_auth_'
+            ];
+
+            const toRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (!k) continue;
+                if (exact.indexOf(k) !== -1) toRemove.push(k);
+                else if (prefixes.some(p => k.indexOf(p) === 0)) toRemove.push(k);
+            }
+            toRemove.forEach(k => localStorage.removeItem(k));
+
+            const target = '../setup.html';
+            if (window.parent && window.parent !== window) window.parent.location.href = target;
+            else location.href = target;
         }
     </script>
 </body>
