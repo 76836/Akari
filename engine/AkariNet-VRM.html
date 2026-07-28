@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,17 +17,17 @@
     <style>
         body { margin: 0; padding: 0; overflow: hidden; background: transparent; font-family: sans-serif; }
         #container { width: 100vw; height: 100vh; }
-        #ui { position: absolute; top: 20px; left: 20px; color: white; pointer-events: none; z-index: 10; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-        .drop-zone { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 0 dashed rgba(255,255,255,0.2); margin: 20px; border-radius: 20px; background: transparent; transition: all 0.3s; z-index: 5; }
+        #ui { position: absolute; top: 20px; left: 20px; color: white; pointer-events: none; z-index: 10; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); }
+        .drop-zone { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 0px dashed rgba(255, 255, 255, 0.2); margin: 20px; border-radius: 20px; background: transparent; transition: all 0.3s; z-index: 5; }
         .drop-zone.hidden { opacity: 0; pointer-events: none; }
         .drop-zone.active { border-color: #77aaff; background: transparent; }
         button { pointer-events: auto; padding: 10px 20px; border-radius: 8px; border: none; background: #77aaff; color: white; cursor: pointer; font-weight: bold; margin-top: 10px; }
         #loading { position: absolute; bottom: 20px; right: 20px; color: #77aaff; display: none; font-family: monospace; font-weight: bold; }
-        #debug { position: absolute; bottom: 20px; left: 20px; color: rgba(255,255,255,0.4); font-size: 12px; pointer-events: none; font-family: monospace; }
+        #debug { position: absolute; bottom: 20px; left: 20px; color: rgba(255, 255, 255, 0.4); font-size: 12px; pointer-events: none; font-family: monospace; }
         .content { opacity: 0; }
         .white-flash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: darkcyan; opacity: 0; pointer-events: none; }
         .teleport-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0; }
-        .energy-pill { width: 30px; height: 80px; background: rgb(255,255,0); border-radius: 15px; position: absolute; will-change: transform; z-index: 1000; bottom: -80px; }
+        .energy-pill { width: 30px; height: 80px; background: rgb(255, 255, 0); border-radius: 15px; position: absolute; will-change: transform; z-index: 1000; bottom: -80px; }
         @keyframes pillFloat { 0% { transform: translateY(0); } 100% { transform: translateY(calc(-100vh - 160px)); } }
         @keyframes overlayFadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
         @keyframes overlayFadeOut { 0% { opacity: 1; } 100% { opacity: 0; } }
@@ -34,12 +35,14 @@
         @keyframes revealContent { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
+
 <body>
     <div class="content">
         <div id="container"></div>
         <div id="ui"><h1>AkariNet VRM Plugin v4.5</h1></div>
         <div id="dropZone" class="drop-zone">
-            <p>Drop a .VRM file here</p><p>or</p>
+            <p>Drop a .VRM file here</p>
+            <p>or</p>
             <button onclick="document.getElementById('fileInput').click()">Select File</button>
             <input type="file" id="fileInput" accept=".vrm" style="display: none">
         </div>
@@ -152,8 +155,7 @@
             lookAtPos: new THREE.Vector3(0, 1.45, 1),
             eyePos: new THREE.Vector2(0, 1.45),
             currentEyeMultiplier: 0.3, currentEyeSpeed: 2.0, currentIdleSpeed: 0.1,
-            currentEmotionName: 'neutral', blinkBlocked: false, requestedBlink: 0, isVrm1: false,
-            lipMouth: 0
+            currentEmotionName: 'neutral', blinkBlocked: false, requestedBlink: 0, isVrm1: false
         };
 
         const container = document.getElementById('container');
@@ -252,39 +254,11 @@
             ];
             trackableMorphs.forEach(morphName => {
                 if (morphName === 'blink') return;
-                // While speaking, do not force emotion mouth shapes — lipsync owns aa/oh/ih
-                if (state.lipMouth > 0.05 && (morphName === 'aa' || morphName === 'oh' || morphName === 'ih' || morphName === 'ou' || morphName === 'ee')) return;
                 const targetValue = targetMap[morphName] || 0;
                 const currentValue = currentVrm.expressionManager.getValue(morphName) || 0;
                 const newValue = THREE.MathUtils.lerp(currentValue, targetValue, 5.0 * dt);
                 currentVrm.expressionManager.setValue(morphName, newValue);
             });
-        }
-
-        /** Amplitude lipsync from parent TTS (shared localStorage bus). */
-        function updateLipsync(dt) {
-            if (!currentVrm || !currentVrm.expressionManager) return;
-            let target = 0;
-            try {
-                const raw = localStorage.getItem('akari:lipsync');
-                if (raw) {
-                    const data = JSON.parse(raw);
-                    if (data && typeof data.mouth === 'number' && Date.now() - (data.t || 0) < 500) {
-                        target = Math.max(0, Math.min(1, data.mouth));
-                    }
-                }
-            } catch (e) {}
-
-            state.lipMouth = THREE.MathUtils.lerp(state.lipMouth, target, Math.min(1, 18 * dt));
-            const m = state.lipMouth;
-            const em = currentVrm.expressionManager;
-            // Simple vowel mix from level — good enough without phoneme timing
-            em.setValue('aa', Math.min(1, m * 1.1));
-            em.setValue('oh', Math.min(1, m * 0.5));
-            em.setValue('ih', Math.min(1, m * 0.15));
-            if (m < 0.03) {
-                // Let emotion system reclaim mouth when silent (handled next frames)
-            }
         }
 
         function animate(now) {
@@ -296,7 +270,6 @@
 
             if (currentVrm) {
                 updateEmotions(safeDt);
-                updateLipsync(safeDt);
 
                 const timeSinceMouse = (now - lastMouseMoveTime) / 1000;
                 let tx, ty;
@@ -393,7 +366,7 @@
             const input = document.getElementById('fileInput');
             input.addEventListener('change', (e) => { const f = e.target.files[0]; if (f) loadVRM(URL.createObjectURL(f)); });
             window.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('active'); });
-            window.addEventListener('dragleave', () => dz.classList.remove('active'));
+            window.addEventListener('dragleave', () => { dz.classList.remove('active'); });
             window.addEventListener('drop', (e) => {
                 e.preventDefault();
                 dz.classList.remove('active');
@@ -405,4 +378,5 @@
         init();
     </script>
 </body>
+
 </html>
