@@ -289,8 +289,8 @@
 
             // Safe band matching happy preset (ih/aa only)
             const lipIh = Math.min(0.8, m * 0.95);
-            const lipAa = Math.min(0.28, m * 0.32);
-            const W = 0.65;
+            const lipAa = Math.min(0.28, m * 0.52);
+            const W = 0.90;
             const finalIh = state.emoIh * (1 - W) + lipIh * W;
             const finalAa = state.emoAa * (1 - W) + lipAa * W;
 
