@@ -1,5 +1,5 @@
 /**
- * KittenTTS loader + lipsync tap on playback.
+ * KittenTTS loader + lipsync + non-blocking synthesis yields.
  */
 (function () {
     'use strict';
@@ -15,6 +15,43 @@
             s.onerror = resolve;
             document.head.appendChild(s);
         });
+    }
+
+    function yieldToMain() {
+        return new Promise(function (resolve) {
+            // Prefer rAF so the VRM iframe can paint between jobs
+            if (typeof requestAnimationFrame === 'function') {
+                requestAnimationFrame(function () { setTimeout(resolve, 0); });
+            } else {
+                setTimeout(resolve, 0);
+            }
+        });
+    }
+
+    function hookNonBlocking(tts) {
+        if (!tts || tts.__nonBlockHooked) return;
+        tts.__nonBlockHooked = true;
+
+        // One job at a time keeps the main thread responsive during ONNX
+        if (tts.config) tts.config.concurrency = 1;
+
+        var origRun = tts._runJob.bind(tts);
+        tts._runJob = async function (job) {
+            await yieldToMain();
+            if (tts._interrupted) return;
+            return origRun(job);
+        };
+
+        // Also yield between generator pump kicks
+        var origPump = tts._pumpGenerators.bind(tts);
+        tts._pumpGenerators = function () {
+            if (tts._activeJobs > 0) return;
+            if (!tts._textQueue || tts._textQueue.length === 0) return;
+            // Schedule next job after a paint so avatar does not freeze mid-synth
+            yieldToMain().then(function () {
+                if (!tts._interrupted) origPump();
+            });
+        };
     }
 
     function hookPlayback(tts) {
@@ -45,9 +82,6 @@
                 source.onended = finish;
             }
 
-            if (tts.config && tts.config.debug) {
-                console.log('[KittenTTS] ▶ Playing segment (' + buffer.duration.toFixed(2) + 's) [lipsync]');
-            }
             source.start();
         };
 
@@ -84,8 +118,8 @@
             var ttsSettings = {
                 voiceUrl: 'https://76836.github.io/AkariNet-KittenTTS/default.bin',
                 speed: 1.123,
-                concurrency: 2,
-                segmentMax: 220,
+                concurrency: 1,
+                segmentMax: 180,
                 debug: false
             };
 
@@ -95,13 +129,14 @@
                 var poll = setInterval(function () {
                     if (window.tts && window.tts.isReady) {
                         clearInterval(poll);
+                        hookNonBlocking(window.tts);
                         hookPlayback(window.tts);
                         resolve();
                     }
                 }, 100);
             });
 
-            console.log('[TTS] KittenTTS ready (lipsync enabled).');
+            console.log('[TTS] KittenTTS ready (lipsync + non-blocking).');
 
             if (window._speechQueue.length > 0) {
                 window._speechQueue.forEach(function (text) { window.tts.speak(text); });

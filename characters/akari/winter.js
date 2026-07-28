@@ -8,8 +8,8 @@ loadscreen("(5th revision) Loading Akari's VRM...");
 
   var thehtml = `
   <style>.avatariframe { width:100%; height:100%; position:fixed; left:0; top:0; z-index:1; border:0; }</style>
-  <iframe src="./engine/AkariNet-VRM?modelUrl=https://76836.github.io/Akari/characters/7950737695103985735.vrm&debug=false" class="avatariframe"></iframe>
-  `;//weird that it seemed to work last time with the .html extension, i wonder if i'm breaking it now...
+  <iframe src="./engine/AkariNet-VRM-v2?modelUrl=https://76836.github.io/Akari/characters/7950737695103985735.vrm&debug=false" class="avatariframe"></iframe>
+  `;
   if (document.getElementById('avatar')) document.getElementById('avatar').innerHTML = thehtml;
 
   let lastValue = localStorage.getItem('emote');
@@ -41,20 +41,13 @@ loadscreen("(5th revision) Loading Akari's VRM...");
       idleInterval = setInterval(() => {
         const roll = Math.random() * 100;
         
-        // 25% Chance: Do nothing (0 - 25)
         if (roll < 25) {
             console.log("AkariNet Idle: Roll " + roll.toFixed(1) + " (No change)");
-        } 
-        // 15% Chance: Happy (25 - 40)
-        else if (roll < 40) {
+        } else if (roll < 40) {
             setEmote('happy');
-        } 
-        // 40% Chance: Neutral (40 - 80)
-        else if (roll < 80) {
+        } else if (roll < 80) {
             setEmote('neutral');
-        } 
-        // 20% Chance: Confused (80 - 100)
-        else {
+        } else {
             setEmote('confused');
         }
       }, ${IDLE_WAIT_TIME});
@@ -89,7 +82,6 @@ loadscreen("(5th revision) Loading Akari's VRM...");
       processSequence(event.detail);
     });
 
-    // Startup sequence
     setEmote('love');
     startIdleLoop();
   `;
