@@ -1,7 +1,8 @@
 /**
- * AKARINET AUDIO CONSOLE — ADAPTER v4.1
- * Bridges AkariNet Audio Console v4.1.0 into the Akari PWA UI.
+ * AKARINET AUDIO CONSOLE — ADAPTER v4.1.1
+ * Bridges AkariNet Audio Console v4.1.1 into the Akari PWA UI.
  * Includes autopilot status updates for wake / listen / process / downloads.
+ * v4.1.1: Firefox-safe AudioBus (hardware-rate context + worklet resample).
  */
 
 (function () {
@@ -218,7 +219,7 @@
             <div id="ac41-buf-info" style="opacity:.7;font-size:11px;margin-bottom:10px;">Buffer: —</div>
             <input type="range" id="ac41-play-slider" min="1" max="60" value="10">
             <button id="ac41-play-btn">Play last N s</button>
-            <button id="ac41-send-btn">Transcribe &amp; Send</button>
+            <button id="ac41-send-btn">Transcribe & Send</button>
             <button id="ac41-save-btn">Download WAV</button>
             <div id="ac41-send-msg" style="font-size:11px;color:#ffcc66;min-height:14px;"></div>
         `;
@@ -284,7 +285,7 @@
         const script = document.createElement('script');
         script.type = 'module';
         script.textContent = `
-            import { AkarinetVoice } from 'https://76836.github.io/AkariNet-AudioConsole/audioConsole-4.1.0.js';
+            import { AkarinetVoice } from 'https://76836.github.io/AkariNet-AudioConsole/audioConsole-4.1.1.js';
             const config = ${JSON.stringify(config)};
             const assistant = new AkarinetVoice(config);
             window.__ac41Voice = assistant;
@@ -309,9 +310,9 @@
     window.addEventListener('audioConsoleReady', () => {
         apDownloadEnd('Audio Console ready');
         apStatus('Audio Console ready', { busy: false, idle: true });
-        if (window.loadscreen) window.loadscreen('AkariNet Audio Console v4.1 ready.');
+        if (window.loadscreen) window.loadscreen('AkariNet Audio Console v4.1.1 ready.');
         if (window.app?.notify) {
-            app.notify('AkariNet', 'Audio Console v4.1 started successfully!', {
+            app.notify('AkariNet', 'Audio Console v4.1.1 started successfully!', {
                 borderColors: ['#00ccff', '#00FF00']
             });
         }
@@ -359,7 +360,7 @@
         };
     }
 
-    if (window.loadscreen) window.loadscreen('AkariNet Audio Console v4.1 starting up...');
+    if (window.loadscreen) window.loadscreen('AkariNet Audio Console v4.1.1 starting up...');
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initAudioConsole);
     } else {
