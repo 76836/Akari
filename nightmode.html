@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AkariNet Night Mode</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #050508;
+  --text: #e8f0f0;
+  --dim: rgba(200, 230, 230, 0.55);
+  --cyan: #00c8c8;
+  --cyan-dim: rgba(0, 200, 200, 0.25);
+  --panel: rgba(12, 18, 22, 0.72);
+  --border: rgba(0, 200, 200, 0.18);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: var(--bg); color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-user-select: none; user-select: none;
+  touch-action: manipulation;
+}
+body {
+  display: flex; flex-direction: column;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 80, 90, 0.35), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(20, 0, 40, 0.4), transparent),
+    var(--bg);
+}
+
+/* Main clock area */
+.clock-area {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px 16px 12px; min-height: 0;
+}
+.time {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: clamp(3.2rem, 14vw, 7.5rem);
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-shadow: 0 0 40px rgba(0, 200, 200, 0.35), 0 0 80px rgba(0, 120, 140, 0.15);
+  color: #f0ffff;
+}
+.seconds {
+  font-size: 0.38em; opacity: 0.55; font-weight: 500;
+  vertical-align: super; margin-left: 0.15em;
+}
+.date {
+  margin-top: 14px;
+  font-size: clamp(0.85rem, 3.2vw, 1.25rem);
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--dim); font-weight: 500;
+}
+.ampm {
+  font-size: 0.28em; opacity: 0.5; margin-left: 0.2em;
+  font-weight: 500; letter-spacing: 0.05em;
+}
+
+/* Controls */
+.controls {
+  flex-shrink: 0;
+  padding: 0 16px 8px;
+  display: flex; flex-direction: column; gap: 10px;
+  max-width: 480px; width: 100%; margin: 0 auto;
+}
+.noise-row {
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+}
+.noise-btn {
+  flex: 1; min-width: 72px; max-width: 110px;
+  padding: 10px 8px; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--border);
+  color: var(--text); font-family: inherit; font-size: 0.8rem;
+  cursor: pointer; transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.noise-btn:hover { border-color: var(--cyan-dim); }
+.noise-btn.active {
+  background: rgba(0, 100, 110, 0.45);
+  border-color: var(--cyan);
+  box-shadow: 0 0 18px rgba(0, 200, 200, 0.2);
+  color: #a0ffff;
+}
+.volume-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; padding: 8px 14px;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.volume-row label { font-size: 0.75rem; color: var(--dim); min-width: 52px; }
+.volume-row input[type=range] {
+  flex: 1; -webkit-appearance: none; appearance: none;
+  height: 4px; border-radius: 2px; background: rgba(255,255,255,0.15);
+  outline: none;
+}
+.volume-row input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--cyan); cursor: pointer; box-shadow: 0 0 8px rgba(0,200,200,0.5);
+}
+.keep-row {
+  display: flex; justify-content: center; gap: 10px;
+}
+.toggle-pill {
+  padding: 8px 16px; border-radius: 20px;
+  background: var(--panel); border: 1px solid var(--border);
+  color: var(--dim); font-size: 0.75rem; cursor: pointer;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  transition: all 0.15s;
+}
+.toggle-pill.on {
+  color: #a0ffff; border-color: var(--cyan);
+  background: rgba(0, 80, 90, 0.4);
+}
+
+/* Exit bar */
+.exit-bar {
+  flex-shrink: 0;
+  width: 100%; padding: 14px 16px 18px;
+  background: linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.4));
+  display: flex; justify-content: center;
+}
+.exit-btn {
+  width: 100%; max-width: 420px;
+  padding: 14px 20px; border-radius: 14px;
+  background: rgba(20, 30, 35, 0.9);
+  border: 1px solid rgba(0, 180, 180, 0.35);
+  color: #b0e8e8; font-family: 'Orbitron', sans-serif;
+  font-size: 0.85rem; letter-spacing: 0.08em;
+  cursor: pointer; transition: background 0.15s, border-color 0.15s;
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+}
+.exit-btn:hover, .exit-btn:active {
+  background: rgba(0, 70, 80, 0.6);
+  border-color: var(--cyan);
+}
+
+.status {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  font-size: 0.7rem; color: var(--dim); letter-spacing: 0.06em;
+  opacity: 0.7; pointer-events: none;
+}
+</style>
+</head>
+<body>
+  <div class="status" id="status"></div>
+
+  <div class="clock-area">
+    <div class="time" id="time">00:00<span class="seconds" id="secs">00</span><span class="ampm" id="ampm"></span></div>
+    <div class="date" id="date">—</div>
+  </div>
+
+  <div class="controls">
+    <div class="noise-row">
+      <button class="noise-btn" data-type="off" id="btn-off">Off</button>
+      <button class="noise-btn" data-type="bass" id="btn-bass">Bass</button>
+      <button class="noise-btn" data-type="blanket" id="btn-blanket">Blanket</button>
+      <button class="noise-btn" data-type="rain" id="btn-rain">Rain</button>
+    </div>
+    <div class="volume-row">
+      <label>Volume</label>
+      <input type="range" id="volume" min="0" max="100" value="35">
+    </div>
+    <div class="keep-row">
+      <button class="toggle-pill" id="keepAwake">Keep awake</button>
+      <button class="toggle-pill" id="fmt12">12h</button>
+    </div>
+  </div>
+
+  <div class="exit-bar">
+    <button class="exit-btn" id="exitBtn">Back to Akari</button>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ——— Clock ———
+  let use12h = localStorage.getItem('nm_12h') === 'true';
+  const timeEl = document.getElementById('time');
+  const secsEl = document.getElementById('secs');
+  const ampmEl = document.getElementById('ampm');
+  const dateEl = document.getElementById('date');
+
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function tick() {
+    const d = new Date();
+    let h = d.getHours();
+    const m = d.getMinutes();
+    const s = d.getSeconds();
+    let ampm = '';
+    if (use12h) {
+      ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+    }
+    // rebuild time node carefully so seconds stay styled
+    timeEl.innerHTML = pad(h) + ':' + pad(m) +
+      '<span class="seconds" id="secs">' + pad(s) + '</span>' +
+      (use12h ? '<span class="ampm" id="ampm">' + ampm + '</span>' : '');
+
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    dateEl.textContent = days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate();
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  document.getElementById('fmt12').addEventListener('click', function () {
+    use12h = !use12h;
+    localStorage.setItem('nm_12h', use12h ? 'true' : 'false');
+    this.classList.toggle('on', use12h);
+    tick();
+  });
+  if (use12h) document.getElementById('fmt12').classList.add('on');
+
+  // ——— White noise (kept inside this frame; frame is never destroyed in night mode) ———
+  let audioCtx = null;
+  let noiseNodes = [];
+  let gainNode = null;
+  let currentType = localStorage.getItem('nm_noise') || 'off';
+  let volume = parseInt(localStorage.getItem('nm_vol') || '35', 10);
+
+  function ensureAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    gainNode = audioCtx.createGain();
+    gainNode.gain.value = volume / 100;
+    gainNode.connect(audioCtx.destination);
+  }
+
+  function stopNoise() {
+    noiseNodes.forEach(n => { try { n.stop(); n.disconnect(); } catch(e){} });
+    noiseNodes = [];
+  }
+
+  function createBufferNoise(type) {
+    ensureAudio();
+    stopNoise();
+    if (type === 'off') return;
+
+    const bufferSize = 2 * audioCtx.sampleRate;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    if (type === 'bass') {
+      // low brown-ish noise
+      let last = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        data[i] = (last + (0.02 * white)) / 1.02;
+        last = data[i];
+        data[i] *= 3.5;
+      }
+    } else if (type === 'blanket') {
+      // soft pink-ish
+      let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        b3 = 0.86650 * b3 + white * 0.3104856;
+        b4 = 0.55000 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.0168980;
+        data[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+        data[i] *= 0.11;
+        b6 = white * 0.115926;
+      }
+    } else if (type === 'rain') {
+      // filtered noise + occasional drops
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * 0.4;
+        if (Math.random() < 0.0008) data[i] += (Math.random() * 2 - 1) * 0.6;
+      }
+    }
+
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+
+    // gentle lowpass for rain / bass
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = type === 'bass' ? 180 : (type === 'rain' ? 2200 : 8000);
+    filter.Q.value = 0.7;
+
+    source.connect(filter);
+    filter.connect(gainNode);
+    source.start(0);
+    noiseNodes.push(source);
+  }
+
+  function setNoise(type) {
+    currentType = type;
+    localStorage.setItem('nm_noise', type);
+    document.querySelectorAll('.noise-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.type === type);
+    });
+    if (type === 'off') stopNoise();
+    else createBufferNoise(type);
+  }
+
+  document.querySelectorAll('.noise-btn').forEach(btn => {
+    btn.addEventListener('click', () => setNoise(btn.dataset.type));
+  });
+  document.getElementById('volume').value = volume;
+  document.getElementById('volume').addEventListener('input', function () {
+    volume = parseInt(this.value, 10);
+    localStorage.setItem('nm_vol', String(volume));
+    if (gainNode) gainNode.gain.value = volume / 100;
+  });
+
+  // restore previous noise
+  if (currentType && currentType !== 'off') {
+    // need user gesture on some browsers — try anyway, user can re-tap
+    try { setNoise(currentType); } catch(e) {}
+  } else {
+    document.getElementById('btn-off').classList.add('active');
+  }
+
+  // ——— Keep awake (Wake Lock API + fallback) ———
+  let wakeLock = null;
+  let keepOn = localStorage.getItem('nm_keep') === 'true';
+  const keepBtn = document.getElementById('keepAwake');
+
+  async function requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => { /* silent */ });
+      }
+    } catch (e) {}
+  }
+  function releaseWakeLock() {
+    if (wakeLock) { try { wakeLock.release(); } catch(e){} wakeLock = null; }
+  }
+
+  keepBtn.addEventListener('click', async function () {
+    keepOn = !keepOn;
+    localStorage.setItem('nm_keep', keepOn ? 'true' : 'false');
+    this.classList.toggle('on', keepOn);
+    if (keepOn) await requestWakeLock();
+    else releaseWakeLock();
+  });
+  if (keepOn) {
+    keepBtn.classList.add('on');
+    requestWakeLock();
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (keepOn && document.visibilityState === 'visible') requestWakeLock();
+  });
+
+  // ——— Exit to Akari ———
+  document.getElementById('exitBtn').addEventListener('click', function () {
+    try {
+      parent.postMessage({ type: 'akari-exit-nightmode' }, '*');
+    } catch (e) {}
+  });
+
+  // Status hint from parent (optional)
+  window.addEventListener('message', function (e) {
+    if (e.data && e.data.channel === 'akarinet-autopilot') {
+      const st = document.getElementById('status');
+      if (e.data.text) st.textContent = e.data.text;
+      else st.textContent = '';
+    }
+  });
+})();
+</script>
+</body>
+</html>
