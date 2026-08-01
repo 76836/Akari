@@ -108,9 +108,8 @@
         var end = parseTimeToMinutes(localStorage.getItem('selectedNightModeEnd') || '07:00');
         var now = new Date();
         var cur = now.getHours() * 60 + now.getMinutes();
-        if (start === end) return true; // 24h
+        if (start === end) return true;
         if (start < end) return cur >= start && cur < end;
-        // wraps midnight
         return cur >= start || cur < end;
     }
 
@@ -121,6 +120,21 @@
 
     function shouldExitOnWake() {
         return localStorage.getItem('selectedNightModeExitWake') !== 'false';
+    }
+
+    function shouldFullscreenLock() {
+        return localStorage.getItem('selectedNightModeFullscreen') === 'true';
+    }
+
+    function tryRequestFullscreen() {
+        if (!shouldFullscreenLock()) return;
+        if (!(state.nightModeActive || (window.app && app.screensaverActive && isInsideNightWindow()))) return;
+        try {
+            var el = document.documentElement;
+            if (document.fullscreenElement || document.webkitFullscreenElement) return;
+            var req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+            if (req) req.call(el).catch(function () {});
+        } catch (e) {}
     }
 
     function isNightModeUrl(url) {
@@ -136,7 +150,6 @@
         var AUTOPILOT = AUTOPILOT_URL;
 
         app.core.getScreensaverConfig = function () {
-            // Night Mode temporary override
             if (state.nightModeActive || (isInsideNightWindow() && !state.forcedScreensaver)) {
                 return {
                     enabled: true,
@@ -175,7 +188,6 @@
                 ifr.src = url;
                 container.appendChild(ifr);
             }
-            // Only add the input shield for non-interactive screensavers
             var interactive = opts.interactive || isNightModeUrl(url);
             if (!interactive) {
                 var inputShield = document.createElement('div');
@@ -200,6 +212,7 @@
             container.classList.add('active');
             app.screensaverActive = true;
             window.emit && window.emit('screensaver_shown', { url: cfg.url, nightMode: !!cfg.isNightMode, timestamp: Date.now() });
+            if (cfg.isNightMode) tryRequestFullscreen();
             setTimeout(function () { publish(state.lastStatus); }, 300);
         };
 
@@ -233,7 +246,6 @@
             var wasNight = state.nightModeActive || cfg.isNightMode;
 
             container.classList.remove('active');
-            // Keep iframe alive for night mode / background behavior
             if ((cfg.behavior !== 'background' && !wasNight) || state.forcedScreensaver) {
                 container.innerHTML = '';
             }
@@ -241,7 +253,6 @@
             app.screensaverActive = false;
             window.emit && window.emit('screensaver_hidden', { source: source, nightMode: wasNight, timestamp: Date.now() });
 
-            // Schedule night mode restore if still inside window
             if (wasNight && isInsideNightWindow()) {
                 clearTimeout(state.nightModeRestoreTimer);
                 state.nightModeRestoreTimer = setTimeout(function () {
@@ -274,14 +285,16 @@
             var cfg = app.core.getScreensaverConfig();
             var isNight = state.nightModeActive || cfg.isNightMode;
 
-            // Night mode: only hide on explicit exit or wake-word (if enabled)
+            if (isNight && source !== 'init') {
+                tryRequestFullscreen();
+            }
+
             if (isNight && app.screensaverActive) {
                 var isWake = source === 'akari:user-input' || source === 'wake-word' || source === 'speech';
                 var isExit = source === 'nightmode-button';
                 if (isExit || (isWake && shouldExitOnWake())) {
                     app.core.hideScreensaver(source);
                 }
-                // normal taps / keys do nothing while night mode is showing
             } else if (source !== 'init') {
                 app.core.hideScreensaver(source);
             }
@@ -291,13 +304,11 @@
                 return;
             }
 
-            // Only re-arm normal idle timer when not inside night window
             if (!isInsideNightWindow()) {
                 app.core.armUserScreensaver();
             }
         };
 
-        // Listen for exit message from nightmode.html
         if (!app.core.__nightMsgBound) {
             app.core.__nightMsgBound = true;
             window.addEventListener('message', function (e) {
@@ -307,7 +318,6 @@
             });
         }
 
-        // Periodic night-window check (every 30s)
         if (!app.core.__nightPoll) {
             app.core.__nightPoll = setInterval(function () {
                 if (state.downloadCount > 0 || state.forcedScreensaver) return;
@@ -317,7 +327,6 @@
                         app.core.showScreensaver();
                     }
                 } else if (state.nightModeActive && app.screensaverActive) {
-                    // left the window — hide and clear night flag
                     state.nightModeActive = false;
                     app.core.hideScreensaver('night-window-end');
                     app.core.armUserScreensaver();
@@ -325,7 +334,6 @@
             }, 30000);
         }
 
-        // Reliable mobile + desktop activity listeners (capture so nothing eats the event)
         if (!app.core.__ssListenersBound) {
             app.core.__ssListenersBound = true;
             var activityEvents = [
@@ -357,7 +365,6 @@
             });
         };
 
-        // Initial arm / night check
         if (isInsideNightWindow()) {
             state.nightModeActive = true;
             setTimeout(function () { app.core.showScreensaver(); }, 800);
