@@ -16,7 +16,6 @@ html, body {
 }
 body { display: flex; flex-direction: column; }
 
-/* Clock */
 .clock-area {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
@@ -54,7 +53,6 @@ body { display: flex; flex-direction: column; }
 }
 .alarm-countdown.show { display: block; }
 
-/* Drawer (noise + controls) */
 .drawer {
   flex-shrink: 0;
   max-height: 0;
@@ -63,7 +61,7 @@ body { display: flex; flex-direction: column; }
   background: #000;
   border-top: 1px solid #fff;
 }
-.drawer.open { max-height: 320px; }
+.drawer.open { max-height: 360px; }
 .drawer-inner {
   padding: 14px 16px 10px;
   max-width: 480px; width: 100%; margin: 0 auto;
@@ -86,7 +84,7 @@ body { display: flex; flex-direction: column; }
   display: flex; align-items: center; gap: 10px;
 }
 .slider-row label {
-  font-size: 0.72rem; color: #fff; min-width: 64px; opacity: 0.9;
+  font-size: 0.72rem; color: #fff; min-width: 72px; opacity: 0.9;
 }
 .slider-row input[type=range] {
   flex: 1; -webkit-appearance: none; appearance: none;
@@ -105,7 +103,6 @@ body { display: flex; flex-direction: column; }
   padding-bottom: 2px;
 }
 
-/* Exit bar — always visible */
 .exit-bar {
   flex-shrink: 0;
   width: 100%; padding: 12px 16px 16px;
@@ -123,16 +120,25 @@ body { display: flex; flex-direction: column; }
 }
 .exit-btn:active { background: #fff; color: #000; }
 
-/* Tap hint on clock when drawer closed */
 .tap-hint {
   position: absolute; bottom: 72px; left: 50%; transform: translateX(-50%);
   font-size: 0.65rem; opacity: 0; pointer-events: none;
   transition: opacity 0.3s; letter-spacing: 0.06em;
 }
 .tap-hint.show { opacity: 0.4; }
+
+/* Brightness dimmer — pointer-events none so touches pass through */
+#dimOverlay {
+  position: fixed; inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
 </style>
 </head>
 <body>
+  <div id="dimOverlay"></div>
   <div class="clock-area" id="clockArea">
     <div class="time" id="time">12:00<span class="seconds">00</span><span class="ampm">AM</span></div>
     <div class="date" id="date">—</div>
@@ -165,6 +171,11 @@ body { display: flex; flex-direction: column; }
         <input type="range" id="bass" min="0" max="100" value="20">
         <span class="val" id="bassVal">20</span>
       </div>
+      <div class="slider-row">
+        <label>Brightness</label>
+        <input type="range" id="bright" min="5" max="100" value="100">
+        <span class="val" id="brightVal">100</span>
+      </div>
       <div class="drawer-hint">tap clock again to hide</div>
     </div>
   </div>
@@ -177,16 +188,14 @@ body { display: flex; flex-direction: column; }
 (function () {
   'use strict';
 
-  // ——— State persistence keys ———
   var K = {
     noise: 'nm_noise',
     vol: 'nm_vol',
     filter: 'nm_filter',
     bass: 'nm_bass',
-    playing: 'nm_playing'   // was noise actually running last session
+    playing: 'nm_playing'
   };
 
-  // ——— Clock (always 12h) ———
   var timeEl = document.getElementById('time');
   var dateEl = document.getElementById('date');
   var alarmEl = document.getElementById('alarmCountdown');
@@ -213,7 +222,6 @@ body { display: flex; flex-direction: column; }
   tick();
   setInterval(tick, 1000);
 
-  // ——— Drawer ———
   var drawer = document.getElementById('drawer');
   var tapHint = document.getElementById('tapHint');
   var drawerOpen = false;
@@ -235,16 +243,13 @@ body { display: flex; flex-direction: column; }
     if (drawerOpen) closeDrawer();
     else openDrawer();
   });
-  // keep drawer open while adjusting sliders
   drawer.addEventListener('pointerdown', function () {
     clearTimeout(hideTimer);
     hideTimer = setTimeout(closeDrawer, 12000);
   });
-  // show hint briefly on load
   setTimeout(function () { if (!drawerOpen) tapHint.classList.add('show'); }, 1500);
   setTimeout(function () { tapHint.classList.remove('show'); }, 5000);
 
-  // ——— White noise engine ———
   var audioCtx = null;
   var sourceNode = null;
   var filterNode = null;
@@ -268,7 +273,7 @@ body { display: flex; flex-direction: column; }
     bassNode = audioCtx.createBiquadFilter();
     bassNode.type = 'lowshelf';
     bassNode.frequency.value = 200;
-    bassNode.gain.value = (bassAmt / 100) * 12; // 0–12 dB
+    bassNode.gain.value = (bassAmt / 100) * 12;
     filterNode.connect(bassNode);
     bassNode.connect(gainNode);
     gainNode.connect(audioCtx.destination);
@@ -314,7 +319,7 @@ body { display: flex; flex-direction: column; }
         data[i] = (Math.random()*2-1) * 0.4;
         if (Math.random() < 0.0008) data[i] += (Math.random()*2-1)*0.6;
       }
-    } else { // white
+    } else {
       for (var i = 0; i < len; i++) data[i] = Math.random()*2 - 1;
     }
     return buf;
@@ -351,7 +356,6 @@ body { display: flex; flex-direction: column; }
     });
   });
 
-  // Sliders
   var volEl = document.getElementById('vol');
   var filterEl = document.getElementById('filter');
   var bassEl = document.getElementById('bass');
@@ -381,16 +385,31 @@ body { display: flex; flex-direction: column; }
     if (bassNode) bassNode.gain.value = (bassAmt / 100) * 12;
   });
 
-  // Restore last noise state on load
+  // Brightness dimmer (black overlay, pointer-events: none)
+  var brightEl = document.getElementById('bright');
+  var dimOverlay = document.getElementById('dimOverlay');
+  var brightness = parseInt(localStorage.getItem('nm_bright') || '100', 10);
+  brightness = Math.max(5, Math.min(100, brightness));
+  brightEl.value = brightness;
+  document.getElementById('brightVal').textContent = brightness;
+  function applyBrightness(v) {
+    dimOverlay.style.opacity = String(1 - (v / 100));
+  }
+  applyBrightness(brightness);
+  brightEl.addEventListener('input', function () {
+    brightness = parseInt(this.value, 10);
+    localStorage.setItem('nm_bright', String(brightness));
+    document.getElementById('brightVal').textContent = brightness;
+    applyBrightness(brightness);
+  });
+
   document.querySelectorAll('.noise-btn').forEach(function (b) {
     b.classList.toggle('active', b.dataset.type === currentType);
   });
   if (wasPlaying && currentType && currentType !== 'off') {
-    // browsers often require a gesture; try anyway, user can retap if blocked
     try { startNoise(currentType); } catch (e) {}
   }
 
-  // ——— Keep awake (controlled from settings) ———
   var wakeLock = null;
   function requestWakeLock() {
     if (!('wakeLock' in navigator)) return;
@@ -405,7 +424,6 @@ body { display: flex; flex-direction: column; }
   function syncKeepAwake() {
     var keep = localStorage.getItem('selectedNightModeKeepAwake') === 'true';
     var hasAlarm = hasActiveAlarm();
-    // alarm forces keep-awake
     if (keep || hasAlarm) requestWakeLock();
     else releaseWakeLock();
   }
@@ -413,11 +431,9 @@ body { display: flex; flex-direction: column; }
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible') syncKeepAwake();
   });
-  // re-check when storage might change from settings
   window.addEventListener('storage', syncKeepAwake);
   setInterval(syncKeepAwake, 15000);
 
-  // ——— Alarm ———
   function getAlarmConfig() {
     try {
       return JSON.parse(localStorage.getItem('selectedNightModeAlarm') || 'null');
@@ -428,12 +444,10 @@ body { display: flex; flex-direction: column; }
     var a = getAlarmConfig();
     if (!a || !a.enabled) return false;
     if (a.pausedTonight) {
-      // paused only for current calendar night (until noon next day)
       var now = new Date();
       var pauseDay = a.pausedDate || '';
       var today = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate());
       if (pauseDay === today && now.getHours() < 12) return false;
-      // past pause window — clear pause
       if (pauseDay !== today) {
         a.pausedTonight = false;
         a.pausedDate = null;
@@ -448,7 +462,7 @@ body { display: flex; flex-direction: column; }
     if (!a || !a.enabled || !hasActiveAlarm()) return null;
     var hour = a.hour | 0;
     var minute = a.minute | 0;
-    var days = a.days; // array of 0-6 (Sun-Sat), empty = every day
+    var days = a.days;
     var d = new Date(from.getTime());
     for (var i = 0; i < 8; i++) {
       var candidate = new Date(d.getFullYear(), d.getMonth(), d.getDate() + i, hour, minute, 0, 0);
@@ -477,8 +491,6 @@ body { display: flex; flex-direction: column; }
     else label += s + 's';
     alarmEl.textContent = label;
     alarmEl.classList.add('show');
-
-    // fire
     if (ms < 1500 && ms >= 0) fireAlarm();
   }
 
@@ -486,7 +498,6 @@ body { display: flex; flex-direction: column; }
   function fireAlarm() {
     if (alarmFired) return;
     alarmFired = true;
-    // simple loud tone burst
     try {
       ensureAudio();
       var osc = audioCtx.createOscillator();
@@ -506,20 +517,16 @@ body { display: flex; flex-direction: column; }
         setTimeout(function () { osc2.stop(); }, 400);
       }, 500);
     } catch (e) {}
-    // notify parent so future Akari integration can hook in
     try {
       parent.postMessage({ type: 'akari-nightmode-alarm', time: Date.now() }, '*');
     } catch (e) {}
-    // reset flag after a minute so recurring can fire next day
     setTimeout(function () { alarmFired = false; }, 60000);
   }
 
-  // ——— Exit ———
   document.getElementById('exitBtn').addEventListener('click', function () {
     try { parent.postMessage({ type: 'akari-exit-nightmode' }, '*'); } catch (e) {}
   });
 
-  // parent status (optional)
   window.addEventListener('message', function (e) {
     if (e.data && e.data.channel === 'akarinet-autopilot') { /* reserved */ }
   });
