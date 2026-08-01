@@ -207,57 +207,13 @@
                     <div class="link-menu-header">Intelligence (AI)</div>
                 </div>
 
+                <div class="link-menu" onclick="window.location.href = './customization';">
+                    <div class="link-menu-header">Customization (wallpaper, screensaver, night mode)</div>
+                </div>
+
                 <div class="link-menu" onclick="window.location.href = 'https://76836.github.io/AkariNet-Automata/automatonManager.html';">
                     <div class="link-menu-header">Automata Manager</div>
                 </div>
-
-                <details>
-                    <summary>Wallpaper</summary>
-                    <div class="content">
-                        <p class="hint">Choose a background image or live page.</p>
-                        <div class="grid-2">
-                            <button class="setbutton" onclick="handlePreview('https://76836.github.io/Akari/wallpapers/luna.png')">Luna</button>
-                            <button class="setbutton" onclick="handlePreview('https://76836.github.io/Akari/wallpapers/colors.jpg')">Colors</button>
-                            <button class="setbutton" onclick="handlePreview('https://76836.github.io/Akari/wallpapers/backdrop.png')">Backdrop</button>
-                            <button class="setbutton" onclick="handlePreview('https://76836.github.io/Akari/wallpapers/Foreshadowing.jpg')">Foreshadowing</button>
-                            <button class="setbutton" onclick="handlePreview('https://76836.github.io/bubbles')">Bubbles (live)</button>
-                            <button class="setbutton" onclick="handlePreview('https://76836.github.io/squares')">Squares (live)</button>
-                        </div>
-                        <p class="hint" style="margin-top:12px;">Or paste any image / page URL</p>
-                        <input class="box" id="bkgurl" placeholder="https://..." type="text">
-                        <button class="setbutton primary" onclick="handlePreview(document.getElementById('bkgurl').value)">Preview & apply</button>
-                    </div>
-                </details>
-
-                <details>
-                    <summary>Screensaver</summary>
-                    <div class="content">
-                        <p class="hint">Shows after inactivity and closes when you interact again.</p>
-                        <div class="row">
-                            <span>Enable screensaver</span>
-                            <label class="switch">
-                                <input type="checkbox" id="screensaverenabled">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="grid-2">
-                            <button class="setbutton" onclick="document.getElementById('screensaverurl').value='https://76836.github.io/Akari/wallpapers/luna.png'">Luna</button>
-                            <button class="setbutton" onclick="document.getElementById('screensaverurl').value='https://76836.github.io/Akari/wallpapers/colors.jpg'">Colors</button>
-                            <button class="setbutton" onclick="document.getElementById('screensaverurl').value='https://76836.github.io/bubbles'">Bubbles (live)</button>
-                            <button class="setbutton" onclick="document.getElementById('screensaverurl').value='https://76836.github.io/squares'">Squares (live)</button>
-                            <button class="setbutton" onclick="document.getElementById('screensaverurl').value='https://76836.github.io/Akari/engine/autopilot/status'">Autopilot status</button>
-                        </div>
-                        <input class="box" id="screensaverurl" placeholder="https://... (blank = wallpaper)" type="text">
-                        <label class="hint" style="display:block;margin-top:10px;">Inactivity delay (seconds)</label>
-                        <input class="box" id="screensavertimeout" type="number" min="10" step="5" placeholder="120">
-                        <label class="hint" style="display:block;margin-top:10px;">When you return</label>
-                        <select id="screensaverbehavior" class="select-input">
-                            <option value="destroy">Destroy screensaver (default)</option>
-                            <option value="background">Keep in background (faster)</option>
-                        </select>
-                        <button class="setbutton primary" onclick="saveScreensaverSettings()">Save screensaver</button>
-                    </div>
-                </details>
 
                 <details>
                     <summary>Character & listening scripts</summary>
@@ -358,11 +314,6 @@
 
             document.getElementById('avatarurl').value = (avatar === 'off' || !avatar) ? '' : avatar;
             document.getElementById('wakeurl').value = (wake === 'off' || !wake) ? '' : wake;
-            document.getElementById('bkgurl').value = localStorage.getItem('selectedBKGURL') || '';
-            document.getElementById('screensaverurl').value = localStorage.getItem('selectedScreensaverURL') || '';
-            document.getElementById('screensavertimeout').value = localStorage.getItem('selectedScreensaverTimeout') || '120';
-            document.getElementById('screensaverbehavior').value = localStorage.getItem('selectedScreensaverResumeBehavior') || 'destroy';
-            document.getElementById('screensaverenabled').checked = localStorage.getItem('selectedScreensaverEnabled') === 'true';
 
             document.getElementById('toggle_avatar').checked = !!(avatar && avatar !== 'off');
             document.getElementById('toggle_wake').checked = !!(wake && wake !== 'off');
@@ -397,47 +348,6 @@
             document.getElementById('toggle_' + type).checked = !!val;
             updateVisuals(type);
             alert('Saved.');
-        }
-
-        function handlePreview(url) {
-            if (!url) return;
-            const overlay = document.getElementById('overlay');
-            overlay.style.display = 'flex';
-            const isLive = /bubbles|squares|\.html|status/i.test(url);
-            const previewContent = isLive
-                ? '<iframe src="' + url + '"></iframe>'
-                : '<img src="' + url + '" onerror="this.outerHTML=\'<div style=padding:40px;color:#f88>[Unavailable]</div>\'">';
-
-            overlay.innerHTML =
-                '<div class="preview-container" onclick="event.stopPropagation()">' +
-                '<p class="hint" style="color:var(--cyan-bright);margin-bottom:12px;">Wallpaper preview</p>' +
-                '<div class="preview-frame">' + previewContent + '</div>' +
-                '<div style="display:flex;gap:10px;">' +
-                '<button class="setbutton primary" onclick="applyBKG(\'' + url.replace(/'/g, "\\'") + '\')">Apply</button>' +
-                '<button class="setbutton" onclick="closeOverlay()" style="background:transparent;border:1px solid #555;">Cancel</button>' +
-                '</div></div>';
-        }
-
-        function applyBKG(url) {
-            localStorage.setItem('selectedBKGURL', url);
-            closeOverlay();
-            alert('Wallpaper set.');
-        }
-
-        function saveScreensaverSettings() {
-            const url = document.getElementById('screensaverurl').value.trim();
-            const timeoutRaw = parseInt(document.getElementById('screensavertimeout').value, 10);
-            const timeout = Math.max(10, isNaN(timeoutRaw) ? 120 : timeoutRaw);
-            const behavior = document.getElementById('screensaverbehavior').value || 'destroy';
-            const enabled = document.getElementById('screensaverenabled').checked;
-
-            if (url) localStorage.setItem('selectedScreensaverURL', url);
-            else localStorage.removeItem('selectedScreensaverURL');
-
-            localStorage.setItem('selectedScreensaverTimeout', String(timeout));
-            localStorage.setItem('selectedScreensaverResumeBehavior', behavior);
-            localStorage.setItem('selectedScreensaverEnabled', enabled ? 'true' : 'false');
-            alert('Screensaver saved.');
         }
 
         function closeOverlay() {
@@ -490,7 +400,6 @@
             } else alert('Internet required to download updates.');
         }
 
-        /** Only clear the setup-complete flag and open the wizard (settings stay until setup finishes). */
         function redoSetupOnly() {
             if (!confirm('Open the first-time setup wizard again? Your current settings stay until you finish or skip setup.')) return;
             localStorage.removeItem('akari_setupComplete');
@@ -500,7 +409,6 @@
             else location.href = target;
         }
 
-        /** Remove AkariNet-related keys only, then open setup. */
         function resetAkariNet() {
             if (!confirm('Reset all AkariNet settings and restart setup? This does not clear unrelated localStorage on this site.')) return;
             if (!confirm('Last chance — module paths, Audio Console options, wallpaper, screensaver, and setup flags will be removed.')) return;

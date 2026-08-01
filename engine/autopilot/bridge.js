@@ -3,11 +3,13 @@
  * - Shared status bus for screensaver / status UI
  * - Download-aware screensaver (autopilot after 15s while busy)
  * - Touch / wake-word activity always resets the idle timer
+ * - Night Mode: time-window interactive screensaver that keeps background (audio survives)
  */
 (function () {
     'use strict';
 
     var AUTOPILOT_URL = 'https://76836.github.io/Akari/engine/autopilot/status';
+    var NIGHTMODE_URL = './nightmode.html';
     var DOWNLOAD_SS_DELAY_MS = 15000;
 
     var bc = null;
@@ -17,6 +19,8 @@
         downloadCount: 0,
         downloadTimer: null,
         forcedScreensaver: false,
+        nightModeActive: false,
+        nightModeRestoreTimer: null,
         lastStatus: { text: '', busy: false, idle: true, percent: null }
     };
 
@@ -89,6 +93,41 @@
         }
     }
 
+    // ——— Night Mode helpers ———
+    function parseTimeToMinutes(str) {
+        if (!str || typeof str !== 'string') return 0;
+        var parts = str.split(':');
+        var h = parseInt(parts[0], 10) || 0;
+        var m = parseInt(parts[1], 10) || 0;
+        return h * 60 + m;
+    }
+
+    function isInsideNightWindow() {
+        if (localStorage.getItem('selectedNightModeEnabled') !== 'true') return false;
+        var start = parseTimeToMinutes(localStorage.getItem('selectedNightModeStart') || '22:00');
+        var end = parseTimeToMinutes(localStorage.getItem('selectedNightModeEnd') || '07:00');
+        var now = new Date();
+        var cur = now.getHours() * 60 + now.getMinutes();
+        if (start === end) return true; // 24h
+        if (start < end) return cur >= start && cur < end;
+        // wraps midnight
+        return cur >= start || cur < end;
+    }
+
+    function getNightModeRestoreMs() {
+        var sec = parseInt(localStorage.getItem('selectedNightModeRestore') || '10', 10);
+        return Math.max(5, isNaN(sec) ? 10 : sec) * 1000;
+    }
+
+    function shouldExitOnWake() {
+        return localStorage.getItem('selectedNightModeExitWake') !== 'false';
+    }
+
+    function isNightModeUrl(url) {
+        if (!url) return false;
+        return /nightmode\.html/i.test(url) || url.indexOf('nightmode') !== -1;
+    }
+
     function patchApp(app) {
         if (!app || !app.core || app.core.__autopilotPatched) return;
         app.core.__autopilotPatched = true;
@@ -97,17 +136,31 @@
         var AUTOPILOT = AUTOPILOT_URL;
 
         app.core.getScreensaverConfig = function () {
+            // Night Mode temporary override
+            if (state.nightModeActive || (isInsideNightWindow() && !state.forcedScreensaver)) {
+                return {
+                    enabled: true,
+                    url: NIGHTMODE_URL,
+                    timeoutMs: getNightModeRestoreMs(),
+                    behavior: 'background',
+                    interactive: true,
+                    isNightMode: true
+                };
+            }
             var timeoutSec = parseInt(localStorage.getItem('selectedScreensaverTimeout') || '120', 10);
             var url = localStorage.getItem('selectedScreensaverURL') || '';
             return {
                 enabled: localStorage.getItem('selectedScreensaverEnabled') === 'true',
                 url: url,
                 timeoutMs: Math.max(10, isNaN(timeoutSec) ? 120 : timeoutSec) * 1000,
-                behavior: localStorage.getItem('selectedScreensaverResumeBehavior') || 'destroy'
+                behavior: localStorage.getItem('selectedScreensaverResumeBehavior') || 'destroy',
+                interactive: isNightModeUrl(url),
+                isNightMode: false
             };
         };
 
-        app.core.buildScreensaverContent = function (container, url) {
+        app.core.buildScreensaverContent = function (container, url, opts) {
+            opts = opts || {};
             container.innerHTML = '';
             if (!url) return;
             if (/\.(jpg|jpeg|png|gif|webp)$/i.test(url)) {
@@ -122,9 +175,13 @@
                 ifr.src = url;
                 container.appendChild(ifr);
             }
-            var inputShield = document.createElement('div');
-            inputShield.className = 'screensaver-input-shield';
-            container.appendChild(inputShield);
+            // Only add the input shield for non-interactive screensavers
+            var interactive = opts.interactive || isNightModeUrl(url);
+            if (!interactive) {
+                var inputShield = document.createElement('div');
+                inputShield.className = 'screensaver-input-shield';
+                container.appendChild(inputShield);
+            }
         };
 
         app.core.showScreensaver = function () {
@@ -133,14 +190,16 @@
             var cfg = app.core.getScreensaverConfig();
             if (!cfg.enabled || !cfg.url) return;
 
+            if (cfg.isNightMode) state.nightModeActive = true;
+
             if (!container.firstChild || cfg.behavior === 'destroy' || state.forcedScreensaver) {
-                app.core.buildScreensaverContent(container, cfg.url);
+                app.core.buildScreensaverContent(container, cfg.url, { interactive: cfg.interactive });
             }
 
             container.style.zIndex = '999998';
             container.classList.add('active');
             app.screensaverActive = true;
-            window.emit && window.emit('screensaver_shown', { url: cfg.url, timestamp: Date.now() });
+            window.emit && window.emit('screensaver_shown', { url: cfg.url, nightMode: !!cfg.isNightMode, timestamp: Date.now() });
             setTimeout(function () { publish(state.lastStatus); }, 300);
         };
 
@@ -148,7 +207,8 @@
             var container = document.getElementById('screensaver-container');
             if (!container) return;
             state.forcedScreensaver = true;
-            app.core.buildScreensaverContent(container, url || AUTOPILOT);
+            state.nightModeActive = false;
+            app.core.buildScreensaverContent(container, url || AUTOPILOT, { interactive: false });
             container.style.zIndex = '999998';
             container.classList.add('active');
             app.screensaverActive = true;
@@ -170,13 +230,30 @@
             if (!container || !app.screensaverActive) return;
 
             var cfg = app.core.getScreensaverConfig();
+            var wasNight = state.nightModeActive || cfg.isNightMode;
+
             container.classList.remove('active');
-            if (cfg.behavior !== 'background' || state.forcedScreensaver) {
+            // Keep iframe alive for night mode / background behavior
+            if ((cfg.behavior !== 'background' && !wasNight) || state.forcedScreensaver) {
                 container.innerHTML = '';
             }
             state.forcedScreensaver = false;
             app.screensaverActive = false;
-            window.emit && window.emit('screensaver_hidden', { source: source, timestamp: Date.now() });
+            window.emit && window.emit('screensaver_hidden', { source: source, nightMode: wasNight, timestamp: Date.now() });
+
+            // Schedule night mode restore if still inside window
+            if (wasNight && isInsideNightWindow()) {
+                clearTimeout(state.nightModeRestoreTimer);
+                state.nightModeRestoreTimer = setTimeout(function () {
+                    state.nightModeRestoreTimer = null;
+                    if (isInsideNightWindow() && !app.screensaverActive && state.downloadCount === 0) {
+                        state.nightModeActive = true;
+                        app.core.showScreensaver();
+                    }
+                }, getNightModeRestoreMs());
+            } else {
+                state.nightModeActive = false;
+            }
         };
 
         app.core.armUserScreensaver = function () {
@@ -192,9 +269,20 @@
         app.core.registerUserActivity = function (source) {
             source = source || 'activity';
             clearTimeout(app.screensaverTimer);
+            clearTimeout(state.nightModeRestoreTimer);
 
-            // Any real interaction (tap, key, wake word, voice) dismisses screensaver
-            if (source !== 'init') {
+            var cfg = app.core.getScreensaverConfig();
+            var isNight = state.nightModeActive || cfg.isNightMode;
+
+            // Night mode: only hide on explicit exit or wake-word (if enabled)
+            if (isNight && app.screensaverActive) {
+                var isWake = source === 'akari:user-input' || source === 'wake-word' || source === 'speech';
+                var isExit = source === 'nightmode-button';
+                if (isExit || (isWake && shouldExitOnWake())) {
+                    app.core.hideScreensaver(source);
+                }
+                // normal taps / keys do nothing while night mode is showing
+            } else if (source !== 'init') {
                 app.core.hideScreensaver(source);
             }
 
@@ -203,8 +291,39 @@
                 return;
             }
 
-            app.core.armUserScreensaver();
+            // Only re-arm normal idle timer when not inside night window
+            if (!isInsideNightWindow()) {
+                app.core.armUserScreensaver();
+            }
         };
+
+        // Listen for exit message from nightmode.html
+        if (!app.core.__nightMsgBound) {
+            app.core.__nightMsgBound = true;
+            window.addEventListener('message', function (e) {
+                if (e.data && e.data.type === 'akari-exit-nightmode') {
+                    app.core.registerUserActivity('nightmode-button');
+                }
+            });
+        }
+
+        // Periodic night-window check (every 30s)
+        if (!app.core.__nightPoll) {
+            app.core.__nightPoll = setInterval(function () {
+                if (state.downloadCount > 0 || state.forcedScreensaver) return;
+                if (isInsideNightWindow()) {
+                    if (!app.screensaverActive) {
+                        state.nightModeActive = true;
+                        app.core.showScreensaver();
+                    }
+                } else if (state.nightModeActive && app.screensaverActive) {
+                    // left the window — hide and clear night flag
+                    state.nightModeActive = false;
+                    app.core.hideScreensaver('night-window-end');
+                    app.core.armUserScreensaver();
+                }
+            }, 30000);
+        }
 
         // Reliable mobile + desktop activity listeners (capture so nothing eats the event)
         if (!app.core.__ssListenersBound) {
@@ -218,7 +337,6 @@
                     app.core.registerUserActivity(evt);
                 }, { passive: true, capture: true });
             });
-            // Wake word / voice / text input — dismiss like a tap
             window.addEventListener('akari:user-input', function () {
                 app.core.registerUserActivity('akari:user-input');
             });
@@ -239,7 +357,13 @@
             });
         };
 
-        app.core.armUserScreensaver();
+        // Initial arm / night check
+        if (isInsideNightWindow()) {
+            state.nightModeActive = true;
+            setTimeout(function () { app.core.showScreensaver(); }, 800);
+        } else {
+            app.core.armUserScreensaver();
+        }
     }
 
     window.AkariAutopilot = {
