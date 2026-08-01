@@ -165,6 +165,14 @@
                             </label>
                         </div>
                         <p class="hint" id="keepAwakeHint">Prevents the device from sleeping while Night Mode is visible. Required for alarms to fire reliably.</p>
+                        <div class="row">
+                            <span>Fullscreen lock in night mode</span>
+                            <label class="switch">
+                                <input type="checkbox" id="nightmodefullscreen">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <p class="hint">When Night Mode is showing, request fullscreen on every user gesture (tap, click, key). Useful for bedside displays so the browser chrome stays hidden.</p>
                         <button class="setbutton primary" onclick="saveNightModeSettings()">Save Night Mode</button>
                     </div>
                 </details>
@@ -226,8 +234,8 @@
             document.getElementById('nightmoderestore').value = localStorage.getItem('selectedNightModeRestore') || '10';
             document.getElementById('nightmodeexitwake').checked = localStorage.getItem('selectedNightModeExitWake') !== 'false';
             document.getElementById('nightmodekeepawake').checked = localStorage.getItem('selectedNightModeKeepAwake') === 'true';
+            document.getElementById('nightmodefullscreen').checked = localStorage.getItem('selectedNightModeFullscreen') === 'true';
 
-            // Alarm
             var alarm = null;
             try { alarm = JSON.parse(localStorage.getItem('selectedNightModeAlarm') || 'null'); } catch (e) {}
             if (alarm) {
@@ -321,7 +329,7 @@
             var restore = Math.max(5, isNaN(restoreRaw) ? 10 : restoreRaw);
             var exitWake = document.getElementById('nightmodeexitwake').checked;
             var keepAwake = document.getElementById('nightmodekeepawake').checked;
-            // force keep-awake if alarm on
+            var fullscreen = document.getElementById('nightmodefullscreen').checked;
             if (document.getElementById('alarmenabled').checked) keepAwake = true;
 
             localStorage.setItem('selectedNightModeEnabled', enabled ? 'true' : 'false');
@@ -330,6 +338,7 @@
             localStorage.setItem('selectedNightModeRestore', String(restore));
             localStorage.setItem('selectedNightModeExitWake', exitWake ? 'true' : 'false');
             localStorage.setItem('selectedNightModeKeepAwake', keepAwake ? 'true' : 'false');
+            localStorage.setItem('selectedNightModeFullscreen', fullscreen ? 'true' : 'false');
             alert('Night Mode saved.');
         }
 
