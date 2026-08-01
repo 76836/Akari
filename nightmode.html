@@ -6,168 +6,166 @@
 <title>AkariNet Night Mode</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg: #050508;
-  --text: #e8f0f0;
-  --dim: rgba(200, 230, 230, 0.55);
-  --cyan: #00c8c8;
-  --cyan-dim: rgba(0, 200, 200, 0.25);
-  --panel: rgba(12, 18, 22, 0.72);
-  --border: rgba(0, 200, 200, 0.18);
-}
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
   width: 100%; height: 100%; overflow: hidden;
-  background: var(--bg); color: var(--text);
+  background: #000; color: #fff;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-user-select: none; user-select: none;
   touch-action: manipulation;
 }
-body {
-  display: flex; flex-direction: column;
-  background:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 80, 90, 0.35), transparent),
-    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(20, 0, 40, 0.4), transparent),
-    var(--bg);
-}
+body { display: flex; flex-direction: column; }
 
-/* Main clock area */
+/* Clock */
 .clock-area {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  padding: 24px 16px 12px; min-height: 0;
+  padding: 16px 12px 8px; min-height: 0; cursor: pointer;
 }
 .time {
   font-family: 'Orbitron', sans-serif;
   font-weight: 700;
-  font-size: clamp(3.2rem, 14vw, 7.5rem);
-  letter-spacing: 0.06em;
+  font-size: clamp(3rem, 13vw, 7rem);
+  letter-spacing: 0.05em;
   line-height: 1;
-  text-shadow: 0 0 40px rgba(0, 200, 200, 0.35), 0 0 80px rgba(0, 120, 140, 0.15);
-  color: #f0ffff;
+  color: #fff;
 }
 .seconds {
-  font-size: 0.38em; opacity: 0.55; font-weight: 500;
-  vertical-align: super; margin-left: 0.15em;
-}
-.date {
-  margin-top: 14px;
-  font-size: clamp(0.85rem, 3.2vw, 1.25rem);
-  letter-spacing: 0.12em; text-transform: uppercase;
-  color: var(--dim); font-weight: 500;
+  font-size: 0.36em; opacity: 0.7; font-weight: 500;
+  vertical-align: super; margin-left: 0.12em;
 }
 .ampm {
-  font-size: 0.28em; opacity: 0.5; margin-left: 0.2em;
-  font-weight: 500; letter-spacing: 0.05em;
+  font-size: 0.26em; opacity: 0.65; margin-left: 0.18em;
+  font-weight: 500; letter-spacing: 0.04em;
 }
+.date {
+  margin-top: 12px;
+  font-size: clamp(0.8rem, 3vw, 1.15rem);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: #fff; opacity: 0.75; font-weight: 500;
+}
+.alarm-countdown {
+  margin-top: 18px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(0.75rem, 2.8vw, 1rem);
+  letter-spacing: 0.08em;
+  color: #fff; opacity: 0.85;
+  display: none;
+}
+.alarm-countdown.show { display: block; }
 
-/* Controls */
-.controls {
+/* Drawer (noise + controls) */
+.drawer {
   flex-shrink: 0;
-  padding: 0 16px 8px;
-  display: flex; flex-direction: column; gap: 10px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.28s ease;
+  background: #000;
+  border-top: 1px solid #fff;
+}
+.drawer.open { max-height: 320px; }
+.drawer-inner {
+  padding: 14px 16px 10px;
   max-width: 480px; width: 100%; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 12px;
 }
 .noise-row {
   display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
 }
 .noise-btn {
-  flex: 1; min-width: 72px; max-width: 110px;
-  padding: 10px 8px; border-radius: 12px;
-  background: var(--panel); border: 1px solid var(--border);
-  color: var(--text); font-family: inherit; font-size: 0.8rem;
-  cursor: pointer; transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  flex: 1; min-width: 64px; max-width: 100px;
+  padding: 10px 6px; border-radius: 0;
+  background: #000; border: 1px solid #fff;
+  color: #fff; font-family: inherit; font-size: 0.78rem;
+  cursor: pointer;
 }
-.noise-btn:hover { border-color: var(--cyan-dim); }
 .noise-btn.active {
-  background: rgba(0, 100, 110, 0.45);
-  border-color: var(--cyan);
-  box-shadow: 0 0 18px rgba(0, 200, 200, 0.2);
-  color: #a0ffff;
+  background: #fff; color: #000;
 }
-.volume-row {
-  display: flex; align-items: center; gap: 12px;
-  background: var(--panel); border: 1px solid var(--border);
-  border-radius: 12px; padding: 8px 14px;
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+.slider-row {
+  display: flex; align-items: center; gap: 10px;
 }
-.volume-row label { font-size: 0.75rem; color: var(--dim); min-width: 52px; }
-.volume-row input[type=range] {
+.slider-row label {
+  font-size: 0.72rem; color: #fff; min-width: 64px; opacity: 0.9;
+}
+.slider-row input[type=range] {
   flex: 1; -webkit-appearance: none; appearance: none;
-  height: 4px; border-radius: 2px; background: rgba(255,255,255,0.15);
-  outline: none;
+  height: 2px; background: #fff; outline: none;
 }
-.volume-row input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
-  background: var(--cyan); cursor: pointer; box-shadow: 0 0 8px rgba(0,200,200,0.5);
+.slider-row input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px;
+  border-radius: 0; background: #fff; cursor: pointer;
+  border: 1px solid #000;
 }
-.keep-row {
-  display: flex; justify-content: center; gap: 10px;
+.slider-row .val {
+  font-size: 0.7rem; min-width: 28px; text-align: right; opacity: 0.8;
 }
-.toggle-pill {
-  padding: 8px 16px; border-radius: 20px;
-  background: var(--panel); border: 1px solid var(--border);
-  color: var(--dim); font-size: 0.75rem; cursor: pointer;
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  transition: all 0.15s;
-}
-.toggle-pill.on {
-  color: #a0ffff; border-color: var(--cyan);
-  background: rgba(0, 80, 90, 0.4);
+.drawer-hint {
+  text-align: center; font-size: 0.65rem; opacity: 0.5;
+  padding-bottom: 2px;
 }
 
-/* Exit bar */
+/* Exit bar — always visible */
 .exit-bar {
   flex-shrink: 0;
-  width: 100%; padding: 14px 16px 18px;
-  background: linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.4));
+  width: 100%; padding: 12px 16px 16px;
+  background: #000;
+  border-top: 1px solid #fff;
   display: flex; justify-content: center;
 }
 .exit-btn {
   width: 100%; max-width: 420px;
-  padding: 14px 20px; border-radius: 14px;
-  background: rgba(20, 30, 35, 0.9);
-  border: 1px solid rgba(0, 180, 180, 0.35);
-  color: #b0e8e8; font-family: 'Orbitron', sans-serif;
-  font-size: 0.85rem; letter-spacing: 0.08em;
-  cursor: pointer; transition: background 0.15s, border-color 0.15s;
-  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  padding: 12px 16px; border-radius: 0;
+  background: #000; border: 1px solid #fff;
+  color: #fff; font-family: 'Orbitron', sans-serif;
+  font-size: 0.8rem; letter-spacing: 0.08em;
+  cursor: pointer;
 }
-.exit-btn:hover, .exit-btn:active {
-  background: rgba(0, 70, 80, 0.6);
-  border-color: var(--cyan);
-}
+.exit-btn:active { background: #fff; color: #000; }
 
-.status {
-  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
-  font-size: 0.7rem; color: var(--dim); letter-spacing: 0.06em;
-  opacity: 0.7; pointer-events: none;
+/* Tap hint on clock when drawer closed */
+.tap-hint {
+  position: absolute; bottom: 72px; left: 50%; transform: translateX(-50%);
+  font-size: 0.65rem; opacity: 0; pointer-events: none;
+  transition: opacity 0.3s; letter-spacing: 0.06em;
 }
+.tap-hint.show { opacity: 0.4; }
 </style>
 </head>
 <body>
-  <div class="status" id="status"></div>
-
-  <div class="clock-area">
-    <div class="time" id="time">00:00<span class="seconds" id="secs">00</span><span class="ampm" id="ampm"></span></div>
+  <div class="clock-area" id="clockArea">
+    <div class="time" id="time">12:00<span class="seconds">00</span><span class="ampm">AM</span></div>
     <div class="date" id="date">—</div>
+    <div class="alarm-countdown" id="alarmCountdown"></div>
   </div>
 
-  <div class="controls">
-    <div class="noise-row">
-      <button class="noise-btn" data-type="off" id="btn-off">Off</button>
-      <button class="noise-btn" data-type="bass" id="btn-bass">Bass</button>
-      <button class="noise-btn" data-type="blanket" id="btn-blanket">Blanket</button>
-      <button class="noise-btn" data-type="rain" id="btn-rain">Rain</button>
-    </div>
-    <div class="volume-row">
-      <label>Volume</label>
-      <input type="range" id="volume" min="0" max="100" value="35">
-    </div>
-    <div class="keep-row">
-      <button class="toggle-pill" id="keepAwake">Keep awake</button>
-      <button class="toggle-pill" id="fmt12">12h</button>
+  <div class="tap-hint" id="tapHint">tap clock for controls</div>
+
+  <div class="drawer" id="drawer">
+    <div class="drawer-inner">
+      <div class="noise-row">
+        <button class="noise-btn" data-type="off">Off</button>
+        <button class="noise-btn" data-type="bass">Bass</button>
+        <button class="noise-btn" data-type="blanket">Blanket</button>
+        <button class="noise-btn" data-type="rain">Rain</button>
+        <button class="noise-btn" data-type="white">White</button>
+      </div>
+      <div class="slider-row">
+        <label>Volume</label>
+        <input type="range" id="vol" min="0" max="100" value="35">
+        <span class="val" id="volVal">35</span>
+      </div>
+      <div class="slider-row">
+        <label>Filter</label>
+        <input type="range" id="filter" min="80" max="12000" value="4000">
+        <span class="val" id="filterVal">4k</span>
+      </div>
+      <div class="slider-row">
+        <label>Bass boost</label>
+        <input type="range" id="bass" min="0" max="100" value="20">
+        <span class="val" id="bassVal">20</span>
+      </div>
+      <div class="drawer-hint">tap clock again to hide</div>
     </div>
   </div>
 
@@ -179,196 +177,351 @@ body {
 (function () {
   'use strict';
 
-  // ——— Clock ———
-  let use12h = localStorage.getItem('nm_12h') === 'true';
-  const timeEl = document.getElementById('time');
-  const secsEl = document.getElementById('secs');
-  const ampmEl = document.getElementById('ampm');
-  const dateEl = document.getElementById('date');
+  // ——— State persistence keys ———
+  var K = {
+    noise: 'nm_noise',
+    vol: 'nm_vol',
+    filter: 'nm_filter',
+    bass: 'nm_bass',
+    playing: 'nm_playing'   // was noise actually running last session
+  };
+
+  // ——— Clock (always 12h) ———
+  var timeEl = document.getElementById('time');
+  var dateEl = document.getElementById('date');
+  var alarmEl = document.getElementById('alarmCountdown');
 
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
 
   function tick() {
-    const d = new Date();
-    let h = d.getHours();
-    const m = d.getMinutes();
-    const s = d.getSeconds();
-    let ampm = '';
-    if (use12h) {
-      ampm = h >= 12 ? 'PM' : 'AM';
-      h = h % 12 || 12;
-    }
-    // rebuild time node carefully so seconds stay styled
+    var d = new Date();
+    var h24 = d.getHours();
+    var h = h24 % 12 || 12;
+    var m = d.getMinutes();
+    var s = d.getSeconds();
+    var ampm = h24 >= 12 ? 'PM' : 'AM';
     timeEl.innerHTML = pad(h) + ':' + pad(m) +
-      '<span class="seconds" id="secs">' + pad(s) + '</span>' +
-      (use12h ? '<span class="ampm" id="ampm">' + ampm + '</span>' : '');
+      '<span class="seconds">' + pad(s) + '</span>' +
+      '<span class="ampm">' + ampm + '</span>';
 
-    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     dateEl.textContent = days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate();
+
+    updateAlarmCountdown(d);
   }
   tick();
   setInterval(tick, 1000);
 
-  document.getElementById('fmt12').addEventListener('click', function () {
-    use12h = !use12h;
-    localStorage.setItem('nm_12h', use12h ? 'true' : 'false');
-    this.classList.toggle('on', use12h);
-    tick();
-  });
-  if (use12h) document.getElementById('fmt12').classList.add('on');
+  // ——— Drawer ———
+  var drawer = document.getElementById('drawer');
+  var tapHint = document.getElementById('tapHint');
+  var drawerOpen = false;
+  var hideTimer = null;
 
-  // ——— White noise (kept inside this frame; frame is never destroyed in night mode) ———
-  let audioCtx = null;
-  let noiseNodes = [];
-  let gainNode = null;
-  let currentType = localStorage.getItem('nm_noise') || 'off';
-  let volume = parseInt(localStorage.getItem('nm_vol') || '35', 10);
+  function openDrawer() {
+    drawerOpen = true;
+    drawer.classList.add('open');
+    tapHint.classList.remove('show');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(closeDrawer, 12000);
+  }
+  function closeDrawer() {
+    drawerOpen = false;
+    drawer.classList.remove('open');
+    clearTimeout(hideTimer);
+  }
+  document.getElementById('clockArea').addEventListener('click', function () {
+    if (drawerOpen) closeDrawer();
+    else openDrawer();
+  });
+  // keep drawer open while adjusting sliders
+  drawer.addEventListener('pointerdown', function () {
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(closeDrawer, 12000);
+  });
+  // show hint briefly on load
+  setTimeout(function () { if (!drawerOpen) tapHint.classList.add('show'); }, 1500);
+  setTimeout(function () { tapHint.classList.remove('show'); }, 5000);
+
+  // ——— White noise engine ———
+  var audioCtx = null;
+  var sourceNode = null;
+  var filterNode = null;
+  var bassNode = null;
+  var gainNode = null;
+  var currentType = localStorage.getItem(K.noise) || 'off';
+  var volume = parseInt(localStorage.getItem(K.vol) || '35', 10);
+  var filterHz = parseInt(localStorage.getItem(K.filter) || '4000', 10);
+  var bassAmt = parseInt(localStorage.getItem(K.bass) || '20', 10);
+  var wasPlaying = localStorage.getItem(K.playing) === 'true';
 
   function ensureAudio() {
     if (audioCtx) return;
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     gainNode = audioCtx.createGain();
     gainNode.gain.value = volume / 100;
+    filterNode = audioCtx.createBiquadFilter();
+    filterNode.type = 'lowpass';
+    filterNode.frequency.value = filterHz;
+    filterNode.Q.value = 0.7;
+    bassNode = audioCtx.createBiquadFilter();
+    bassNode.type = 'lowshelf';
+    bassNode.frequency.value = 200;
+    bassNode.gain.value = (bassAmt / 100) * 12; // 0–12 dB
+    filterNode.connect(bassNode);
+    bassNode.connect(gainNode);
     gainNode.connect(audioCtx.destination);
   }
 
   function stopNoise() {
-    noiseNodes.forEach(n => { try { n.stop(); n.disconnect(); } catch(e){} });
-    noiseNodes = [];
+    if (sourceNode) {
+      try { sourceNode.stop(); sourceNode.disconnect(); } catch (e) {}
+      sourceNode = null;
+    }
+    localStorage.setItem(K.playing, 'false');
   }
 
-  function createBufferNoise(type) {
+  function makeBuffer(type) {
     ensureAudio();
-    stopNoise();
-    if (type === 'off') return;
-
-    const bufferSize = 2 * audioCtx.sampleRate;
-    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-    const data = buffer.getChannelData(0);
+    var len = 2 * audioCtx.sampleRate;
+    var buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+    var data = buf.getChannelData(0);
 
     if (type === 'bass') {
-      // low brown-ish noise
-      let last = 0;
-      for (let i = 0; i < bufferSize; i++) {
-        const white = Math.random() * 2 - 1;
-        data[i] = (last + (0.02 * white)) / 1.02;
+      var last = 0;
+      for (var i = 0; i < len; i++) {
+        var w = Math.random() * 2 - 1;
+        data[i] = (last + 0.02 * w) / 1.02;
         last = data[i];
         data[i] *= 3.5;
       }
     } else if (type === 'blanket') {
-      // soft pink-ish
-      let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
-      for (let i = 0; i < bufferSize; i++) {
-        const white = Math.random() * 2 - 1;
-        b0 = 0.99886 * b0 + white * 0.0555179;
-        b1 = 0.99332 * b1 + white * 0.0750759;
-        b2 = 0.96900 * b2 + white * 0.1538520;
-        b3 = 0.86650 * b3 + white * 0.3104856;
-        b4 = 0.55000 * b4 + white * 0.5329522;
-        b5 = -0.7616 * b5 - white * 0.0168980;
-        data[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-        data[i] *= 0.11;
-        b6 = white * 0.115926;
+      var b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+      for (var i = 0; i < len; i++) {
+        var w = Math.random() * 2 - 1;
+        b0 = 0.99886*b0 + w*0.0555179;
+        b1 = 0.99332*b1 + w*0.0750759;
+        b2 = 0.96900*b2 + w*0.1538520;
+        b3 = 0.86650*b3 + w*0.3104856;
+        b4 = 0.55000*b4 + w*0.5329522;
+        b5 = -0.7616*b5 - w*0.0168980;
+        data[i] = (b0+b1+b2+b3+b4+b5+b6 + w*0.5362) * 0.11;
+        b6 = w * 0.115926;
       }
     } else if (type === 'rain') {
-      // filtered noise + occasional drops
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * 0.4;
-        if (Math.random() < 0.0008) data[i] += (Math.random() * 2 - 1) * 0.6;
+      for (var i = 0; i < len; i++) {
+        data[i] = (Math.random()*2-1) * 0.4;
+        if (Math.random() < 0.0008) data[i] += (Math.random()*2-1)*0.6;
       }
+    } else { // white
+      for (var i = 0; i < len; i++) data[i] = Math.random()*2 - 1;
     }
+    return buf;
+  }
 
-    const source = audioCtx.createBufferSource();
-    source.buffer = buffer;
-    source.loop = true;
-
-    // gentle lowpass for rain / bass
-    const filter = audioCtx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = type === 'bass' ? 180 : (type === 'rain' ? 2200 : 8000);
-    filter.Q.value = 0.7;
-
-    source.connect(filter);
-    filter.connect(gainNode);
-    source.start(0);
-    noiseNodes.push(source);
+  function startNoise(type) {
+    if (type === 'off') { stopNoise(); return; }
+    ensureAudio();
+    stopNoise();
+    var src = audioCtx.createBufferSource();
+    src.buffer = makeBuffer(type);
+    src.loop = true;
+    src.connect(filterNode);
+    src.start(0);
+    sourceNode = src;
+    localStorage.setItem(K.playing, 'true');
+    if (audioCtx.state === 'suspended') audioCtx.resume();
   }
 
   function setNoise(type) {
     currentType = type;
-    localStorage.setItem('nm_noise', type);
-    document.querySelectorAll('.noise-btn').forEach(b => {
+    localStorage.setItem(K.noise, type);
+    document.querySelectorAll('.noise-btn').forEach(function (b) {
       b.classList.toggle('active', b.dataset.type === type);
     });
     if (type === 'off') stopNoise();
-    else createBufferNoise(type);
+    else startNoise(type);
   }
 
-  document.querySelectorAll('.noise-btn').forEach(btn => {
-    btn.addEventListener('click', () => setNoise(btn.dataset.type));
+  document.querySelectorAll('.noise-btn').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setNoise(btn.dataset.type);
+    });
   });
-  document.getElementById('volume').value = volume;
-  document.getElementById('volume').addEventListener('input', function () {
+
+  // Sliders
+  var volEl = document.getElementById('vol');
+  var filterEl = document.getElementById('filter');
+  var bassEl = document.getElementById('bass');
+  volEl.value = volume;
+  filterEl.value = filterHz;
+  bassEl.value = bassAmt;
+  document.getElementById('volVal').textContent = volume;
+  document.getElementById('filterVal').textContent = filterHz >= 1000 ? (Math.round(filterHz/1000)+'k') : filterHz;
+  document.getElementById('bassVal').textContent = bassAmt;
+
+  volEl.addEventListener('input', function () {
     volume = parseInt(this.value, 10);
-    localStorage.setItem('nm_vol', String(volume));
+    localStorage.setItem(K.vol, String(volume));
+    document.getElementById('volVal').textContent = volume;
     if (gainNode) gainNode.gain.value = volume / 100;
   });
+  filterEl.addEventListener('input', function () {
+    filterHz = parseInt(this.value, 10);
+    localStorage.setItem(K.filter, String(filterHz));
+    document.getElementById('filterVal').textContent = filterHz >= 1000 ? (Math.round(filterHz/1000)+'k') : filterHz;
+    if (filterNode) filterNode.frequency.value = filterHz;
+  });
+  bassEl.addEventListener('input', function () {
+    bassAmt = parseInt(this.value, 10);
+    localStorage.setItem(K.bass, String(bassAmt));
+    document.getElementById('bassVal').textContent = bassAmt;
+    if (bassNode) bassNode.gain.value = (bassAmt / 100) * 12;
+  });
 
-  // restore previous noise
-  if (currentType && currentType !== 'off') {
-    // need user gesture on some browsers — try anyway, user can re-tap
-    try { setNoise(currentType); } catch(e) {}
-  } else {
-    document.getElementById('btn-off').classList.add('active');
+  // Restore last noise state on load
+  document.querySelectorAll('.noise-btn').forEach(function (b) {
+    b.classList.toggle('active', b.dataset.type === currentType);
+  });
+  if (wasPlaying && currentType && currentType !== 'off') {
+    // browsers often require a gesture; try anyway, user can retap if blocked
+    try { startNoise(currentType); } catch (e) {}
   }
 
-  // ——— Keep awake (Wake Lock API + fallback) ———
-  let wakeLock = null;
-  let keepOn = localStorage.getItem('nm_keep') === 'true';
-  const keepBtn = document.getElementById('keepAwake');
-
-  async function requestWakeLock() {
-    try {
-      if ('wakeLock' in navigator) {
-        wakeLock = await navigator.wakeLock.request('screen');
-        wakeLock.addEventListener('release', () => { /* silent */ });
-      }
-    } catch (e) {}
+  // ——— Keep awake (controlled from settings) ———
+  var wakeLock = null;
+  function requestWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    navigator.wakeLock.request('screen').then(function (lock) {
+      wakeLock = lock;
+      lock.addEventListener('release', function () {});
+    }).catch(function () {});
   }
   function releaseWakeLock() {
-    if (wakeLock) { try { wakeLock.release(); } catch(e){} wakeLock = null; }
+    if (wakeLock) { try { wakeLock.release(); } catch (e) {} wakeLock = null; }
   }
-
-  keepBtn.addEventListener('click', async function () {
-    keepOn = !keepOn;
-    localStorage.setItem('nm_keep', keepOn ? 'true' : 'false');
-    this.classList.toggle('on', keepOn);
-    if (keepOn) await requestWakeLock();
+  function syncKeepAwake() {
+    var keep = localStorage.getItem('selectedNightModeKeepAwake') === 'true';
+    var hasAlarm = hasActiveAlarm();
+    // alarm forces keep-awake
+    if (keep || hasAlarm) requestWakeLock();
     else releaseWakeLock();
-  });
-  if (keepOn) {
-    keepBtn.classList.add('on');
-    requestWakeLock();
   }
-  document.addEventListener('visibilitychange', () => {
-    if (keepOn && document.visibilityState === 'visible') requestWakeLock();
+  syncKeepAwake();
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') syncKeepAwake();
   });
+  // re-check when storage might change from settings
+  window.addEventListener('storage', syncKeepAwake);
+  setInterval(syncKeepAwake, 15000);
 
-  // ——— Exit to Akari ———
-  document.getElementById('exitBtn').addEventListener('click', function () {
+  // ——— Alarm ———
+  function getAlarmConfig() {
     try {
-      parent.postMessage({ type: 'akari-exit-nightmode' }, '*');
+      return JSON.parse(localStorage.getItem('selectedNightModeAlarm') || 'null');
+    } catch (e) { return null; }
+  }
+
+  function hasActiveAlarm() {
+    var a = getAlarmConfig();
+    if (!a || !a.enabled) return false;
+    if (a.pausedTonight) {
+      // paused only for current calendar night (until noon next day)
+      var now = new Date();
+      var pauseDay = a.pausedDate || '';
+      var today = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate());
+      if (pauseDay === today && now.getHours() < 12) return false;
+      // past pause window — clear pause
+      if (pauseDay !== today) {
+        a.pausedTonight = false;
+        a.pausedDate = null;
+        localStorage.setItem('selectedNightModeAlarm', JSON.stringify(a));
+      }
+    }
+    return true;
+  }
+
+  function nextAlarmTime(from) {
+    var a = getAlarmConfig();
+    if (!a || !a.enabled || !hasActiveAlarm()) return null;
+    var hour = a.hour | 0;
+    var minute = a.minute | 0;
+    var days = a.days; // array of 0-6 (Sun-Sat), empty = every day
+    var d = new Date(from.getTime());
+    for (var i = 0; i < 8; i++) {
+      var candidate = new Date(d.getFullYear(), d.getMonth(), d.getDate() + i, hour, minute, 0, 0);
+      if (candidate <= from) continue;
+      var dow = candidate.getDay();
+      if (!days || days.length === 0 || days.indexOf(dow) !== -1) return candidate;
+    }
+    return null;
+  }
+
+  function updateAlarmCountdown(now) {
+    var next = nextAlarmTime(now);
+    if (!next) {
+      alarmEl.classList.remove('show');
+      alarmEl.textContent = '';
+      return;
+    }
+    var ms = next - now;
+    var totalMin = Math.floor(ms / 60000);
+    var h = Math.floor(totalMin / 60);
+    var m = totalMin % 60;
+    var s = Math.floor((ms % 60000) / 1000);
+    var label = 'Alarm in ';
+    if (h > 0) label += h + 'h ' + m + 'm';
+    else if (m > 0) label += m + 'm ' + s + 's';
+    else label += s + 's';
+    alarmEl.textContent = label;
+    alarmEl.classList.add('show');
+
+    // fire
+    if (ms < 1500 && ms >= 0) fireAlarm();
+  }
+
+  var alarmFired = false;
+  function fireAlarm() {
+    if (alarmFired) return;
+    alarmFired = true;
+    // simple loud tone burst
+    try {
+      ensureAudio();
+      var osc = audioCtx.createOscillator();
+      var g = audioCtx.createGain();
+      osc.frequency.value = 880;
+      g.gain.value = 0.35;
+      osc.connect(g); g.connect(audioCtx.destination);
+      osc.start();
+      setTimeout(function () { osc.stop(); }, 400);
+      setTimeout(function () {
+        var osc2 = audioCtx.createOscillator();
+        var g2 = audioCtx.createGain();
+        osc2.frequency.value = 660;
+        g2.gain.value = 0.35;
+        osc2.connect(g2); g2.connect(audioCtx.destination);
+        osc2.start();
+        setTimeout(function () { osc2.stop(); }, 400);
+      }, 500);
     } catch (e) {}
+    // notify parent so future Akari integration can hook in
+    try {
+      parent.postMessage({ type: 'akari-nightmode-alarm', time: Date.now() }, '*');
+    } catch (e) {}
+    // reset flag after a minute so recurring can fire next day
+    setTimeout(function () { alarmFired = false; }, 60000);
+  }
+
+  // ——— Exit ———
+  document.getElementById('exitBtn').addEventListener('click', function () {
+    try { parent.postMessage({ type: 'akari-exit-nightmode' }, '*'); } catch (e) {}
   });
 
-  // Status hint from parent (optional)
+  // parent status (optional)
   window.addEventListener('message', function (e) {
-    if (e.data && e.data.channel === 'akarinet-autopilot') {
-      const st = document.getElementById('status');
-      if (e.data.text) st.textContent = e.data.text;
-      else st.textContent = '';
-    }
+    if (e.data && e.data.channel === 'akarinet-autopilot') { /* reserved */ }
   });
 })();
 </script>

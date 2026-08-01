@@ -41,6 +41,7 @@
         .setbutton:hover { filter: brightness(1.15); }
         .setbutton:active { filter: brightness(1.25); }
         .setbutton.primary { background: var(--cyan); color: #fff; font-weight: 600; margin-top: 10px; }
+        .setbutton:disabled, .row.disabled { opacity: 0.4; pointer-events: none; }
         .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px; }
         .row span { font-size: 0.85rem; }
         .switch { position: relative; display: inline-block; width: 46px; height: 24px; flex-shrink: 0; }
@@ -59,6 +60,14 @@
         @media (min-width: 600px) { .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } }
         .time-row { display: flex; gap: 10px; align-items: center; }
         .time-row input { flex: 1; }
+        .day-pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+        .day-pill {
+          padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
+          background: rgba(0,0,0,0.3); color: #fff; font-size: 0.75rem; cursor: pointer;
+          font-family: inherit;
+        }
+        .day-pill.on { background: var(--cyan); border-color: var(--cyan-bright); }
+        .alarm-note { font-size: 0.7rem; color: var(--warn); margin-top: 8px; font-family: system-ui, sans-serif; }
     </style>
 </head>
 <body>
@@ -148,7 +157,46 @@
                                 <span class="slider"></span>
                             </label>
                         </div>
+                        <div class="row" id="keepAwakeRow">
+                            <span>Keep screen awake</span>
+                            <label class="switch">
+                                <input type="checkbox" id="nightmodekeepawake">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <p class="hint" id="keepAwakeHint">Prevents the device from sleeping while Night Mode is visible. Required for alarms to fire reliably.</p>
                         <button class="setbutton primary" onclick="saveNightModeSettings()">Save Night Mode</button>
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Night Mode Alarm</summary>
+                    <div class="content">
+                        <p class="hint">Simple wake-up alarm shown as a countdown in Night Mode. Plays a short tone when it fires. (Akari voice integration can be added later.)</p>
+                        <div class="row">
+                            <span>Enable alarm</span>
+                            <label class="switch">
+                                <input type="checkbox" id="alarmenabled" onchange="onAlarmToggle()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <label class="hint" style="display:block;margin-top:10px;">Wake time</label>
+                        <input class="box" id="alarmtime" type="time" value="08:00">
+                        <label class="hint" style="display:block;margin-top:10px;">Repeat on</label>
+                        <div class="day-pills" id="dayPills">
+                            <button type="button" class="day-pill" data-day="0">Sun</button>
+                            <button type="button" class="day-pill" data-day="1">Mon</button>
+                            <button type="button" class="day-pill" data-day="2">Tue</button>
+                            <button type="button" class="day-pill" data-day="3">Wed</button>
+                            <button type="button" class="day-pill" data-day="4">Thu</button>
+                            <button type="button" class="day-pill" data-day="5">Fri</button>
+                            <button type="button" class="day-pill" data-day="6">Sat</button>
+                        </div>
+                        <p class="hint">Leave all off = every day.</p>
+                        <button class="setbutton" onclick="pauseAlarmTonight()" style="margin-top:8px;">Pause alarm for tonight</button>
+                        <p class="alarm-note" id="alarmPausedNote" style="display:none;">Alarm is paused for tonight.</p>
+                        <p class="hint" style="margin-top:12px;">An active alarm forces Keep screen awake (required so the page can fire on time). The keep-awake toggle above is locked while an alarm is configured.</p>
+                        <button class="setbutton primary" onclick="saveAlarmSettings()">Save alarm</button>
                     </div>
                 </details>
             </div>
@@ -163,7 +211,9 @@
     <div id="overlay" onclick="if(event.target == this) closeOverlay()"></div>
 
     <script>
-        window.onload = () => {
+        var selectedDays = [];
+
+        window.onload = function () {
             document.getElementById('bkgurl').value = localStorage.getItem('selectedBKGURL') || '';
             document.getElementById('screensaverurl').value = localStorage.getItem('selectedScreensaverURL') || '';
             document.getElementById('screensavertimeout').value = localStorage.getItem('selectedScreensaverTimeout') || '120';
@@ -175,17 +225,64 @@
             document.getElementById('nightmodeend').value = localStorage.getItem('selectedNightModeEnd') || '07:00';
             document.getElementById('nightmoderestore').value = localStorage.getItem('selectedNightModeRestore') || '10';
             document.getElementById('nightmodeexitwake').checked = localStorage.getItem('selectedNightModeExitWake') !== 'false';
+            document.getElementById('nightmodekeepawake').checked = localStorage.getItem('selectedNightModeKeepAwake') === 'true';
+
+            // Alarm
+            var alarm = null;
+            try { alarm = JSON.parse(localStorage.getItem('selectedNightModeAlarm') || 'null'); } catch (e) {}
+            if (alarm) {
+                document.getElementById('alarmenabled').checked = !!alarm.enabled;
+                var h = ('0' + (alarm.hour|0)).slice(-2);
+                var m = ('0' + (alarm.minute|0)).slice(-2);
+                document.getElementById('alarmtime').value = h + ':' + m;
+                selectedDays = Array.isArray(alarm.days) ? alarm.days.slice() : [];
+                if (alarm.pausedTonight) {
+                    document.getElementById('alarmPausedNote').style.display = 'block';
+                }
+            }
+            syncDayPills();
+            onAlarmToggle();
+
+            document.querySelectorAll('.day-pill').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var d = parseInt(btn.dataset.day, 10);
+                    var idx = selectedDays.indexOf(d);
+                    if (idx === -1) selectedDays.push(d);
+                    else selectedDays.splice(idx, 1);
+                    syncDayPills();
+                });
+            });
         };
+
+        function syncDayPills() {
+            document.querySelectorAll('.day-pill').forEach(function (btn) {
+                var d = parseInt(btn.dataset.day, 10);
+                btn.classList.toggle('on', selectedDays.indexOf(d) !== -1);
+            });
+        }
+
+        function onAlarmToggle() {
+            var on = document.getElementById('alarmenabled').checked;
+            var row = document.getElementById('keepAwakeRow');
+            var hint = document.getElementById('keepAwakeHint');
+            if (on) {
+                row.classList.add('disabled');
+                document.getElementById('nightmodekeepawake').checked = true;
+                hint.textContent = 'Locked on because an alarm is configured (required for reliable firing).';
+            } else {
+                row.classList.remove('disabled');
+                hint.textContent = 'Prevents the device from sleeping while Night Mode is visible. Required for alarms to fire reliably.';
+            }
+        }
 
         function handlePreview(url) {
             if (!url) return;
-            const overlay = document.getElementById('overlay');
+            var overlay = document.getElementById('overlay');
             overlay.style.display = 'flex';
-            const isLive = /bubbles|squares|\.html|status|nightmode/i.test(url);
-            const previewContent = isLive
+            var isLive = /bubbles|squares|\.html|status|nightmode/i.test(url);
+            var previewContent = isLive
                 ? '<iframe src="' + url + '"></iframe>'
                 : '<img src="' + url + '" onerror="this.outerHTML=\'<div style=padding:40px;color:#f88>[Unavailable]</div>\'">';
-
             overlay.innerHTML =
                 '<div class="preview-container" onclick="event.stopPropagation()">' +
                 '<p class="hint" style="color:var(--cyan-bright);margin-bottom:12px;">Wallpaper preview</p>' +
@@ -203,15 +300,13 @@
         }
 
         function saveScreensaverSettings() {
-            const url = document.getElementById('screensaverurl').value.trim();
-            const timeoutRaw = parseInt(document.getElementById('screensavertimeout').value, 10);
-            const timeout = Math.max(10, isNaN(timeoutRaw) ? 120 : timeoutRaw);
-            const behavior = document.getElementById('screensaverbehavior').value || 'destroy';
-            const enabled = document.getElementById('screensaverenabled').checked;
-
+            var url = document.getElementById('screensaverurl').value.trim();
+            var timeoutRaw = parseInt(document.getElementById('screensavertimeout').value, 10);
+            var timeout = Math.max(10, isNaN(timeoutRaw) ? 120 : timeoutRaw);
+            var behavior = document.getElementById('screensaverbehavior').value || 'destroy';
+            var enabled = document.getElementById('screensaverenabled').checked;
             if (url) localStorage.setItem('selectedScreensaverURL', url);
             else localStorage.removeItem('selectedScreensaverURL');
-
             localStorage.setItem('selectedScreensaverTimeout', String(timeout));
             localStorage.setItem('selectedScreensaverResumeBehavior', behavior);
             localStorage.setItem('selectedScreensaverEnabled', enabled ? 'true' : 'false');
@@ -219,19 +314,64 @@
         }
 
         function saveNightModeSettings() {
-            const enabled = document.getElementById('nightmodeenabled').checked;
-            const start = document.getElementById('nightmodestart').value || '22:00';
-            const end = document.getElementById('nightmodeend').value || '07:00';
-            const restoreRaw = parseInt(document.getElementById('nightmoderestore').value, 10);
-            const restore = Math.max(5, isNaN(restoreRaw) ? 10 : restoreRaw);
-            const exitWake = document.getElementById('nightmodeexitwake').checked;
+            var enabled = document.getElementById('nightmodeenabled').checked;
+            var start = document.getElementById('nightmodestart').value || '22:00';
+            var end = document.getElementById('nightmodeend').value || '07:00';
+            var restoreRaw = parseInt(document.getElementById('nightmoderestore').value, 10);
+            var restore = Math.max(5, isNaN(restoreRaw) ? 10 : restoreRaw);
+            var exitWake = document.getElementById('nightmodeexitwake').checked;
+            var keepAwake = document.getElementById('nightmodekeepawake').checked;
+            // force keep-awake if alarm on
+            if (document.getElementById('alarmenabled').checked) keepAwake = true;
 
             localStorage.setItem('selectedNightModeEnabled', enabled ? 'true' : 'false');
             localStorage.setItem('selectedNightModeStart', start);
             localStorage.setItem('selectedNightModeEnd', end);
             localStorage.setItem('selectedNightModeRestore', String(restore));
             localStorage.setItem('selectedNightModeExitWake', exitWake ? 'true' : 'false');
+            localStorage.setItem('selectedNightModeKeepAwake', keepAwake ? 'true' : 'false');
             alert('Night Mode saved.');
+        }
+
+        function saveAlarmSettings() {
+            var enabled = document.getElementById('alarmenabled').checked;
+            var t = document.getElementById('alarmtime').value || '08:00';
+            var parts = t.split(':');
+            var hour = parseInt(parts[0], 10) || 0;
+            var minute = parseInt(parts[1], 10) || 0;
+            var existing = null;
+            try { existing = JSON.parse(localStorage.getItem('selectedNightModeAlarm') || 'null'); } catch (e) {}
+            var alarm = {
+                enabled: enabled,
+                hour: hour,
+                minute: minute,
+                days: selectedDays.slice().sort(),
+                pausedTonight: existing && existing.pausedTonight ? true : false,
+                pausedDate: existing && existing.pausedDate ? existing.pausedDate : null
+            };
+            localStorage.setItem('selectedNightModeAlarm', JSON.stringify(alarm));
+            if (enabled) {
+                localStorage.setItem('selectedNightModeKeepAwake', 'true');
+                document.getElementById('nightmodekeepawake').checked = true;
+            }
+            onAlarmToggle();
+            alert('Alarm saved.');
+        }
+
+        function pauseAlarmTonight() {
+            var alarm = null;
+            try { alarm = JSON.parse(localStorage.getItem('selectedNightModeAlarm') || 'null'); } catch (e) {}
+            if (!alarm || !alarm.enabled) {
+                alert('No active alarm to pause.');
+                return;
+            }
+            var now = new Date();
+            var today = now.getFullYear() + '-' + ('0'+(now.getMonth()+1)).slice(-2) + '-' + ('0'+now.getDate()).slice(-2);
+            alarm.pausedTonight = true;
+            alarm.pausedDate = today;
+            localStorage.setItem('selectedNightModeAlarm', JSON.stringify(alarm));
+            document.getElementById('alarmPausedNote').style.display = 'block';
+            alert('Alarm paused for tonight.');
         }
 
         function closeOverlay() {
