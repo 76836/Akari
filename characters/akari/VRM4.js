@@ -6,9 +6,24 @@ loadscreen("(5th revision) Loading Akari's VRM...");
   
   // Idle Percentages: 25% Stay, 15% Happy, 40% Neutral, 20% Confused
 
+  // Resolve repo root from this script's URL so iframes work from /UI/, /settings/, etc.
+  function akariRoot() {
+    try {
+      var scripts = document.getElementsByTagName('script');
+      for (var i = scripts.length - 1; i >= 0; i--) {
+        var src = scripts[i].src || '';
+        if (/\/characters\/akari\/VRM4\.js/i.test(src)) {
+          return src.replace(/characters\/akari\/VRM4\.js.*$/i, '');
+        }
+      }
+    } catch (e) {}
+    return './';
+  }
+  var root = akariRoot();
+
   var thehtml = `
   <style>.avatariframe { width:100%; height:100%; position:fixed; left:0; top:0; z-index:1; border:0; }</style>
-  <iframe src="./engine/AkariNet-VRM-v2?modelUrl=https://76836.github.io/Akari/characters/akari/VRM/1192842823581716627.vrm&debug=false" class="avatariframe"></iframe>
+  <iframe src="${root}engine/AkariNet-VRM-v2?modelUrl=https://76836.github.io/Akari/characters/akari/VRM/1192842823581716627.vrm&debug=false" class="avatariframe"></iframe>
   `;
   if (document.getElementById('avatar')) document.getElementById('avatar').innerHTML = thehtml;
 
