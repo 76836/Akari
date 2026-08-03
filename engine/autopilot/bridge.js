@@ -9,7 +9,19 @@
     'use strict';
 
     var AUTOPILOT_URL = 'https://76836.github.io/Akari/engine/autopilot/status';
-    var NIGHTMODE_URL = './nightmode.html';
+    // Resolve nightmode.html from Akari root (works when host page is under /UI/, etc.)
+    var NIGHTMODE_URL = (function () {
+        try {
+            var scripts = document.getElementsByTagName('script');
+            for (var i = scripts.length - 1; i >= 0; i--) {
+                var src = scripts[i].src || '';
+                if (/\/engine\/autopilot\/bridge\.js/i.test(src)) {
+                    return src.replace(/engine\/autopilot\/bridge\.js.*$/i, '') + 'nightmode.html';
+                }
+            }
+        } catch (e) {}
+        return './nightmode.html';
+    })();
     var DOWNLOAD_SS_DELAY_MS = 15000;
 
     var bc = null;
@@ -176,6 +188,20 @@
             opts = opts || {};
             container.innerHTML = '';
             if (!url) return;
+            // Resolve root-relative paths when host page is not at site root (e.g. /UI/beta)
+            if (url && url.charAt(0) === '.' && !/^(https?:|data:|blob:|\/\/)/i.test(url)) {
+                try {
+                    var scripts = document.getElementsByTagName('script');
+                    for (var si = scripts.length - 1; si >= 0; si--) {
+                        var ssrc = scripts[si].src || '';
+                        if (/\/engine\/autopilot\/bridge\.js/i.test(ssrc)) {
+                            var root = ssrc.replace(/engine\/autopilot\/bridge\.js.*$/i, '');
+                            url = root + url.replace(/^\.\//, '');
+                            break;
+                        }
+                    }
+                } catch (e) {}
+            }
             if (/\.(jpg|jpeg|png|gif|webp)$/i.test(url)) {
                 var img = document.createElement('img');
                 img.className = 'screensaver-media';
