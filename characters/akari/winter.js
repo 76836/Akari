@@ -6,9 +6,23 @@ loadscreen("(5th revision) Loading Akari's VRM...");
   
   // Idle Percentages: 25% Stay, 15% Happy, 40% Neutral, 20% Confused
 
+  function akariRoot() {
+    try {
+      var scripts = document.getElementsByTagName('script');
+      for (var i = scripts.length - 1; i >= 0; i--) {
+        var src = scripts[i].src || '';
+        if (/\/characters\/akari\/winter\.js/i.test(src)) {
+          return src.replace(/characters\/akari\/winter\.js.*$/i, '');
+        }
+      }
+    } catch (e) {}
+    return './';
+  }
+  var root = akariRoot();
+
   var thehtml = `
   <style>.avatariframe { width:100%; height:100%; position:fixed; left:0; top:0; z-index:1; border:0; }</style>
-  <iframe src="./engine/AkariNet-VRM-v2?modelUrl=https://76836.github.io/Akari/characters/7950737695103985735.vrm&debug=false" class="avatariframe"></iframe>
+  <iframe src="${root}engine/AkariNet-VRM-v2?modelUrl=https://76836.github.io/Akari/characters/7950737695103985735.vrm&debug=false" class="avatariframe"></iframe>
   `;
   if (document.getElementById('avatar')) document.getElementById('avatar').innerHTML = thehtml;
 
