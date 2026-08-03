@@ -53,11 +53,12 @@
             --ice-input-text: #edf6ff;
             --ice-input-placeholder: rgba(191, 219, 254, 0.55);
         }
-        body {
+        html, body {
+            margin: 0; height: 100%; width: 100%;
             background: radial-gradient(circle at top, var(--bg-3) 0%, var(--bg-2) 35%, var(--bg-1) 100%);
             color: var(--text);
             font-family: 'Orbitron', sans-serif;
-            margin: 0; height: 100vh; overflow: hidden;
+            overflow: hidden;
         }
         .icemorphic {
             backdrop-filter: blur(var(--ice-blur)) url(#ice-refraction);
@@ -120,9 +121,17 @@
         }
         @keyframes borderAnim { 0% { border-color: red; } 100% { border-color: green; } }
         #overlay.fade-out { opacity: 0; pointer-events: none; }
-        #bkg-container { position: fixed; inset: 0; z-index: 0; width: 100vw; height: 100vh; pointer-events: none; }
+        /* Wallpaper layer — same stacking as root index.html */
+        #bkg-container {
+            position: fixed; inset: 0; z-index: -2; width: 100vw; height: 100vh;
+            pointer-events: none; overflow: hidden;
+        }
+        #bkg-container iframe.iframe-container,
+        #bkg-container img {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            border: none; object-fit: cover; pointer-events: none;
+        }
         #avatar { position: relative; z-index: 1; }
-        .iframe-container { width: 100%; height: 100%; border: none; }
         #screensaver-container {
             position: fixed; inset: 0; display: none; z-index: 999998; background: #000; pointer-events: none;
         }
@@ -234,8 +243,8 @@
     <div id="status-area"></div>
     <div id="window-layer"></div>
     <div class="controls">
-        <button class="icemorphic-medium ice-button side-action" id="micbutton" onclick="app.core.onActionButton()" style="font-weight: bolder; min-width: 72px;">voice</button>
         <input type="text" id="box" class="icemorphic icemorphic-medium ice-input box" style="color: var(--text); background: var(--input-bg);" placeholder="What's up?" onkeydown="if(event.keyCode==13) app.core.handleInput()" oninput="app.core.syncActionButton()">
+        <button class="icemorphic-medium ice-button side-action" id="micbutton" onclick="app.core.onActionButton()" style="font-weight: bolder; min-width: 72px;">voice</button>
     </div>
     <script>
     (function () {
@@ -438,18 +447,33 @@ if ('serviceWorker' in navigator) {
                 loadBackground: () => {
                     const url = app.config.modules.bg;
                     const container = document.getElementById('bkg-container');
+                    if (!container) return;
                     container.innerHTML = '';
+                    container.style.background = '';
+                    container.style.backgroundImage = '';
                     if (!url) return;
                     const resolved = resolveAssetUrl(url);
+                    // Clear opaque body/html fill so the wallpaper layer can show (z-index: -2 paints above transparent body bg)
+                    document.documentElement.style.background = 'transparent';
                     document.body.style.background = 'transparent';
-                    if (/\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(String(url)) || /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(resolved)) {
-                        container.style.background = 'url('+resolved+') center/cover no-repeat fixed';
+                    const isImage = /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(resolved) ||
+                        /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(String(url));
+                    if (isImage) {
+                        container.style.backgroundImage = 'url("' + resolved + '")';
+                        container.style.backgroundSize = 'cover';
+                        container.style.backgroundPosition = 'center';
+                        container.style.backgroundRepeat = 'no-repeat';
+                        container.style.backgroundAttachment = 'fixed';
                     } else {
                         const ifr = document.createElement('iframe');
-                        ifr.src = resolved; ifr.className = 'iframe-container';
+                        ifr.src = resolved;
+                        ifr.className = 'iframe-container';
+                        ifr.setAttribute('title', 'Wallpaper');
                         ifr.setAttribute('allow', 'autoplay');
+                        ifr.setAttribute('loading', 'eager');
                         container.appendChild(ifr);
                     }
+                    console.log('[Akari] wallpaper:', resolved);
                 },
                 getScreensaverConfig: () => {
                     const timeoutSec = parseInt(localStorage.getItem('selectedScreensaverTimeout') || '120', 10);
