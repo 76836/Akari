@@ -1,1 +1,445 @@
-PLACEHOLDER
+<!DOCTYPE html>
+<html id="html" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cyan: #008b8b;
+            --cyan-bright: #00c8c8;
+            --bg: #141414;
+            --card: #1e2626;
+            --input-bg: rgba(0, 0, 0, 0.35);
+            --danger: #a33;
+            --warn: #a86b1a;
+            --accent-glow: rgba(0, 180, 180, 0.25);
+            --text-dim: rgba(255,255,255,0.55);
+        }
+
+        html, body {
+            height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden;
+            background-color: var(--bg);
+        }
+
+        body {
+            font-family: 'Orbitron', system-ui, sans-serif;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .viewport-wrapper {
+            flex: 1; display: flex; flex-direction: column;
+            width: 100%; height: 100%; position: relative;
+        }
+
+        .scroll-area {
+            flex: 1; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none;
+            display: flex; flex-direction: column;
+        }
+        .scroll-area::-webkit-scrollbar { display: none; }
+
+        .container {
+            width: 100%; flex: 1; display: flex; flex-direction: column; padding-bottom: 100px;
+        }
+
+        .title {
+            font-size: clamp(1.15rem, 5.5vw, 2rem);
+            color: var(--cyan-bright);
+            margin: 18px 0 8px; text-align: center;
+            text-shadow: 0 0 12px var(--accent-glow);
+            flex-shrink: 0; letter-spacing: 0.04em;
+        }
+
+        .subtitle {
+            text-align: center; font-size: 0.7rem; color: var(--text-dim);
+            margin: 0 16px 16px; line-height: 1.4;
+            font-family: system-ui, sans-serif; letter-spacing: 0.02em;
+        }
+
+        details, .link-menu {
+            background: var(--card); margin: 0; width: 100%;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        summary, .link-menu-header {
+            padding: 16px 20px; cursor: pointer;
+            font-size: clamp(0.85rem, 3.8vw, 1.1rem);
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255,255,255,0.02); transition: background 0.15s; list-style: none;
+        }
+
+        summary:hover, .link-menu-header:hover { background: rgba(255,255,255,0.07); }
+        summary::-webkit-details-marker { display: none; }
+        summary::after { content: '▼'; font-size: 0.65rem; opacity: 0.45; transition: transform 0.25s; }
+        details[open] summary::after { transform: rotate(180deg); color: var(--cyan-bright); opacity: 1; }
+        .link-menu-header::after { content: '›'; font-size: 1.2rem; color: var(--cyan-bright); opacity: 0.8; }
+
+        .content { padding: 18px 20px 22px; background: rgba(0,0,0,0.22); }
+
+        .script-group {
+            background: rgba(255, 255, 255, 0.03); border-radius: 10px;
+            padding: 16px; margin-bottom: 14px; border: 1px solid rgba(255,255,255,0.07);
+        }
+        .group-avatar { border-left: 3px solid var(--cyan-bright); }
+        .group-wake { border-left: 3px solid #888; }
+
+        .group-label {
+            font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.18em;
+            margin-bottom: 12px; display: block; color: var(--cyan-bright); font-weight: 600;
+        }
+
+        .hint {
+            font-size: 0.72rem; color: var(--text-dim); margin: 0 0 10px;
+            line-height: 1.45; font-family: system-ui, sans-serif; font-weight: 400;
+        }
+
+        .setbutton, .box, .select-input {
+            font-size: 0.95rem; width: 100%; margin: 6px 0;
+            background-color: #2d3636; border: 0; color: white;
+            border-radius: 8px; padding: 12px 14px; box-sizing: border-box; font-family: inherit;
+        }
+
+        .box {
+            background-color: var(--input-bg); border: 1px solid rgba(255,255,255,0.1); text-align: left;
+        }
+        .setbutton { cursor: pointer; transition: filter 0.15s; }
+        .setbutton:hover { filter: brightness(1.15); }
+        .setbutton:active { filter: brightness(1.25); }
+        .setbutton.primary {
+            background: var(--cyan); color: #fff; font-weight: 600; margin-top: 10px;
+        }
+        .setbutton.safe {
+            background: transparent; border: 1px solid var(--cyan); color: var(--cyan-bright);
+        }
+        .setbutton.warn {
+            background: transparent; border: 1px solid var(--warn); color: #e0b060;
+        }
+        .setbutton.danger {
+            background: var(--danger); color: #fff;
+        }
+
+        .row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 12px; gap: 12px;
+        }
+        .row span { font-size: 0.85rem; }
+
+        .switch { position: relative; display: inline-block; width: 46px; height: 24px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; inset: 0;
+            background-color: #222; transition: 0.25s; border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px;
+            left: 3px; bottom: 3px; background-color: #fff; transition: 0.25s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--cyan); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        .scroll-controls {
+            position: fixed; bottom: 22px; right: 18px;
+            display: flex; flex-direction: column; gap: 10px; z-index: 100;
+        }
+        .scroll-btn {
+            width: 46px; height: 46px; border-radius: 12px;
+            background: var(--card); border: 1px solid var(--cyan);
+            color: var(--cyan-bright); font-size: 1.1rem;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        .link-menu {
+            background: linear-gradient(90deg, rgba(40,40,40,0.4), rgba(0,140,140,0.12));
+        }
+        .update {
+            background: linear-gradient(90deg, rgba(60,0,70,0.35), rgba(0,160,80,0.12), rgba(0,140,140,0.15));
+            border-bottom: 1px solid rgba(255,255,255,0.12);
+            margin-bottom: 4px;
+        }
+
+        .danger-zone { border-top: 2px solid var(--danger); margin-top: 8px; }
+        .danger-zone summary { color: #f88; }
+
+        #overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            display: none; align-items: center; justify-content: center;
+            z-index: 1000; padding: 16px;
+        }
+        .preview-container {
+            width: 100%; max-width: 560px; background: var(--card);
+            border-radius: 16px; padding: 20px; border: 1px solid var(--cyan);
+        }
+        .preview-frame {
+            width: 100%; aspect-ratio: 16 / 9; background: #000;
+            border-radius: 10px; margin-bottom: 16px; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .preview-frame img, .preview-frame iframe {
+            width: 100%; height: 100%; object-fit: cover; border: none;
+        }
+
+        @media (min-width: 600px) {
+            .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="viewport-wrapper">
+        <div class="scroll-area" id="mainScroll">
+            <div class="container">
+                <p class="title">Settings</p>
+                <p class="subtitle">Simple options first. Open a section only when you need it.</p>
+
+                <div class="update" onclick="installupdates();">
+                    <div class="link-menu-header">Check for updates</div>
+                </div>
+
+                <div class="link-menu" onclick="window.location.href = './voice';">
+                    <div class="link-menu-header">Voice & listening</div>
+                </div>
+
+                <div class="link-menu" onclick="window.location.href = './AI';">
+                    <div class="link-menu-header">Intelligence (AI)</div>
+                </div>
+
+                <div class="link-menu" onclick="window.location.href = './customization';">
+                    <div class="link-menu-header">Customization (wallpaper, screensaver, night mode)</div>
+                </div>
+
+                <div class="link-menu" onclick="window.location.href = './AIM';">
+                    <div class="link-menu-header">AIM (hand tracking & alternate input)</div>
+                </div>
+
+                <div class="link-menu" onclick="window.location.href = 'https://76836.github.io/AkariNet-Automata/automatonManager.html';">
+                    <div class="link-menu-header">Automata Manager</div>
+                </div>
+
+                <details>
+                    <summary>Character & listening scripts</summary>
+                    <div class="content">
+                        <p class="hint">Turn features on/off and pick which script powers them. Save after changing the path.</p>
+
+                        <div class="script-group group-avatar">
+                            <span class="group-label">Avatar</span>
+                            <div class="row">
+                                <span>Show avatar</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="toggle_avatar" onchange="toggleScript('avatar')">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <select class="select-input" onchange="document.getElementById('avatarurl').value = this.value">
+                                <option value="">— Preset —</option>
+                                <option value="./characters/hiyori/avatar.js">Hiyori (Live2D)</option>
+                                <option value="./characters/akari/VRM4.js">Akari (VRM)</option>
+                                <option value="./characters/akari/winter.js">Akari (Winter)</option>
+                            </select>
+                            <input class="box" id="avatarurl" type="text" placeholder="Custom script path…">
+                            <button class="setbutton primary" onclick="setScript('avatar')">Save avatar</button>
+                        </div>
+
+                        <div class="script-group group-wake">
+                            <span class="group-label">Listening / wake</span>
+                            <div class="row">
+                                <span>Enable listening</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="toggle_wake" onchange="toggleScript('wake')">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <select class="select-input" onchange="document.getElementById('wakeurl').value = this.value">
+                                <option value="">— Preset —</option>
+                                <option value="./engine/audioConsole.js">Audio Console (recommended)</option>
+                                <option value="./characters/akari/wake.js">Original “hey Akari”</option>
+                                <option value="./engine/experimental-audioConsole.js">Experimental Audio Console</option>
+                            </select>
+                            <input class="box" id="wakeurl" type="text" placeholder="Custom script path…">
+                            <button class="setbutton primary" onclick="setScript('wake')">Save listening</button>
+                        </div>
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Quick presets</summary>
+                    <div class="content">
+                        <p class="hint">Replace your current setup with a known-good character default.</p>
+                        <div class="grid-2">
+                            <button class="setbutton" onclick="confirmCharacter('Akari')">Akari (default)</button>
+                            <button class="setbutton" onclick="confirmCharacter('Akari-winter')">Akari Winter</button>
+                            <button class="setbutton" onclick="confirmCharacter('Hiyori')">Hiyori</button>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="danger-zone">
+                    <summary>Reset & setup</summary>
+                    <div class="content">
+                        <p class="hint">Least harmful first. Nothing here clears storage from other websites — only AkariNet keys on this origin.</p>
+
+                        <button class="setbutton safe" onclick="redoSetupOnly()">
+                            Redo first-time setup
+                        </button>
+                        <p class="hint">Opens the setup wizard again. Keeps your current settings until you finish (or skip) setup.</p>
+
+                        <button class="setbutton warn" onclick="if(confirm('Clear chat history only?')) { localStorage.removeItem('chatHistory'); alert('Chat history cleared.'); }">
+                            Clear chat history
+                        </button>
+
+                        <button class="setbutton warn" onclick="localStorage.removeItem('defaultAssistant'); alert('Default assistant cleared. Next visit will ask which UI to use.');">
+                            Reset default assistant UI
+                        </button>
+
+                        <button class="setbutton danger" onclick="resetAkariNet()">
+                            Reset AkariNet settings
+                        </button>
+                        <p class="hint">Removes AkariNet preferences (voice, AI, wallpaper, Audio Console, setup flag, etc.), then restarts setup. Does not wipe unrelated localStorage.</p>
+                    </div>
+                </details>
+            </div>
+        </div>
+
+        <div class="scroll-controls">
+            <div class="scroll-btn" onclick="document.getElementById('mainScroll').scrollBy(0, -200)">▲</div>
+            <div class="scroll-btn" onclick="document.getElementById('mainScroll').scrollBy(0, 200)">▼</div>
+        </div>
+    </div>
+
+    <div id="overlay" onclick="if(event.target == this) closeOverlay()"></div>
+
+    <script>
+        window.onload = () => {
+            const avatar = localStorage.getItem('selectedAvatarScript');
+            const wake = localStorage.getItem('selectedWakeScript');
+
+            document.getElementById('avatarurl').value = (avatar === 'off' || !avatar) ? '' : avatar;
+            document.getElementById('wakeurl').value = (wake === 'off' || !wake) ? '' : wake;
+
+            document.getElementById('toggle_avatar').checked = !!(avatar && avatar !== 'off');
+            document.getElementById('toggle_wake').checked = !!(wake && wake !== 'off');
+
+            updateVisuals('avatar');
+            updateVisuals('wake');
+        };
+
+        function updateVisuals(type) {
+            const on = document.getElementById('toggle_' + type).checked;
+            const el = document.querySelector('.group-' + type);
+            if (el) el.style.opacity = on ? '1' : '0.45';
+        }
+
+        function toggleScript(type) {
+            const on = document.getElementById('toggle_' + type).checked;
+            const key = 'selected' + type.charAt(0).toUpperCase() + type.slice(1) + 'Script';
+            const input = document.getElementById(type + 'url');
+            if (!on) {
+                localStorage.setItem(key, 'off');
+            } else {
+                const path = (input.value || '').trim();
+                if (path) localStorage.setItem(key, path);
+            }
+            updateVisuals(type);
+        }
+
+        function setScript(type) {
+            const val = (document.getElementById(type + 'url').value || '').trim();
+            const key = 'selected' + type.charAt(0).toUpperCase() + type.slice(1) + 'Script';
+            localStorage.setItem(key, val || 'off');
+            document.getElementById('toggle_' + type).checked = !!val;
+            updateVisuals(type);
+            alert('Saved.');
+        }
+
+        function closeOverlay() {
+            document.getElementById('overlay').style.display = 'none';
+        }
+
+        function confirmCharacter(name) {
+            const overlay = document.getElementById('overlay');
+            overlay.style.display = 'flex';
+            overlay.innerHTML =
+                '<div class="preview-container" onclick="event.stopPropagation()">' +
+                '<h2 style="margin:0 0 8px;color:var(--cyan-bright);font-size:1.1rem;">Use ' + name + ' defaults?</h2>' +
+                '<p class="hint">This replaces your current character, wake, and wallpaper settings.</p>' +
+                '<div style="margin-top:18px;display:flex;flex-direction:column;gap:8px;">' +
+                '<button class="setbutton primary" onclick="applyPreset(\'' + name + '\')">Continue</button>' +
+                '<button class="setbutton" onclick="closeOverlay()" style="background:transparent;border:1px solid #555;">Cancel</button>' +
+                '</div></div>';
+        }
+
+        function applyPreset(name) {
+            if (name === 'Akari') {
+                localStorage.setItem('selectedReflexScript', './characters/akari/response.js');
+                localStorage.setItem('selectedAvatarScript', './characters/akari/VRM4.js');
+                localStorage.setItem('selectedWakeScript', './characters/akari/wake.js');
+                localStorage.setItem('selectedBKGURL', './wallpapers/backdrop.png');
+                localStorage.setItem('selectedAIScript', '');
+            } else if (name === 'Akari-winter') {
+                localStorage.setItem('selectedReflexScript', './characters/akari/response.js');
+                localStorage.setItem('selectedAvatarScript', './characters/akari/winter.js');
+                localStorage.setItem('selectedWakeScript', './characters/akari/wake.js');
+                localStorage.setItem('selectedBKGURL', './wallpapers/snow.png');
+                localStorage.setItem('selectedAIScript', '');
+            } else {
+                localStorage.setItem('selectedBKGURL', './wallpapers/backdrop.png');
+                localStorage.setItem('selectedReflexScript', './characters/hiyori/response.js');
+                localStorage.setItem('selectedAIScript', './characters/hiyori/Gemini.js');
+                localStorage.setItem('selectedAvatarScript', './characters/hiyori/avatar.js');
+                localStorage.setItem('selectedWakeScript', 'off');
+            }
+            if (window.parent) window.parent.location.reload();
+            else location.reload();
+        }
+
+        function installupdates() {
+            if (navigator.onLine) {
+                alert('Update requested. Reload to apply.');
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.ready.then(reg => reg.active && reg.active.postMessage({ action: 'updateCache' }));
+                }
+            } else alert('Internet required to download updates.');
+        }
+
+        function redoSetupOnly() {
+            if (!confirm('Open the first-time setup wizard again? Your current settings stay until you finish or skip setup.')) return;
+            localStorage.removeItem('akari_setupComplete');
+            localStorage.removeItem('akari_setupVersion');
+            const target = '../setup.html';
+            if (window.parent && window.parent !== window) window.parent.location.href = target;
+            else location.href = target;
+        }
+
+        function resetAkariNet() {
+            if (!confirm('Reset all AkariNet settings and restart setup? This does not clear unrelated localStorage on this site.')) return;
+            if (!confirm('Last chance — module paths, Audio Console options, wallpaper, screensaver, and setup flags will be removed.')) return;
+
+            const exact = [
+                'akari_setupComplete', 'akari_setupVersion', 'akari:autopilot',
+                'akari:automata_urls', 'akari:automata_blacklist',
+                'defaultAssistant', 'chatHistory', 'emote', 'wakeSense',
+                'devBridge_disabled'
+            ];
+            const prefixes = [
+                'selected', 'ac41_', 'akari', 'devBridge_auth_'
+            ];
+
+            const toRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (!k) continue;
+                if (exact.indexOf(k) !== -1) toRemove.push(k);
+                else if (prefixes.some(p => k.indexOf(p) === 0)) toRemove.push(k);
+            }
+            toRemove.forEach(k => localStorage.removeItem(k));
+
+            const target = '../setup.html';
+            if (window.parent && window.parent !== window) window.parent.location.href = target;
+            else location.href = target;
+        }
+    </script>
+</body>
+</html>
