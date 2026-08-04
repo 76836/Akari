@@ -13,9 +13,9 @@
     enabled: true,
     trackPt: 0,
     handSide: 'Any',
-    sensitivity: 1.0,
+    sensitivity: 2.0,
     pinchSens: 1.0,
-    smooth: 0.7,
+    smooth: 0.6,
     invX: false,
     invY: false,
     zone: { x: 0, y: 0, w: 1, h: 1 },
@@ -26,7 +26,7 @@
     requirePalm: true,
     showCam: false,
     captureRes: '480',
-    modelComplexity: 0,
+    modelComplexity: 1,
     dynamicRes: true
   };
 
@@ -65,7 +65,7 @@
       '#aim-banner.show{display:block;}' +
       '#aim-banner span{display:inline-block;padding-left:100%;white-space:nowrap;animation:aim-marquee 12s linear infinite;}' +
       '@keyframes aim-marquee{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}' +
-      '#aim-cursor{position:fixed;width:20px;height:28px;pointer-events:none;z-index:2147483001;left:0;top:0;filter:drop-shadow(0 1px 2px rgba(0,0,0,.55));}' +
+      '#aim-cursor{position:fixed;width:20px;height:28px;pointer-events:none;z-index:2147483001;left:0;top:0;display:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.55));}' +
       '#aim-cursor svg{width:100%;height:100%;display:block;overflow:visible;}' +
       '#aim-cursor.pinch path{fill:#00ff9d;stroke:#003322;}' +
       '#aim-cursor.dim{opacity:.35;}' +
@@ -113,7 +113,28 @@
     ui.banner.classList.add('show');
   }
 
-  /** Dispatch mouse events on host page and same-origin iframe documents under the point. */
+  var lastActivityAt = 0;
+  function notifyUserActivity(force) {
+    var now = Date.now();
+    if (!force && now - lastActivityAt < 400) return;
+    lastActivityAt = now;
+    try {
+      if (window.app && app.core && typeof app.core.registerUserActivity === 'function') {
+        app.core.registerUserActivity('aim');
+        return;
+      }
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new CustomEvent('akari:user-input', { detail: { source: 'aim' } }));
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: state.sx, clientY: state.sy, view: window }));
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: state.sx, clientY: state.sy, pointerType: 'mouse' }));
+    } catch (e) {}
+  }
+
   function interactAt(x, y, wasPinch, isPinch) {
     var targets = [];
     var el = document.elementFromPoint(x, y);
@@ -145,9 +166,16 @@
       var opts = { bubbles: true, cancelable: true, clientX: cx, clientY: cy, view: t.win };
       try {
         t.el.dispatchEvent(new MouseEvent('mousemove', opts));
-        if (isPinch && !wasPinch) t.el.dispatchEvent(new MouseEvent('mousedown', opts));
-        else if (!isPinch && wasPinch) {
+        if (isPinch && !wasPinch) {
+          t.el.dispatchEvent(new MouseEvent('mousedown', opts));
+          try {
+            t.el.dispatchEvent(new PointerEvent('pointerdown', Object.assign({}, opts, { pointerType: 'mouse', isPrimary: true })));
+          } catch (e) {}
+        } else if (!isPinch && wasPinch) {
           t.el.dispatchEvent(new MouseEvent('mouseup', opts));
+          try {
+            t.el.dispatchEvent(new PointerEvent('pointerup', Object.assign({}, opts, { pointerType: 'mouse', isPrimary: true })));
+          } catch (e) {}
           t.el.dispatchEvent(new MouseEvent('click', opts));
         }
         if (isPinch && t.el.tagName === 'INPUT' && t.el.type === 'range') {
@@ -158,6 +186,8 @@
         }
       } catch (e) {}
     });
+
+    notifyUserActivity(isPinch && !wasPinch);
   }
 
   var ui = null;
@@ -236,7 +266,8 @@
       if (ns.w !== currentProcessSize.w) currentProcessSize = ns;
     }
 
-    var flipCursor = !(activeHand[4].x < activeHand[9].x);
+    // Inverted: natural tip for right hand, flipped (goofy) for left-hand poses.
+    var flipCursor = activeHand[4].x < activeHand[9].x;
 
     var base = Math.hypot(activeHand[5].x - activeHand[17].x, activeHand[5].y - activeHand[17].y) || 1e-6;
     var v1x = activeHand[5].x - activeHand[0].x, v1y = activeHand[5].y - activeHand[0].y;
@@ -271,7 +302,8 @@
     var zh = cfg.zone && cfg.zone.h ? cfg.zone.h : 1;
     var gainX = (1 / zw) * window.innerWidth;
     var gainY = (1 / zh) * window.innerHeight;
-    var sm = parseFloat(cfg.smooth) || 0.7;
+    var sm = parseFloat(cfg.smooth);
+    if (isNaN(sm)) sm = 0.6;
 
     state.cx += dx * gainX * (1 / sm);
     state.cy += dy * gainY * (1 / sm);
@@ -285,6 +317,7 @@
     var allowClick = !cfg.requirePalm || palmOpen;
 
     if (allowClick) interactAt(state.sx, state.sy, wasPinch, isPinchingNow);
+    else notifyUserActivity(false);
 
     latest.hasHand = true;
     latest.sx = state.sx;
@@ -317,7 +350,8 @@
       ui.cursor.classList.toggle('dim', !latest.allowClick);
       ui.cursor.style.display = 'block';
     } else {
-      ui.cursor.classList.add('dim');
+      ui.cursor.style.display = 'none';
+      ui.cursor.classList.remove('pinch', 'dim', 'flip');
     }
     requestAnimationFrame(renderLoop);
   }
