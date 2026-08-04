@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html id="html" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cyan: #008b8b;
+            --cyan-bright: #00c8c8;
+            --bg: #141414;
+            --card: #1e2626;
+            --input-bg: rgba(0, 0, 0, 0.35);
+            --danger: #a33;
+            --warn: #a86b1a;
+            --accent-glow: rgba(0, 180, 180, 0.25);
+            --text-dim: rgba(255,255,255,0.55);
+        }
+        html, body {
+            height: 100%; width: 100%; margin: 0; padding: 0;
+            overflow: hidden; background-color: var(--bg);
+        }
+        body {
+            font-family: 'Orbitron', system-ui, sans-serif;
+            color: #fff; display: flex; flex-direction: column;
+        }
+        .viewport-wrapper { flex: 1; display: flex; flex-direction: column; width: 100%; height: 100%; }
+        .scroll-area {
+            flex: 1; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none;
+            display: flex; flex-direction: column;
+        }
+        .scroll-area::-webkit-scrollbar { display: none; }
+        .container { width: 100%; flex: 1; display: flex; flex-direction: column; padding-bottom: 100px; }
+
+        .title {
+            font-size: clamp(1.15rem, 5.5vw, 2rem);
+            color: var(--cyan-bright);
+            margin: 18px 0 6px;
+            text-align: center;
+            text-shadow: 0 0 12px var(--accent-glow);
+            letter-spacing: 0.04em;
+        }
+        .subtitle {
+            text-align: center; font-size: 0.7rem; color: var(--text-dim);
+            margin: 0 16px 14px; line-height: 1.4;
+            font-family: system-ui, sans-serif;
+        }
+        .back {
+            display: block; text-align: center; color: var(--cyan-bright);
+            font-size: 0.8rem; margin-bottom: 8px; text-decoration: none;
+            opacity: 0.85;
+        }
+
+        details {
+            background: var(--card); margin: 0; width: 100%;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        summary {
+            padding: 16px 20px; cursor: pointer;
+            font-size: clamp(0.85rem, 3.8vw, 1.1rem);
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255,255,255,0.02); transition: background 0.15s;
+            list-style: none;
+        }
+        summary:hover { background: rgba(255,255,255,0.07); }
+        summary::-webkit-details-marker { display: none; }
+        summary::after { content: '▼'; font-size: 0.65rem; opacity: 0.45; transition: transform 0.25s; }
+        details[open] summary::after { transform: rotate(180deg); color: var(--cyan-bright); opacity: 1; }
+
+        .content { padding: 18px 20px 22px; background: rgba(0,0,0,0.22); }
+
+        .script-group {
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px; padding: 16px; margin-bottom: 14px;
+            border: 1px solid rgba(255,255,255,0.07);
+            border-left: 3px solid var(--cyan-bright);
+        }
+        .group-label {
+            font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.18em;
+            margin-bottom: 8px; display: block; color: var(--cyan-bright); font-weight: 600;
+        }
+        .hint {
+            font-size: 0.72rem; color: var(--text-dim); margin: 0 0 10px;
+            line-height: 1.45; font-family: system-ui, sans-serif;
+        }
+
+        .setbutton, .box, .select-input {
+            font-size: 0.95rem; width: 100%; margin: 6px 0;
+            background-color: #2d3636; border: 0; color: white;
+            border-radius: 8px; padding: 12px 14px; box-sizing: border-box;
+            font-family: inherit;
+        }
+        .box { background-color: var(--input-bg); border: 1px solid rgba(255,255,255,0.1); text-align: left; }
+        .select-input { background-color: #2d3636; cursor: pointer; }
+        .setbutton { cursor: pointer; transition: filter 0.15s; }
+        .setbutton:hover { filter: brightness(1.15); }
+        .setbutton.primary { background: var(--cyan); color: #fff; font-weight: 600; margin-top: 8px; }
+        .setbutton.safe { background: transparent; border: 1px solid var(--cyan); color: var(--cyan-bright); }
+        .setbutton.warn { background: transparent; border: 1px solid var(--warn); color: #e0b060; }
+
+        .row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 12px; gap: 12px;
+        }
+        .row span { font-size: 0.85rem; }
+
+        .switch { position: relative; display: inline-block; width: 46px; height: 24px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; inset: 0;
+            background-color: #222; transition: 0.25s; border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px;
+            left: 3px; bottom: 3px; background-color: #fff; transition: 0.25s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--cyan); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        .label-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin: 10px 0 4px; font-size: 0.8rem; color: #ccc;
+            font-family: system-ui, sans-serif;
+        }
+        .val-display {
+            font-family: monospace; color: var(--cyan-bright);
+            background: rgba(0, 80, 80, 0.35); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;
+        }
+        input[type="range"] {
+            width: 100%; -webkit-appearance: none; background: transparent; height: 28px; cursor: pointer; display: block;
+        }
+        input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #333; border-radius: 2px; }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%;
+            background: #fff; margin-top: -7px;
+        }
+
+        .scroll-controls {
+            position: fixed; bottom: 22px; right: 18px;
+            display: flex; flex-direction: column; gap: 10px; z-index: 100;
+        }
+        .scroll-btn {
+            width: 46px; height: 46px; border-radius: 12px;
+            background: var(--card); border: 1px solid var(--cyan);
+            color: var(--cyan-bright); font-size: 1.1rem;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        .version-tag {
+            text-align: center; font-size: 0.65rem; opacity: 0.35;
+            padding: 28px 16px; letter-spacing: 0.12em;
+        }
+    </style>
+</head>
+<body>
+    <div class="viewport-wrapper">
+        <div class="scroll-area" id="mainScroll">
+            <div class="container">
+                <a class="back" href="./index">← Settings</a>
+                <p class="title">AIM</p>
+                <p class="subtitle">Alternate Input Methods — hand tracking &amp; future input modules.</p>
+
+                <details open>
+                    <summary>Enable hand tracking</summary>
+                    <div class="content">
+                        <div class="script-group">
+                            <span class="group-label">Module</span>
+                            <p class="hint">When enabled, AIM loads on the next page open and injects hand tracking into the host UI (including same-origin iframes).</p>
+                            <div class="row">
+                                <span>Hand tracking</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="toggle_aim" onchange="toggleAIM()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <select class="select-input" id="aimPreset" onchange="document.getElementById('aimurl').value = this.value">
+                                <option value="">— Preset —</option>
+                                <option value="./engine/AIM-handTracking.js">Hand Tracking (default)</option>
+                            </select>
+                            <input class="box" id="aimurl" type="text" placeholder="Script path…">
+                            <button class="setbutton primary" onclick="saveAIMScript()">Save module path</button>
+                        </div>
+                    </div>
+                </details>
+
+                <details open>
+                    <summary>Tracking &amp; sensitivity</summary>
+                    <div class="content">
+                        <div class="script-group">
+                            <span class="group-label">Cursor control</span>
+
+                            <div class="label-row"><span>Tracking point</span></div>
+                            <select class="select-input" id="trackPt" onchange="updateCfg('trackPt', this.value)">
+                                <option value="0">Wrist (most stable)</option>
+                                <option value="9">Middle knuckle (balanced)</option>
+                                <option value="8">Index tip (precise)</option>
+                                <option value="12">Middle tip</option>
+                            </select>
+
+                            <div class="label-row"><span>Active hand</span></div>
+                            <select class="select-input" id="handSide" onchange="updateCfg('handSide', this.value)">
+                                <option value="Any">Auto (either hand)</option>
+                                <option value="Right">Right hand only</option>
+                                <option value="Left">Left hand only</option>
+                            </select>
+
+                            <div class="label-row"><span>Move sensitivity</span> <span id="val-sensitivity" class="val-display">1.0</span></div>
+                            <input type="range" id="sensitivity" min="0.5" max="2.5" step="0.1" value="1.0" oninput="updateCfg('sensitivity', this.value)">
+
+                            <div class="label-row"><span>Pinch sensitivity</span> <span id="val-pinchSens" class="val-display">1.0</span></div>
+                            <input type="range" id="pinchSens" min="0.4" max="2.5" step="0.1" value="1.0" oninput="updateCfg('pinchSens', this.value)">
+                            <p class="hint">Higher = easier to register a pinch click.</p>
+
+                            <div class="label-row"><span>Smoothing</span> <span id="val-smooth" class="val-display">0.7</span></div>
+                            <input type="range" id="smooth" min="0" max="0.95" step="0.05" value="0.7" oninput="updateCfg('smooth', this.value)">
+                        </div>
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Performance</summary>
+                    <div class="content">
+                        <div class="script-group">
+                            <span class="group-label">Camera &amp; model</span>
+
+                            <div class="label-row"><span>Base capture resolution</span></div>
+                            <select class="select-input" id="captureRes" onchange="updateCfg('captureRes', this.value)">
+                                <option value="360">360p (640×360)</option>
+                                <option value="480">480p (640×480)</option>
+                                <option value="720">720p (1280×720)</option>
+                                <option value="1080">1080p (1920×1080)</option>
+                            </select>
+                            <p class="hint">Lower = faster on phones. Distant hands need more resolution.</p>
+
+                            <div class="label-row"><span>Hand model</span></div>
+                            <select class="select-input" id="modelComplexity" onchange="updateCfg('modelComplexity', this.value)">
+                                <option value="1">Full (more accurate)</option>
+                                <option value="0">Lite (faster)</option>
+                            </select>
+
+                            <div class="row" style="margin-top:12px;">
+                                <span style="font-size:0.85rem;">Dynamic resolution</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="dynamicRes" onchange="updateCfg('dynamicRes', this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <p class="hint">Auto lower/higher process size from hand scale.</p>
+
+                            <div class="row">
+                                <span style="font-size:0.85rem;">Show camera preview</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="showCam" onchange="updateCfg('showCam', this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Depth &amp; zone</summary>
+                    <div class="content">
+                        <div class="script-group">
+                            <span class="group-label">Distance gates</span>
+                            <p class="hint">Depth uses hand size vs a 1 m reference. Calibrate from the live demo if needed; values persist in localStorage.</p>
+
+                            <div class="label-row"><span>Ignore closer than (m)</span> <span id="val-minD" class="val-display">0.0</span></div>
+                            <input type="range" id="minD" min="0" max="1.5" step="0.1" value="0" oninput="updateCfg('minD', this.value)">
+
+                            <div class="label-row"><span>Ignore further than (m)</span> <span id="val-maxD" class="val-display">3.0</span></div>
+                            <input type="range" id="maxD" min="0.5" max="5" step="0.1" value="3" oninput="updateCfg('maxD', this.value)">
+
+                            <div class="row" style="margin-top:12px;">
+                                <span style="font-size:0.85rem;">Prioritize closest hand</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="ignoreFar" onchange="updateCfg('ignoreFar', this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Advanced</summary>
+                    <div class="content">
+                        <div class="script-group">
+                            <span class="group-label">Behavior</span>
+
+                            <div class="row">
+                                <span style="font-size:0.85rem;">Require open palm to move</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="requirePalm" onchange="updateCfg('requirePalm', this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="row">
+                                <span style="font-size:0.85rem;">Invert X axis</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="invX" onchange="updateCfg('invX', this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="row">
+                                <span style="font-size:0.85rem;">Invert Y axis</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="invY" onchange="updateCfg('invY', this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+
+                            <button class="setbutton warn" onclick="resetZone()">Reset air zone to full camera</button>
+                            <p class="hint">Air-zone calibration is available in the experimental AIM-Hand demo. Zone is stored in the same config key.</p>
+                        </div>
+                    </div>
+                </details>
+
+                <div class="version-tag">AIM · HAND TRACKING</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="scroll-controls">
+        <div class="scroll-btn" onclick="document.getElementById('mainScroll').scrollBy({top:-200,behavior:'smooth'})">▲</div>
+        <div class="scroll-btn" onclick="document.getElementById('mainScroll').scrollBy({top:200,behavior:'smooth'})">▼</div>
+    </div>
+
+    <script>
+        var CFG_KEY = 'akari_aim_cfg';
+        var SCRIPT_KEY = 'selectedAIMScript';
+        var DEFAULT_SCRIPT = './engine/AIM-handTracking.js';
+        var DEFAULTS = {
+            trackPt: 0,
+            handSide: 'Any',
+            sensitivity: 1.0,
+            pinchSens: 1.0,
+            smooth: 0.7,
+            invX: false,
+            invY: false,
+            zone: { x: 0, y: 0, w: 1, h: 1 },
+            refSizeAt1m: 0.15,
+            minD: 0,
+            maxD: 3,
+            ignoreFar: true,
+            requirePalm: true,
+            showCam: false,
+            captureRes: '480',
+            modelComplexity: 0,
+            dynamicRes: true
+        };
+
+        var cfg = Object.assign({}, DEFAULTS);
+        var saveTimeout = null;
+
+        function loadCfg() {
+            try {
+                var raw = localStorage.getItem(CFG_KEY);
+                if (raw) cfg = Object.assign({}, DEFAULTS, JSON.parse(raw));
+            } catch (e) {}
+            return cfg;
+        }
+
+        function persistCfg() {
+            localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+            try {
+                window.dispatchEvent(new CustomEvent('akari_aim_cfg_changed', { detail: cfg }));
+            } catch (e) {}
+        }
+
+        function updateCfg(key, value) {
+            if (['sensitivity', 'pinchSens', 'smooth', 'minD', 'maxD', 'trackPt', 'modelComplexity'].indexOf(key) !== -1) {
+                value = parseFloat(value);
+            }
+            if (key === 'dynamicRes' || key === 'showCam' || key === 'ignoreFar' || key === 'requirePalm' || key === 'invX' || key === 'invY') {
+                value = !!value;
+            }
+            if (key === 'trackPt' || key === 'modelComplexity') value = parseInt(value, 10);
+            cfg[key] = value;
+
+            var display = document.getElementById('val-' + key);
+            if (display) display.textContent = value;
+
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(persistCfg, 400);
+        }
+
+        function applyToUI() {
+            Object.keys(DEFAULTS).forEach(function (k) {
+                var el = document.getElementById(k);
+                if (!el) return;
+                if (el.type === 'checkbox') el.checked = !!cfg[k];
+                else el.value = cfg[k];
+                var display = document.getElementById('val-' + k);
+                if (display) display.textContent = cfg[k];
+            });
+        }
+
+        function resetZone() {
+            cfg.zone = { x: 0, y: 0, w: 1, h: 1 };
+            persistCfg();
+            alert('Air zone reset to full camera.');
+        }
+
+        function toggleAIM() {
+            var on = document.getElementById('toggle_aim').checked;
+            var path = (document.getElementById('aimurl').value || '').trim() || DEFAULT_SCRIPT;
+            if (on) {
+                localStorage.setItem(SCRIPT_KEY, path);
+                document.getElementById('aimurl').value = path;
+            } else {
+                localStorage.setItem(SCRIPT_KEY, 'off');
+            }
+        }
+
+        function saveAIMScript() {
+            var path = (document.getElementById('aimurl').value || '').trim();
+            localStorage.setItem(SCRIPT_KEY, path || 'off');
+            document.getElementById('toggle_aim').checked = !!path && path !== 'off';
+            alert('Saved. Reload AkariNet for the change to take effect.');
+        }
+
+        loadCfg();
+        applyToUI();
+
+        var script = localStorage.getItem(SCRIPT_KEY);
+        document.getElementById('aimurl').value = (script && script !== 'off') ? script : DEFAULT_SCRIPT;
+        document.getElementById('toggle_aim').checked = !!(script && script !== 'off');
+    </script>
+</body>
+</html>
