@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AkariNet AIM v2.0</title>
+    <title>AkariNet AIM v2.1</title>
     <style>
         :root {
             --bg-glass: rgba(15, 15, 20, 0.95);
@@ -179,7 +179,7 @@
         .live-stat-box {
             margin-bottom: 15px; padding: 10px; border-radius: 6px;
             background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass);
-            text-align: center; font-size: 12px; color: #aaa; display: flex; justify-content: space-around;
+            text-align: center; font-size: 12px; color: #aaa; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 6px;
         }
         .live-stat-box b { color: var(--accent); font-size: 14px; }
 
@@ -204,7 +204,7 @@
     <!-- Settings Panel -->
     <div id="setup" class="collapsed">
         <div class="header">
-            <h2>AkariNet AIM v2.0</h2>
+            <h2>AkariNet AIM v2.1</h2>
             <button onclick="toggleSetup()" style="width: auto; padding: 8px 12px; margin:0;">✕</button>
         </div>
         
@@ -241,6 +241,42 @@
                     <div class="label-row"><span>Smoothing</span> <span id="val-smooth" class="val-display">0.7</span></div>
                     <input type="range" id="smooth" min="0" max="0.95" step="0.05" value="0.7" oninput="updateCfg('smooth', this.value)">
                 </div>
+            </div>
+
+            <!-- Performance Section (NEW) -->
+            <div class="section">
+                <div class="section-header"><h3>Performance</h3></div>
+
+                <div class="live-stat-box">
+                    <span>Process: <b id="rt-process-res">--</b></span>
+                    <span>Capture: <b id="rt-capture-res">--</b></span>
+                </div>
+
+                <div class="control-group">
+                    <div class="label-row"><span>Base Capture Resolution</span></div>
+                    <select id="captureRes" onchange="changeCaptureResolution(this.value)">
+                        <option value="360">360p (640×360)</option>
+                        <option value="480">480p (640×480)</option>
+                        <option value="720" selected>720p (1280×720) — original</option>
+                        <option value="1080">1080p (1920×1080)</option>
+                    </select>
+                    <div style="font-size: 11px; color: #666; margin-top: 6px; line-height: 1.4;">
+                        Resolution requested from the webcam. Lower = faster, less detail for distant hands.
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="label-row"><span>Hand Model</span></div>
+                    <select id="modelComplexity" onchange="changeModelComplexity(this.value)">
+                        <option value="1" selected>Full (original, more accurate)</option>
+                        <option value="0">Lite (faster, slightly less accurate)</option>
+                    </select>
+                </div>
+
+                <label class="checkbox-row" for="dynamicRes">
+                    <span class="label-text">Dynamic Resolution<br><span style="font-size:11px;color:#888">Auto lower/higher process res based on hand size</span></span>
+                    <input type="checkbox" id="dynamicRes" onchange="updateCfg('dynamicRes', this.checked)">
+                </label>
             </div>
 
             <!-- View Settings -->
@@ -339,12 +375,14 @@
             msgBox: document.getElementById('msg-box'),
             iframe: document.getElementById('iframe'),
             rtDist: document.getElementById('rt-dist'),
+            rtProcessRes: document.getElementById('rt-process-res'),
+            rtCaptureRes: document.getElementById('rt-capture-res'),
             smartBtn: document.getElementById('smart-btn'),
             smartHint: document.getElementById('smart-hint'),
             camContainer: document.getElementById('cam-container')
         };
 
-        // Default Config
+        // Default Config — original behavior preserved
         let cfg = {
             trackPt: 0,
             handSide: 'Any',
@@ -358,7 +396,11 @@
             maxD: 3.0,
             ignoreFar: true,
             requirePalm: true,
-            showCam: true
+            showCam: true,
+            // NEW performance options (defaults = original behavior)
+            captureRes: '720',
+            modelComplexity: 1,
+            dynamicRes: false
         };
 
         // Runtime State
@@ -375,11 +417,45 @@
             lastHintTime: 0
         };
 
+        // --- Dynamic / process resolution state ---
+        const RES_MAP = {
+            '360':  { w: 640,  h: 360 },
+            '480':  { w: 640,  h: 480 },
+            '720':  { w: 1280, h: 720 },
+            '1080': { w: 1920, h: 1080 }
+        };
+
+        let processCanvas = document.createElement('canvas');
+        let processCtx = processCanvas.getContext('2d');
+        let currentProcessSize = { w: 1280, h: 720 }; // start matching original
+        let lastScaleMode = 'mid';
+        let cameraInstance = null;
+
+        function getTargetProcessSize(handScale) {
+            // Only used when cfg.dynamicRes === true
+            let mode;
+            if (handScale > 0.23)      mode = 'near';
+            else if (handScale < 0.12) mode = 'far';
+            else                       mode = 'mid';
+
+            // Hysteresis
+            if (mode !== lastScaleMode) {
+                if (lastScaleMode === 'near' && mode === 'mid' && handScale < 0.26) return { w: 480, h: 360 };
+                if (lastScaleMode === 'far'  && mode === 'mid' && handScale > 0.10) return { w: 720, h: 540 };
+                lastScaleMode = mode;
+            }
+
+            if (mode === 'near') return { w: 480, h: 360 };
+            if (mode === 'far')  return { w: 720, h: 540 };
+            return { w: 640, h: 480 };
+        }
+
         // --- Config Management ---
         let saveTimeout;
         
         function updateCfg(key, value) {
-            if (['sensitivity', 'smooth', 'minD', 'maxD', 'trackPt'].includes(key)) value = parseFloat(value);
+            if (['sensitivity', 'smooth', 'minD', 'maxD', 'trackPt', 'modelComplexity'].includes(key)) value = parseFloat(value);
+            if (key === 'dynamicRes') value = !!value;
             cfg[key] = value;
             
             const displayEl = document.getElementById(key === 'sensitivity' ? 'val-sens' : 'val-' + key);
@@ -428,7 +504,6 @@
 
         // --- Smart Button Logic (Drag & Snap) ---
         function dragStart(e) {
-            // Check if touch or mouse
             const evt = e.touches ? e.touches[0] : e;
             state.btnDrag.active = true;
             state.btnDrag.x = evt.clientX;
@@ -448,11 +523,8 @@
 
         function dragMove(e) {
             if (!state.btnDrag.active) return;
-            e.preventDefault(); // Prevent scrolling on touch
+            e.preventDefault();
             const evt = e.touches ? e.touches[0] : e;
-            
-            const dx = evt.clientX - state.btnDrag.x;
-            const dy = evt.clientY - state.btnDrag.y;
             
             ui.smartBtn.style.left = (state.btnDrag.initialLeft + (evt.clientX - state.btnDrag.startX)) + 'px';
             ui.smartBtn.style.top = (state.btnDrag.initialTop + (evt.clientY - state.btnDrag.startY)) + 'px';
@@ -466,14 +538,12 @@
             document.removeEventListener('touchmove', dragMove);
             document.removeEventListener('touchend', dragEnd);
 
-            // Calculate distance moved to determine if Click or Drag
             const evt = e.changedTouches ? e.changedTouches[0] : e;
             const dist = Math.hypot(evt.clientX - state.btnDrag.startX, evt.clientY - state.btnDrag.startY);
 
             if (dist < 5) {
-                toggleSetup(); // Treated as click
+                toggleSetup();
             } else {
-                // Snap to nearest corner
                 const winW = window.innerWidth;
                 const winH = window.innerHeight;
                 const btnRect = ui.smartBtn.getBoundingClientRect();
@@ -495,14 +565,72 @@
 
         const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
         
-        hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+        hands.setOptions({
+            maxNumHands: 2,
+            modelComplexity: cfg.modelComplexity,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
         hands.onResults(onResults);
 
-        const camera = new Camera(video, {
-            onFrame: async () => { await hands.send({image: video}); },
-            width: 1280, height: 720
-        });
-        camera.start();
+        function startCamera(resKey) {
+            const size = RES_MAP[resKey] || RES_MAP['720'];
+            currentProcessSize = { w: size.w, h: size.h };
+
+            if (cameraInstance) {
+                // Camera util doesn't expose a clean stop; we just replace the stream
+                if (video.srcObject) {
+                    video.srcObject.getTracks().forEach(t => t.stop());
+                }
+            }
+
+            cameraInstance = new Camera(video, {
+                onFrame: async () => {
+                    if (cfg.dynamicRes) {
+                        // Use currentProcessSize (updated from onResults)
+                        if (processCanvas.width !== currentProcessSize.w || processCanvas.height !== currentProcessSize.h) {
+                            processCanvas.width  = currentProcessSize.w;
+                            processCanvas.height = currentProcessSize.h;
+                        }
+                        processCtx.drawImage(video, 0, 0, currentProcessSize.w, currentProcessSize.h);
+                        await hands.send({ image: processCanvas });
+                    } else {
+                        // Original path — send full camera frame
+                        await hands.send({ image: video });
+                    }
+                },
+                width: size.w,
+                height: size.h
+            });
+            cameraInstance.start();
+
+            // Update live HUD
+            if (ui.rtCaptureRes) ui.rtCaptureRes.textContent = size.w + '×' + size.h;
+            if (ui.rtProcessRes) ui.rtProcessRes.textContent = cfg.dynamicRes ? (currentProcessSize.w + '×' + currentProcessSize.h) : 'same';
+        }
+
+        // Initial camera start with saved / default resolution
+        startCamera(cfg.captureRes || '720');
+
+        function changeCaptureResolution(resKey) {
+            cfg.captureRes = resKey;
+            updateCfg('captureRes', resKey);
+            startCamera(resKey);
+            showMessage('Capture set to ' + resKey + 'p', 1200);
+        }
+
+        function changeModelComplexity(val) {
+            const complexity = parseInt(val, 10);
+            cfg.modelComplexity = complexity;
+            updateCfg('modelComplexity', complexity);
+            hands.setOptions({
+                maxNumHands: 2,
+                modelComplexity: complexity,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+            showMessage(complexity === 0 ? 'Lite model active' : 'Full model active', 1200);
+        }
 
         // --- Tracking Logic ---
         function onResults(results) {
@@ -510,7 +638,7 @@
             canvas.height = video.videoHeight;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Hint Logic: Check status
+            // Hint Logic
             const now = Date.now();
             let hintMsg = "Settings";
             let showHint = false;
@@ -519,13 +647,11 @@
                 state.lastHandX = null;
                 ui.cursor.style.opacity = '0.2';
                 
-                // Hint: Lost hand
                 if (now - state.lastHintTime > 2000) {
                     hintMsg = "✋ Hand Lost";
                     showHint = true;
                 }
             } else {
-                // We have hands, reset hint timer
                 state.lastHintTime = now;
             }
 
@@ -548,7 +674,6 @@
                 const currentScale = Math.hypot(lm[9].x - lm[0].x, lm[9].y - lm[0].y);
                 const estimatedDist = cfg.refSizeAt1m / currentScale;
                 
-                // For live stats, just show the first valid hand's distance
                 debugDist = estimatedDist;
 
                 if (estimatedDist < cfg.minD || estimatedDist > cfg.maxD) {
@@ -570,9 +695,14 @@
                 }
             }
             
-            // Update Live Stats in Settings
-            if (ui.setup.classList.contains('collapsed') === false && debugDist > 0) {
-                 ui.rtDist.innerText = debugDist.toFixed(2);
+            // Update Live Stats
+            if (ui.setup.classList.contains('collapsed') === false) {
+                if (debugDist > 0) ui.rtDist.innerText = debugDist.toFixed(2);
+                if (ui.rtProcessRes) {
+                    ui.rtProcessRes.textContent = cfg.dynamicRes
+                        ? (currentProcessSize.w + '×' + currentProcessSize.h)
+                        : 'same';
+                }
             }
 
             if (!activeHand) {
@@ -581,6 +711,15 @@
             }
 
             const currentScale = maxScale;
+
+            // Dynamic resolution update (only when enabled)
+            if (cfg.dynamicRes) {
+                const newSize = getTargetProcessSize(currentScale);
+                if (newSize.w !== currentProcessSize.w || newSize.h !== currentProcessSize.h) {
+                    currentProcessSize = newSize;
+                }
+            }
+
             drawConnectors(ctx, activeHand, HAND_CONNECTIONS, {color: '#00ff9d', lineWidth: 2});
             drawLandmarks(ctx, activeHand, {color: '#ffffff', lineWidth: 1, radius: 2});
 
@@ -596,7 +735,6 @@
             const windingOk = (activeLabel === 'Right') ? zNorm > 0 : zNorm < 0;
             const palmOpen = windingOk && (fullness > minFullness);
 
-            // Palm Hint
             if (cfg.requirePalm && !palmOpen && !state.calibratingZone) {
                 updateSmartBtn(true, "Open Palm ✋");
             } else if (!showHint) {
