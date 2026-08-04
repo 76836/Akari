@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AkariNet AIM v2.2</title>
+    <title>AkariNet AIM v2.3</title>
     <style>
         :root {
             --bg-glass: #0f0f14;
@@ -16,7 +16,7 @@
             --warn: #ffaa00;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, sans-serif; user-select: none; -webkit-user-select: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, sans-serif; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
         body { overflow: hidden; background: #050505; color: var(--text-main); }
 
         #app { position: fixed; inset: 0; z-index: 0; }
@@ -34,29 +34,39 @@
         #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); opacity: 0.7; }
         #canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); }
 
-        #cursor { 
-            position: absolute; width: 24px; height: 24px; border-radius: 50%; 
-            background: rgba(255,255,255,0.2); border: 2px solid #fff; 
-            transform: translate(-50%, -50%); pointer-events: none; z-index: 1000;
+        /* Arrow cursor — tip is at top-left (0,0) of the element so left/top = exact hot pixel */
+        #cursor {
+            position: absolute;
+            width: 20px;
+            height: 28px;
+            pointer-events: none;
+            z-index: 1000;
             will-change: left, top;
+            left: 0; top: 0;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.55));
         }
-        #cursor.pinch { background: var(--accent); border-color: var(--accent); width: 12px; height: 12px; }
-        #cursor.calibrating { border-color: var(--warn); border-style: dashed; width: 40px; height: 40px; }
+        #cursor svg { width: 100%; height: 100%; display: block; overflow: visible; }
+        #cursor.pinch svg path.arrow { fill: var(--accent); stroke: #003322; }
+        #cursor.calibrating { opacity: 0.85; }
+        #cursor.dim { opacity: 0.35; }
+        #cursor.flip { transform: scaleX(-1); transform-origin: 0 0; }
 
         #smart-btn {
-            position: fixed; top: 20px; left: 20px; z-index: 10001;
-            height: 48px; min-width: 48px;
-            background: var(--bg-glass); border: 1px solid var(--border-glass);
-            border-radius: 24px; color: var(--text-main);
+            position: fixed; top: 16px; left: 16px; z-index: 10001;
+            min-height: 52px; min-width: 52px;
+            background: var(--bg-glass); border: 2px solid var(--border-glass);
+            border-radius: 26px; color: var(--text-main);
             display: flex; align-items: center; justify-content: center;
             cursor: pointer;
-            padding: 0 14px; gap: 8px; overflow: hidden;
+            padding: 0 16px; gap: 8px; overflow: hidden;
             white-space: nowrap;
+            touch-action: none;
         }
-        #smart-btn .icon { font-size: 20px; flex-shrink: 0; line-height: 1; }
+        #smart-btn .icon { font-size: 22px; flex-shrink: 0; line-height: 1; pointer-events: none; }
         #smart-btn .hint-text { 
             font-size: 13px; font-weight: 500; 
             max-width: 0; overflow: hidden;
+            pointer-events: none;
         }
         #smart-btn.has-hint { border-color: var(--warn); }
         #smart-btn.has-hint .icon { color: var(--warn); }
@@ -77,7 +87,7 @@
         .header h2 { font-size: 17px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
         .header h2::before { content: ''; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; display: block; }
 
-        .content { flex: 1; overflow-y: auto; padding: 20px 24px; }
+        .content { flex: 1; overflow-y: auto; padding: 20px 24px; -webkit-overflow-scrolling: touch; }
         .content::-webkit-scrollbar { width: 4px; }
         .content::-webkit-scrollbar-thumb { background: #444; }
 
@@ -89,42 +99,44 @@
         .label-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; color: #ccc; }
         .val-display { font-family: monospace; color: var(--accent); background: var(--accent-dim); padding: 2px 6px; border-radius: 4px; font-size: 11px; }
 
-        input[type="range"] { width: 100%; -webkit-appearance: none; background: transparent; height: 20px; cursor: pointer; display: block; }
+        input[type="range"] { width: 100%; -webkit-appearance: none; background: transparent; height: 28px; cursor: pointer; display: block; }
         input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #333; border-radius: 2px; }
         input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; 
-            background: #fff; margin-top: -6px;
+            -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; 
+            background: #fff; margin-top: -8px;
         }
 
         select { 
             width: 100%; background: #1a1a1f; border: 1px solid var(--border-glass); 
-            color: #eee; padding: 10px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer; 
+            color: #eee; padding: 12px; border-radius: 8px; font-size: 14px; outline: none; cursor: pointer; 
         }
 
         .checkbox-row {
             display: flex; align-items: center; justify-content: space-between; 
-            padding: 12px; background: #1a1a1f; border-radius: 8px; margin-bottom: 8px; 
+            padding: 14px 12px; background: #1a1a1f; border-radius: 8px; margin-bottom: 8px; 
             cursor: pointer; border: 1px solid transparent;
+            min-height: 48px;
         }
         .label-text { font-size: 13px; flex: 1; }
         
         input[type="checkbox"] { 
-            appearance: none; width: 44px; height: 24px; background: #333; 
-            border-radius: 12px; position: relative; cursor: pointer; flex-shrink: 0;
+            appearance: none; width: 48px; height: 28px; background: #333; 
+            border-radius: 14px; position: relative; cursor: pointer; flex-shrink: 0;
         }
         input[type="checkbox"]::after {
-            content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; 
+            content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; 
             background: #fff; border-radius: 50%;
         }
         input[type="checkbox"]:checked { background: var(--accent-dim); border: 1px solid var(--accent); }
         input[type="checkbox"]:checked::after { transform: translateX(20px); background: var(--accent); }
 
         button { 
-            width: 100%; padding: 12px; margin-top: 8px; 
+            width: 100%; padding: 14px; margin-top: 8px; 
             background: #1a1a1f; border: 1px solid var(--border-glass); 
             color: #eee; border-radius: 8px; cursor: pointer; 
-            font-size: 13px; font-weight: 500; 
+            font-size: 14px; font-weight: 500; 
             display: flex; align-items: center; justify-content: center; gap: 8px;
+            min-height: 48px;
         }
         button.primary { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
         button.danger { border-color: #522; color: #f88; }
@@ -149,22 +161,23 @@
         .live-stat-box b { color: var(--accent); font-size: 14px; }
 
         @media (max-width: 600px) {
-            #setup { width: 85%; max-width: 320px; }
+            #setup { width: 88%; max-width: 340px; }
             #cam-container { width: 100px; height: 56px; top: 10px; right: 10px; }
+            #smart-btn { min-height: 56px; min-width: 56px; top: 12px; left: 12px; }
         }
     </style>
 </head>
 <body>
 
-    <div id="smart-btn" onmousedown="dragStart(event)" ontouchstart="dragStart(event)">
+    <div id="smart-btn">
         <span class="icon">⚙️</span>
         <span class="hint-text" id="smart-hint"></span>
     </div>
 
     <div id="setup" class="collapsed">
         <div class="header">
-            <h2>AkariNet AIM v2.2</h2>
-            <button onclick="toggleSetup()" style="width: auto; padding: 8px 12px; margin:0;">✕</button>
+            <h2>AkariNet AIM v2.3</h2>
+            <button onclick="toggleSetup()" style="width: auto; padding: 10px 14px; margin:0; min-height: 40px;">✕</button>
         </div>
         
         <div class="content">
@@ -191,8 +204,14 @@
                 </div>
 
                 <div class="control-group">
-                    <div class="label-row"><span>Sensitivity</span> <span id="val-sens" class="val-display">1.0</span></div>
+                    <div class="label-row"><span>Move Sensitivity</span> <span id="val-sens" class="val-display">1.0</span></div>
                     <input type="range" id="sens" min="0.5" max="2.5" step="0.1" value="1.0" oninput="updateCfg('sensitivity', this.value)">
+                </div>
+
+                <div class="control-group">
+                    <div class="label-row"><span>Pinch Sensitivity</span> <span id="val-pinchSens" class="val-display">1.0</span></div>
+                    <input type="range" id="pinchSens" min="0.4" max="2.5" step="0.1" value="1.0" oninput="updateCfg('pinchSens', this.value)">
+                    <div style="font-size: 11px; color: #666; margin-top: 4px;">Higher = easier to register a pinch</div>
                 </div>
                 
                 <div class="control-group">
@@ -311,7 +330,13 @@
             <canvas id="canvas"></canvas>
         </div>
         
-        <div id="cursor"></div>
+        <!-- Arrow cursor: tip of path is at (1,1) so element origin ≈ hot pixel -->
+        <div id="cursor">
+            <svg viewBox="0 0 24 32" xmlns="http://www.w3.org/2000/svg">
+                <path class="arrow" d="M1 1 L1 25 L7.5 19.5 L12.5 30 L16 28.5 L11 18 L20 18 Z"
+                      fill="#ffffff" stroke="#111" stroke-width="1.2" stroke-linejoin="round"/>
+            </svg>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -319,7 +344,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 
     <script>
-        // --- State & Config ---
         const ui = {
             setup: document.getElementById('setup'),
             cursor: document.getElementById('cursor'),
@@ -338,6 +362,7 @@
             trackPt: 0,
             handSide: 'Any',
             sensitivity: 1.0,
+            pinchSens: 1.0,
             smooth: 0.7,
             tilt: 0.0,
             invX: false, invY: false,
@@ -362,17 +387,16 @@
             calibratingDepth: false,
             lastHandX: null, lastHandY: null,
             lastHandLabel: null,
-            btnDrag: { active: false, x: 0, y: 0, startX: 0, startY: 0, initialLeft: 20, initialTop: 20 },
             lastHintTime: 0
         };
 
-        // Shared latest results for the render loop (decoupled from tracking)
         let latest = {
             hasHand: false,
             sx: state.sx,
             sy: state.sy,
             isPinching: false,
             allowClick: true,
+            flip: false,
             landmarks: null,
             needsDraw: false,
             dist: 0,
@@ -409,15 +433,17 @@
             return { w: 640, h: 480 };
         }
 
-        // --- Config ---
         let saveTimeout;
         
         function updateCfg(key, value) {
-            if (['sensitivity', 'smooth', 'minD', 'maxD', 'trackPt', 'modelComplexity'].includes(key)) value = parseFloat(value);
+            if (['sensitivity', 'pinchSens', 'smooth', 'minD', 'maxD', 'trackPt', 'modelComplexity'].includes(key)) value = parseFloat(value);
             if (key === 'dynamicRes') value = !!value;
             cfg[key] = value;
             
-            const displayEl = document.getElementById(key === 'sensitivity' ? 'val-sens' : 'val-' + key);
+            const displayEl = document.getElementById(
+                key === 'sensitivity' ? 'val-sens' :
+                key === 'pinchSens' ? 'val-pinchSens' : 'val-' + key
+            );
             if (displayEl) displayEl.textContent = value;
 
             clearTimeout(saveTimeout);
@@ -443,7 +469,10 @@
                     cfg = { ...cfg, ...loaded };
                     Object.keys(cfg).forEach(k => {
                         const el = document.getElementById(k);
-                        const display = document.getElementById(k === 'sensitivity' ? 'val-sens' : 'val-' + k);
+                        const display = document.getElementById(
+                            k === 'sensitivity' ? 'val-sens' :
+                            k === 'pinchSens' ? 'val-pinchSens' : 'val-' + k
+                        );
                         if (el) {
                             if (el.type === 'checkbox') el.checked = cfg[k];
                             else el.value = cfg[k];
@@ -456,56 +485,69 @@
         }
         loadCfg();
 
-        // --- Smart Button ---
-        function dragStart(e) {
-            const evt = e.touches ? e.touches[0] : e;
-            state.btnDrag.active = true;
-            state.btnDrag.x = evt.clientX;
-            state.btnDrag.y = evt.clientY;
-            state.btnDrag.startX = evt.clientX;
-            state.btnDrag.startY = evt.clientY;
-            const rect = ui.smartBtn.getBoundingClientRect();
-            state.btnDrag.initialLeft = rect.left;
-            state.btnDrag.initialTop = rect.top;
-            document.addEventListener('mousemove', dragMove);
-            document.addEventListener('mouseup', dragEnd);
-            document.addEventListener('touchmove', dragMove, {passive: false});
-            document.addEventListener('touchend', dragEnd);
-        }
+        // --- Smart button: reliable tap on mobile + optional drag ---
+        (function setupSmartBtn() {
+            const btn = ui.smartBtn;
+            let ptrId = null;
+            let startX = 0, startY = 0;
+            let originLeft = 16, originTop = 16;
+            let moved = false;
+            const TAP_SLOP = 18; // px — generous for fingers
 
-        function dragMove(e) {
-            if (!state.btnDrag.active) return;
-            e.preventDefault();
-            const evt = e.touches ? e.touches[0] : e;
-            ui.smartBtn.style.left = (state.btnDrag.initialLeft + (evt.clientX - state.btnDrag.startX)) + 'px';
-            ui.smartBtn.style.top = (state.btnDrag.initialTop + (evt.clientY - state.btnDrag.startY)) + 'px';
-        }
-
-        function dragEnd(e) {
-            if (!state.btnDrag.active) return;
-            state.btnDrag.active = false;
-            document.removeEventListener('mousemove', dragMove);
-            document.removeEventListener('mouseup', dragEnd);
-            document.removeEventListener('touchmove', dragMove);
-            document.removeEventListener('touchend', dragEnd);
-
-            const evt = e.changedTouches ? e.changedTouches[0] : e;
-            const dist = Math.hypot(evt.clientX - state.btnDrag.startX, evt.clientY - state.btnDrag.startY);
-
-            if (dist < 5) {
-                toggleSetup();
-            } else {
-                const winW = window.innerWidth;
-                const winH = window.innerHeight;
-                const btnRect = ui.smartBtn.getBoundingClientRect();
-                const btnCX = btnRect.left + btnRect.width/2;
-                const btnCY = btnRect.top + btnRect.height/2;
-                const snapLeft = (btnCX < winW / 2) ? 20 : (winW - btnRect.width - 20);
-                const snapTop = (btnCY < winH / 2) ? 20 : (winH - btnRect.height - 20);
-                ui.smartBtn.style.left = snapLeft + 'px';
-                ui.smartBtn.style.top = snapTop + 'px';
+            function onDown(e) {
+                if (ptrId !== null) return;
+                const evt = e.touches ? e.touches[0] : e;
+                ptrId = e.touches ? evt.identifier : 'mouse';
+                startX = evt.clientX;
+                startY = evt.clientY;
+                moved = false;
+                const rect = btn.getBoundingClientRect();
+                originLeft = rect.left;
+                originTop = rect.top;
+                e.preventDefault();
             }
-        }
+
+            function onMove(e) {
+                if (ptrId === null) return;
+                const evt = e.touches
+                    ? Array.from(e.touches).find(t => t.identifier === ptrId) || e.touches[0]
+                    : e;
+                if (!evt) return;
+                const dx = evt.clientX - startX;
+                const dy = evt.clientY - startY;
+                if (Math.hypot(dx, dy) > TAP_SLOP) moved = true;
+                if (moved) {
+                    btn.style.left = (originLeft + dx) + 'px';
+                    btn.style.top = (originTop + dy) + 'px';
+                }
+                e.preventDefault();
+            }
+
+            function onUp(e) {
+                if (ptrId === null) return;
+                ptrId = null;
+                if (!moved) {
+                    toggleSetup();
+                } else {
+                    // Snap to nearest corner
+                    const winW = window.innerWidth;
+                    const winH = window.innerHeight;
+                    const rect = btn.getBoundingClientRect();
+                    const cx = rect.left + rect.width / 2;
+                    const cy = rect.top + rect.height / 2;
+                    btn.style.left = (cx < winW / 2 ? 12 : winW - rect.width - 12) + 'px';
+                    btn.style.top = (cy < winH / 2 ? 12 : winH - rect.height - 12) + 'px';
+                }
+            }
+
+            btn.addEventListener('touchstart', onDown, { passive: false });
+            btn.addEventListener('touchmove', onMove, { passive: false });
+            btn.addEventListener('touchend', onUp);
+            btn.addEventListener('touchcancel', onUp);
+            btn.addEventListener('mousedown', onDown);
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
+        })();
 
         // --- Core ---
         const video = document.getElementById('video');
@@ -531,7 +573,6 @@
 
             cameraInstance = new Camera(video, {
                 onFrame: async () => {
-                    // Always process — never skip an input frame
                     if (cfg.dynamicRes) {
                         if (processCanvas.width !== currentProcessSize.w || processCanvas.height !== currentProcessSize.h) {
                             processCanvas.width  = currentProcessSize.w;
@@ -574,7 +615,6 @@
             showMessage(complexity === 0 ? 'Lite model active' : 'Full model active', 1200);
         }
 
-        // --- Tracking (priority path — no heavy DOM except critical interaction) ---
         function onResults(results) {
             const now = Date.now();
 
@@ -644,14 +684,24 @@
                 latest.processResText = 'same';
             }
 
-            // Palm
+            // Thumb side in image space (video is mirrored on screen).
+            // Thumb tip = 4, middle MCP = 9. If thumb is left of palm in image coords,
+            // after mirror it appears on the right of the hand on screen → flip cursor.
+            const thumbOnImageLeft = activeHand[4].x < activeHand[9].x;
+            // After CSS mirror of the preview, screen-left corresponds to image-right.
+            // For the on-screen hand: if thumb appears on the left side of the hand, tip should be on the left (normal arrow).
+            // thumbOnImageLeft means thumb has smaller x in the (unmirrored) tensor; with selfie mirror, that thumb is on the right of the screen hand.
+            // So: thumb visually on the right of the hand → use normal (tip left). Thumb visually on left → flip.
+            const flipCursor = !thumbOnImageLeft;
+
+            // Palm openness
             const base = Math.hypot(activeHand[5].x - activeHand[17].x, activeHand[5].y - activeHand[17].y);
             const v1 = { x: activeHand[5].x - activeHand[0].x, y: activeHand[5].y - activeHand[0].y };
             const v2 = { x: activeHand[17].x - activeHand[0].x, y: activeHand[17].y - activeHand[0].y };
             const zNorm = v1.x * v2.y - v1.y * v2.x;
             const area = Math.abs(zNorm) / 2;
-            const height = (2 * area) / base;
-            const fullness = height / base;
+            const height = (2 * area) / (base || 1e-6);
+            const fullness = height / (base || 1e-6);
             const minFullness = 0.4 * (1.0 / (cfg.sensitivity || 1.0));
             const windingOk = (activeLabel === 'Right') ? zNorm > 0 : zNorm < 0;
             const palmOpen = windingOk && (fullness > minFullness);
@@ -662,12 +712,11 @@
                 updateSmartBtn(false, "");
             }
 
-            // Pinch
+            // Pinch — dedicated sensitivity
             const pinchDist = Math.hypot(activeHand[4].x - activeHand[8].x, activeHand[4].y - activeHand[8].y);
-            const isPinchingNow = pinchDist < (currentScale * 0.3 * cfg.sensitivity);
+            const isPinchingNow = pinchDist < (currentScale * 0.3 * (cfg.pinchSens || 1.0));
             if (!isPinchingNow) state.pinchReleased = true;
 
-            // Calibration
             if (state.calibratingDepth) {
                 cfg.refSizeAt1m = currentScale;
                 updateCfg('refSizeAt1m', currentScale);
@@ -697,11 +746,11 @@
                 }
                 latest.hasHand = true;
                 latest.landmarks = activeHand;
+                latest.flip = flipCursor;
                 latest.needsDraw = true;
                 return;
             }
 
-            // Cursor math
             const rawPt = activeHand[cfg.trackPt];
             if (state.lastHandX === null || state.lastHandLabel !== activeLabel) {
                 state.lastHandX = rawPt.x; state.lastHandY = rawPt.y;
@@ -729,17 +778,16 @@
             state.isPinching = isPinchingNow;
             const allowClick = !cfg.requirePalm || palmOpen;
 
-            // Critical path: interaction happens immediately (never deferred)
             if (allowClick) {
                 interact(state.sx, state.sy, wasPinch, isPinchingNow);
             }
 
-            // Publish for the render loop
             latest.hasHand = true;
             latest.sx = state.sx;
             latest.sy = state.sy;
             latest.isPinching = isPinchingNow;
             latest.allowClick = allowClick;
+            latest.flip = flipCursor;
             latest.landmarks = activeHand;
             latest.needsDraw = true;
 
@@ -747,21 +795,30 @@
             state.lastHandY = rawPt.y;
         }
 
-        // --- Render loop (can drop frames without affecting input) ---
-        let lastDrawnW = 0, lastDrawnH = 0;
+        // Cursor width used when flipped so tip stays on the hot pixel
+        const CURSOR_W = 20;
+
         function renderLoop() {
-            // Cursor position + style
             if (latest.hasHand) {
-                ui.cursor.style.left = latest.sx + 'px';
-                ui.cursor.style.top = latest.sy + 'px';
+                // Tip of the arrow is at the element's (0,0) in unflipped mode.
+                // When flipped with scaleX(-1) origin 0 0, the tip moves to -width in local space,
+                // so shift left by width to keep the tip on (sx, sy).
+                if (latest.flip) {
+                    ui.cursor.style.left = (latest.sx) + 'px';
+                    ui.cursor.style.top = latest.sy + 'px';
+                    ui.cursor.classList.add('flip');
+                } else {
+                    ui.cursor.style.left = latest.sx + 'px';
+                    ui.cursor.style.top = latest.sy + 'px';
+                    ui.cursor.classList.remove('flip');
+                }
                 ui.cursor.classList.toggle('pinch', latest.isPinching);
-                ui.cursor.style.opacity = latest.allowClick ? '1' : '0.4';
-                ui.cursor.style.borderColor = latest.allowClick ? 'var(--accent)' : '#ff4444';
+                ui.cursor.classList.toggle('dim', !latest.allowClick);
+                ui.cursor.style.opacity = '';
             } else {
-                ui.cursor.style.opacity = '0.2';
+                ui.cursor.classList.add('dim');
             }
 
-            // Canvas drawing (only when needed and cam is visible)
             if (latest.needsDraw && cfg.showCam && latest.landmarks) {
                 const vw = video.videoWidth || 640;
                 const vh = video.videoHeight || 480;
@@ -778,7 +835,6 @@
                 latest.needsDraw = false;
             }
 
-            // Live stats only when panel is open
             if (!ui.setup.classList.contains('collapsed')) {
                 if (latest.dist > 0) ui.rtDist.innerText = latest.dist.toFixed(2);
                 if (ui.rtProcessRes) ui.rtProcessRes.textContent = latest.processResText;
@@ -788,7 +844,6 @@
         }
         requestAnimationFrame(renderLoop);
 
-        // --- Utils ---
         function updateSmartBtn(isWarning, text) {
             if (isWarning) {
                 ui.smartBtn.classList.add('has-hint');
