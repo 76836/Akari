@@ -119,7 +119,6 @@
     var el = document.elementFromPoint(x, y);
     if (el) targets.push({ el: el, doc: document, win: window });
 
-    // Walk into same-origin iframes under the point
     var node = el;
     while (node) {
       if (node.tagName === 'IFRAME') {
@@ -135,9 +134,7 @@
             node = inner;
             continue;
           }
-        } catch (e) {
-          // cross-origin — can only hit the iframe element itself (already in targets)
-        }
+        } catch (e) {}
       }
       break;
     }
@@ -299,7 +296,6 @@
     state.lastHandX = rawPt.x;
     state.lastHandY = rawPt.y;
 
-    // Optional preview draw
     if (cfg.showCam && ui && typeof drawConnectors === 'function') {
       var c = ui.canvas;
       var ctx = c.getContext('2d');
@@ -391,14 +387,21 @@
     startCamera();
     requestAnimationFrame(renderLoop);
 
-    // Live reload settings when localStorage changes (e.g. from settings page)
     window.addEventListener('storage', function (e) {
-      if (e.key === CFG_KEY) cfg = loadCfg();
+      if (e.key === CFG_KEY) {
+        cfg = loadCfg();
+        if (ui && ui.cam) ui.cam.classList.toggle('show', !!cfg.showCam);
+      }
+    });
+    window.addEventListener('akari_aim_cfg_changed', function () {
+      cfg = loadCfg();
+      if (ui && ui.cam) ui.cam.classList.toggle('show', !!cfg.showCam);
     });
 
     global.AIMHandTracking = {
       reloadCfg: function () { cfg = loadCfg(); },
-      getCfg: function () { return cfg; }
+      getCfg: function () { return cfg; },
+      setBanner: setBanner
     };
   }
 
