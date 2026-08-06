@@ -1,12 +1,10 @@
 loadscreen("(5th revision) Loading Akari's VRM...");
 
 (function () {
-  var SENTENCE_DISPLAY_TIME = 3000; // 3 seconds per sentence
-  var IDLE_WAIT_TIME = 7000;       // 7 seconds between idle checks
-  
-  // Idle Percentages: 25% Stay, 15% Happy, 40% Neutral, 20% Confused
+  var SENTENCE_DISPLAY_TIME = 3000;
+  var IDLE_WAIT_TIME = 7000;
+  var HIBERNATE_AFTER_MS = 60 * 1000;
 
-  // Resolve repo root from this script's URL so iframes work from /UI/, /settings/, etc.
   function akariRoot() {
     try {
       var scripts = document.getElementsByTagName('script');
@@ -36,6 +34,61 @@ loadscreen("(5th revision) Loading Akari's VRM...");
     }
   }, 200);
 
+  var hibernateTimer = null;
+  var isHibernating = false;
+  var lastLipsyncMouth = 0;
+
+  function armHibernateTimer() {
+    clearTimeout(hibernateTimer);
+    hibernateTimer = setTimeout(function () {
+      enterHibernate('inactivity');
+    }, HIBERNATE_AFTER_MS);
+  }
+
+  function enterHibernate(source) {
+    if (isHibernating) return;
+    isHibernating = true;
+    try { localStorage.setItem('v2emote', 'hibernate'); } catch (e) {}
+    window.dispatchEvent(new CustomEvent('akari_vrm_hibernate', { detail: { source: source || 'inactivity' } }));
+    console.log('AkariNet VRM hibernate (' + (source || 'inactivity') + ')');
+  }
+
+  function noteActivity(source) {
+    if (isHibernating) {
+      isHibernating = false;
+      try {
+        var cur = (localStorage.getItem('v2emote') || '').toLowerCase();
+        if (cur === 'hibernate' || !cur) localStorage.setItem('v2emote', 'neutral');
+      } catch (e) {}
+      window.dispatchEvent(new CustomEvent('akari_vrm_wake', { detail: { source: source || 'activity' } }));
+      console.log('AkariNet VRM wake (' + (source || 'activity') + ')');
+    }
+    armHibernateTimer();
+  }
+
+  ['pointerdown', 'keydown', 'touchstart', 'mousedown', 'mousemove', 'wheel'].forEach(function (evt) {
+    window.addEventListener(evt, function () { noteActivity(evt); }, { passive: true });
+  });
+  window.addEventListener('akari:user-input', function () { noteActivity('user-input'); });
+  window.addEventListener('screensaver_hidden', function () { noteActivity('screensaver_hidden'); });
+  window.addEventListener('screensaver_shown', function () { enterHibernate('screensaver'); });
+
+  setInterval(function () {
+    try {
+      var raw = localStorage.getItem('akari:lipsync');
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      if (!data || typeof data.mouth !== 'number') return;
+      if (Date.now() - (data.t || 0) > 500) return;
+      if (data.mouth > 0.04) {
+        lastLipsyncMouth = data.mouth;
+        noteActivity('lipsync');
+      }
+    } catch (e) {}
+  }, 200);
+
+  armHibernateTimer();
+
   const middlemanLoader = document.createElement('script');
   middlemanLoader.type = 'module';
   middlemanLoader.textContent = `
@@ -45,17 +98,26 @@ loadscreen("(5th revision) Loading Akari's VRM...");
     let sequenceTimeout = null;
     const TRANSITIONS = { 'sad': 'confused', 'surprise': 'fear', 'anticipation': 'trust', 'angry': 'disgust' };
 
+    function isHibernating() {
+      try { return (localStorage.getItem('v2emote') || '').toLowerCase() === 'hibernate'; }
+      catch (e) { return false; }
+    }
+
     function setEmote(emo) {
+      if (isHibernating() && emo !== 'hibernate' && emo !== 'neutral') {
+        try { localStorage.setItem('v2emote', emo); } catch (e) {}
+        return;
+      }
+      if (isHibernating() && emo === 'hibernate') return;
       localStorage.setItem('v2emote', emo);
       console.log("AkariNet emotionEngine new state: " + emo);
     }
 
     function startIdleLoop() {
       if (idleInterval) clearInterval(idleInterval);
-      
       idleInterval = setInterval(() => {
+        if (isHibernating()) return;
         const roll = Math.random() * 100;
-        
         if (roll < 25) {
             console.log("AkariNet Idle: Roll " + roll.toFixed(1) + " (No change)");
         } else if (roll < 40) {
@@ -69,20 +131,17 @@ loadscreen("(5th revision) Loading Akari's VRM...");
     }
 
     async function processSequence(text) {
+      if (isHibernating()) return;
       clearInterval(idleInterval);
       if (sequenceTimeout) clearTimeout(sequenceTimeout);
-
       const sentenceRegex = /[A-Z][^.]*\\./g;
       const matches = text.match(sentenceRegex) || [];
-
       if (matches.length === 0) return;
-
       for (let i = 0; i < matches.length; i++) {
+        if (isHibernating()) return;
         const emotion = analyzeEmotion(matches[i]).dominant;
         setEmote(emotion);
-        
         await new Promise(resolve => setTimeout(resolve, ${SENTENCE_DISPLAY_TIME}));
-
         if (i === matches.length - 1) {
           if (TRANSITIONS[emotion]) {
             setEmote(TRANSITIONS[emotion]);
@@ -95,6 +154,12 @@ loadscreen("(5th revision) Loading Akari's VRM...");
 
     window.addEventListener('akari_emote_update', (event) => {
       processSequence(event.detail);
+    });
+
+    window.addEventListener('akari_vrm_wake', () => { startIdleLoop(); });
+    window.addEventListener('akari_vrm_hibernate', () => {
+      if (idleInterval) clearInterval(idleInterval);
+      idleInterval = null;
     });
 
     setEmote('love');
