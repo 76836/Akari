@@ -105,10 +105,9 @@
             speakMicroX: 0, speakMicroY: 0, nextSpeakMicro: 0
         };
 
-        // Teleport: bars accelerate until screen is solid yellow, VRM warms up
-        // behind the cover, then bars thin out to reveal the character.
         const TELEPORT = {
-            MAX_PILLS: 32,
+            MAX_FRONT: 28,
+            MAX_BACK: 8,
             buildDuration: 1.1,
             buildSpawnStart: 0.18,
             buildSpawnEnd: 0.028,
@@ -117,13 +116,19 @@
             buildSpeedStart: 5.0,
             buildSpeedEnd: 14.0,
             holdDuration: 0.55,
-            drainDuration: 1.15,
-            drainSpawnStart: 0.06,
-            drainSpawnEnd: 0.35,
-            drainCountStart: 3,
+            drainDuration: 1.35,
+            drainDenseTime: 0.22,
+            drainSpawnStart: 0.04,
+            drainSpawnEnd: 0.40,
+            drainCountStart: 5,
             drainCountEnd: 1,
-            drainSpeed: 11.0
+            drainSpeed: 12.0,
+            backSpeed: 3.2,
+            backSpawnChance: 0.35,
+            backHeightScale: 0.7
         };
+
+        const TELEPORT_MAX = TELEPORT.MAX_FRONT + TELEPORT.MAX_BACK;
 
         const teleport = {
             active: false,
@@ -132,47 +137,52 @@
             intensity: 0,
             flash: 0,
             spawnAcc: 0,
-            mesh: null,
+            meshFront: null,
+            meshBack: null,
             flashMesh: null,
             dummy: new THREE.Object3D(),
             data: null,
             free: [],
             vrmHidden: true,
-            vrmReady: false,
-            matricesDirty: false
+            vrmReady: false
         };
 
         function initTeleport(parentScene) {
             const geo = new THREE.BoxGeometry(1, 1, 1);
-            const mat = new THREE.MeshBasicMaterial({
-                color: 0xffff00,
-                transparent: true,
-                opacity: 0.92,
-                depthTest: false,
-                depthWrite: false,
-                toneMapped: false
+            const matFront = new THREE.MeshBasicMaterial({
+                color: 0xffff00, transparent: true, opacity: 0.92,
+                depthTest: false, depthWrite: false, toneMapped: false
             });
-            const mesh = new THREE.InstancedMesh(geo, mat, TELEPORT.MAX_PILLS);
-            mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-            mesh.frustumCulled = false;
-            mesh.renderOrder = 999;
-            mesh.count = 0;
-            parentScene.add(mesh);
-            teleport.mesh = mesh;
+            const meshFront = new THREE.InstancedMesh(geo, matFront, TELEPORT.MAX_FRONT);
+            meshFront.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+            meshFront.frustumCulled = false;
+            meshFront.renderOrder = 999;
+            meshFront.count = 0;
+            parentScene.add(meshFront);
+            teleport.meshFront = meshFront;
 
-            teleport.data = new Array(TELEPORT.MAX_PILLS);
+            const matBack = new THREE.MeshBasicMaterial({
+                color: 0xffff00, transparent: true, opacity: 0.75,
+                depthTest: true, depthWrite: false, toneMapped: false
+            });
+            const meshBack = new THREE.InstancedMesh(geo, matBack, TELEPORT.MAX_BACK);
+            meshBack.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+            meshBack.frustumCulled = false;
+            meshBack.renderOrder = 1;
+            meshBack.count = 0;
+            parentScene.add(meshBack);
+            teleport.meshBack = meshBack;
+
+            teleport.data = new Array(TELEPORT_MAX);
             teleport.free = [];
-            for (let i = 0; i < TELEPORT.MAX_PILLS; i++) {
-                teleport.data[i] = { alive: false, x: 0, y: 0, h: 1, speed: 1, life: 0, maxLife: 1 };
+            for (let i = 0; i < TELEPORT_MAX; i++) {
+                teleport.data[i] = { alive: false, x: 0, y: 0, h: 1, speed: 1, life: 0, maxLife: 1, behind: false };
                 teleport.free.push(i);
             }
 
             const flashGeo = new THREE.PlaneGeometry(2, 2);
             const flashMat = new THREE.ShaderMaterial({
-                transparent: true,
-                depthTest: false,
-                depthWrite: false,
-                toneMapped: false,
+                transparent: true, depthTest: false, depthWrite: false, toneMapped: false,
                 uniforms: {
                     uFlash: { value: 0 },
                     uVeil: { value: 0 },
@@ -189,31 +199,30 @@
             teleport.flashMesh = flashMesh;
         }
 
-        function spawnPill(speedMul) {
+        function spawnPill(speedMul, forceBehind) {
             if (teleport.free.length === 0) return;
             const i = teleport.free.pop();
             const d = teleport.data[i];
             d.alive = true;
             d.x = (Math.random() * 2 - 1) * 1.2;
             d.y = -1.3;
-            d.h = 0.15 + Math.random() * 0.95;
-            const duration = (1.4 + Math.random() * 0.6) / Math.max(0.8, speedMul);
+            const behind = forceBehind === true || (forceBehind !== false && Math.random() < TELEPORT.backSpawnChance * 0.15);
+            d.behind = behind;
+            d.h = (0.15 + Math.random() * 0.95) * (behind ? TELEPORT.backHeightScale : 1);
+            const spd = behind ? TELEPORT.backSpeed * (0.7 + Math.random() * 0.5) : speedMul;
+            const duration = (1.4 + Math.random() * 0.6) / Math.max(0.8, spd);
             d.maxLife = duration;
             d.life = 0;
-            d.speed = 2.8 / duration;
-            teleport.matricesDirty = true;
+            d.speed = (behind ? 1.6 : 2.8) / duration;
         }
 
         function clearAllPills() {
-            for (let i = 0; i < TELEPORT.MAX_PILLS; i++) {
+            for (let i = 0; i < TELEPORT_MAX; i++) {
                 const d = teleport.data[i];
-                if (d.alive) {
-                    d.alive = false;
-                    teleport.free.push(i);
-                }
+                if (d.alive) { d.alive = false; teleport.free.push(i); }
             }
-            if (teleport.mesh) teleport.mesh.count = 0;
-            teleport.matricesDirty = false;
+            if (teleport.meshFront) teleport.meshFront.count = 0;
+            if (teleport.meshBack) teleport.meshBack.count = 0;
         }
 
         function startTeleportPart1() {
@@ -272,12 +281,15 @@
         function lerp(a, b, t) { return a + (b - a) * t; }
 
         function updateTeleport(dt) {
-            if (!teleport.active || !teleport.mesh) return;
+            if (!teleport.active || !teleport.meshFront) return;
 
             const cam = camera;
-            const layerZ = cam.position.z - 0.8;
-            const halfH = Math.tan(THREE.MathUtils.degToRad(cam.fov * 0.5)) * (cam.position.z - layerZ);
-            const halfW = halfH * cam.aspect;
+            const frontZ = cam.position.z - 0.75;
+            const backZ = -0.35;
+            const halfHFront = Math.tan(THREE.MathUtils.degToRad(cam.fov * 0.5)) * (cam.position.z - frontZ);
+            const halfWFront = halfHFront * cam.aspect;
+            const halfHBack = Math.tan(THREE.MathUtils.degToRad(cam.fov * 0.5)) * (cam.position.z - backZ);
+            const halfWBack = halfHBack * cam.aspect;
 
             teleport.t += dt;
 
@@ -286,27 +298,20 @@
                 const pe = p * p;
                 teleport.intensity = pe;
                 teleport.flash = Math.max(0, (pe - 0.55) / 0.45);
-
                 const interval = lerp(TELEPORT.buildSpawnStart, TELEPORT.buildSpawnEnd, pe);
-                const countMin = TELEPORT.buildCountStart;
                 const countMax = Math.round(lerp(TELEPORT.buildCountStart, TELEPORT.buildCountEnd, pe));
                 const speedMul = lerp(TELEPORT.buildSpeedStart, TELEPORT.buildSpeedEnd, pe);
-
                 teleport.spawnAcc += dt;
                 while (teleport.spawnAcc >= interval) {
                     teleport.spawnAcc -= interval;
-                    const n = countMin + Math.floor(Math.random() * (countMax - countMin + 1));
-                    for (let k = 0; k < n; k++) spawnPill(speedMul);
+                    const n = TELEPORT.buildCountStart + Math.floor(Math.random() * (countMax - TELEPORT.buildCountStart + 1));
+                    for (let k = 0; k < n; k++) spawnPill(speedMul, false);
                 }
-
                 if (p >= 1 && teleport.vrmReady) {
                     teleport.phase = 2;
                     teleport.t = 0;
                     teleport.spawnAcc = 0;
-                    if (currentVrm) {
-                        currentVrm.scene.visible = true;
-                        teleport.vrmHidden = false;
-                    }
+                    if (currentVrm) { currentVrm.scene.visible = true; teleport.vrmHidden = false; }
                 } else if (p >= 1 && !teleport.vrmReady) {
                     teleport.t = TELEPORT.buildDuration;
                     teleport.flash = 1;
@@ -316,44 +321,51 @@
                 teleport.flash = 1;
                 teleport.intensity = 1;
                 teleport.spawnAcc += dt;
-                while (teleport.spawnAcc >= 0.05) {
-                    teleport.spawnAcc -= 0.05;
-                    spawnPill(TELEPORT.buildSpeedEnd);
+                while (teleport.spawnAcc >= 0.045) {
+                    teleport.spawnAcc -= 0.045;
+                    spawnPill(TELEPORT.buildSpeedEnd, false);
                 }
                 if (teleport.t >= TELEPORT.holdDuration) {
                     teleport.phase = 3;
                     teleport.t = 0;
                     teleport.spawnAcc = 0;
+                    teleport.flash = 0;
+                    teleport.intensity = 1;
+                    if (teleport.flashMesh) {
+                        teleport.flashMesh.material.uniforms.uFlash.value = 0;
+                        teleport.flashMesh.material.uniforms.uVeil.value = 0;
+                        teleport.flashMesh.visible = false;
+                    }
                     revealUI();
+                    for (let k = 0; k < 4; k++) spawnPill(TELEPORT.backSpeed, true);
                 }
             } else if (teleport.phase === 3) {
+                teleport.flash = 0;
                 const p = Math.min(1, teleport.t / TELEPORT.drainDuration);
-                const pe = p * p;
-                teleport.flash = 1 - pe;
-                teleport.intensity = 1 - pe;
-
-                const interval = lerp(TELEPORT.drainSpawnStart, TELEPORT.drainSpawnEnd, p);
-                const count = Math.max(1, Math.round(lerp(TELEPORT.drainCountStart, TELEPORT.drainCountEnd, p)));
                 teleport.spawnAcc += dt;
-                if (p < 0.75) {
+                if (p < 0.85) {
+                    const dense = p < (TELEPORT.drainDenseTime / TELEPORT.drainDuration);
+                    const interval = dense ? TELEPORT.drainSpawnStart : lerp(TELEPORT.drainSpawnStart, TELEPORT.drainSpawnEnd, (p - 0.15) / 0.7);
+                    const count = dense ? TELEPORT.drainCountStart : Math.max(1, Math.round(lerp(TELEPORT.drainCountStart, TELEPORT.drainCountEnd, p)));
                     while (teleport.spawnAcc >= interval) {
                         teleport.spawnAcc -= interval;
-                        for (let k = 0; k < count; k++) spawnPill(TELEPORT.drainSpeed);
+                        for (let k = 0; k < count; k++) {
+                            const behind = !dense && Math.random() < TELEPORT.backSpawnChance;
+                            spawnPill(behind ? TELEPORT.backSpeed : TELEPORT.drainSpeed, behind);
+                        }
                     }
                 }
-
+                teleport.intensity = 1 - Math.max(0, (p - 0.2) / 0.8);
                 if (p >= 1) {
                     teleport.phase = 4;
                     teleport.active = false;
                     clearAllPills();
-                    if (teleport.flashMesh) teleport.flashMesh.visible = false;
                 }
             }
 
-            const mesh = teleport.mesh;
             const dummy = teleport.dummy;
-            let live = 0;
-            for (let i = 0; i < TELEPORT.MAX_PILLS; i++) {
+            let liveF = 0, liveB = 0;
+            for (let i = 0; i < TELEPORT_MAX; i++) {
                 const d = teleport.data[i];
                 if (!d.alive) continue;
                 d.life += dt;
@@ -363,25 +375,37 @@
                     teleport.free.push(i);
                     continue;
                 }
+                const halfW = d.behind ? halfWBack : halfWFront;
+                const halfH = d.behind ? halfHBack : halfHFront;
+                const z = d.behind ? backZ : frontZ;
                 const wx = d.x * halfW;
                 const wy = d.y * halfH;
                 const worldH = d.h * halfH * 2;
-                const worldW = 0.03 * halfW * 2;
-                dummy.position.set(wx, cam.position.y + wy + worldH * 0.5, layerZ);
+                const worldW = (d.behind ? 0.022 : 0.03) * halfW * 2;
+                dummy.position.set(wx, cam.position.y + wy + worldH * 0.5, z);
                 dummy.scale.set(worldW, worldH, 0.02);
                 dummy.rotation.set(0, 0, 0);
                 dummy.updateMatrix();
-                mesh.setMatrixAt(live, dummy.matrix);
-                live++;
+                if (d.behind) {
+                    if (liveB < TELEPORT.MAX_BACK) {
+                        teleport.meshBack.setMatrixAt(liveB, dummy.matrix);
+                        liveB++;
+                    }
+                } else if (liveF < TELEPORT.MAX_FRONT) {
+                    teleport.meshFront.setMatrixAt(liveF, dummy.matrix);
+                    liveF++;
+                }
             }
-            mesh.count = live;
-            if (live > 0) mesh.instanceMatrix.needsUpdate = true;
-            mesh.material.opacity = 0.7 + teleport.intensity * 0.28;
+            teleport.meshFront.count = liveF;
+            teleport.meshBack.count = liveB;
+            if (liveF > 0) teleport.meshFront.instanceMatrix.needsUpdate = true;
+            if (liveB > 0) teleport.meshBack.instanceMatrix.needsUpdate = true;
+            teleport.meshFront.material.opacity = 0.72 + teleport.intensity * 0.26;
+            teleport.meshBack.material.opacity = 0.55 + teleport.intensity * 0.2;
 
-            if (teleport.flashMesh) {
+            if (teleport.flashMesh && teleport.flashMesh.visible) {
                 teleport.flashMesh.material.uniforms.uFlash.value = teleport.flash;
                 teleport.flashMesh.material.uniforms.uVeil.value = teleport.intensity;
-                teleport.flashMesh.visible = teleport.flash > 0.001 || teleport.intensity > 0.001;
             }
         }
 
@@ -476,11 +500,7 @@
             state.blinkBlocked = targetBlink > 0.01;
             state.requestedBlink = 0;
             const speaking = state.lipMouth > 0.04;
-            const trackableMorphs = [
-                'neutral', 'aa', 'ih', 'ou', 'ee', 'oh',
-                'joy', 'angry', 'sorrow', 'fun', 'sad', 'happy', 'relaxed', 'surprised', 'confused',
-                'blinkLeft', 'blinkRight', 'lookUp', 'lookDown', 'lookLeft', 'lookRight'
-            ];
+            const trackableMorphs = ['neutral','aa','ih','ou','ee','oh','joy','angry','sorrow','fun','sad','happy','relaxed','surprised','confused','blinkLeft','blinkRight','lookUp','lookDown','lookLeft','lookRight'];
             trackableMorphs.forEach(morphName => {
                 if (speaking && (morphName === 'aa' || morphName === 'ih')) return;
                 if (speaking && (morphName === 'ou' || morphName === 'ee' || morphName === 'oh')) {
@@ -513,10 +533,8 @@
             const lipIh = Math.min(0.7, m * 0.95);
             const lipAa = Math.min(0.38, m * 0.95);
             const W = 0.90;
-            const finalIh = state.emoIh * (1 - W) + lipIh * W;
-            const finalAa = state.emoAa * (1 - W) + lipAa * W;
-            em.setValue('ih', THREE.MathUtils.lerp(em.getValue('ih') || 0, finalIh, Math.min(1, 16 * dt)));
-            em.setValue('aa', THREE.MathUtils.lerp(em.getValue('aa') || 0, finalAa, Math.min(1, 16 * dt)));
+            em.setValue('ih', THREE.MathUtils.lerp(em.getValue('ih') || 0, state.emoIh * (1 - W) + lipIh * W, Math.min(1, 16 * dt)));
+            em.setValue('aa', THREE.MathUtils.lerp(em.getValue('aa') || 0, state.emoAa * (1 - W) + lipAa * W, Math.min(1, 16 * dt)));
         }
 
         function animate(now) {
