@@ -21,7 +21,7 @@ loadscreen("(5th revision) Loading Akari's VRM...");
 
   var thehtml = `
   <style>.avatariframe { width:100%; height:100%; position:fixed; left:0; top:0; z-index:1; border:0; }</style>
-  <iframe id="akari-vrm-iframe" src="${root}engine/AkariNet-VRM-v2?modelUrl=https://76836.github.io/Akari/characters/akari/VRM/Akari-optimized.vrm&debug=false" class="avatariframe"></iframe>
+  <iframe src="${root}engine/AkariNet-VRM-v2?modelUrl=https://76836.github.io/Akari/characters/akari/VRM/Akari-optimized.vrm&debug=false" class="avatariframe"></iframe>
   `;
   if (document.getElementById('avatar')) document.getElementById('avatar').innerHTML = thehtml;
 
@@ -31,7 +31,6 @@ loadscreen("(5th revision) Loading Akari's VRM...");
     if (current !== lastValue) {
       lastValue = current;
       window.dispatchEvent(new CustomEvent('akari_emote_update', { detail: current }));
-      noteActivity('emote-change');
     }
   }, 200);
 
@@ -63,68 +62,16 @@ loadscreen("(5th revision) Loading Akari's VRM...");
       } catch (e) {}
       window.dispatchEvent(new CustomEvent('akari_vrm_wake', { detail: { source: source || 'activity' } }));
       console.log('AkariNet VRM wake (' + (source || 'activity') + ')');
-    } else {
-      try {
-        var cur2 = (localStorage.getItem('v2emote') || '').toLowerCase();
-        if (cur2 === 'hibernate') {
-          localStorage.setItem('v2emote', 'neutral');
-          isHibernating = false;
-          window.dispatchEvent(new CustomEvent('akari_vrm_wake', { detail: { source: source || 'activity-resync' } }));
-          console.log('AkariNet VRM wake (resync from ' + (source || 'activity') + ')');
-        }
-      } catch (e) {}
     }
     armHibernateTimer();
   }
 
-  function bindActivityEvents(target, useCapture) {
-    ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'keydown', 'wheel'].forEach(function (evt) {
-      try {
-        target.addEventListener(evt, function () { noteActivity(evt); }, { passive: true, capture: !!useCapture });
-      } catch (e) {}
-    });
-  }
-  bindActivityEvents(document, true);
-  bindActivityEvents(window, false);
-
+  ['pointerdown', 'keydown', 'touchstart', 'mousedown', 'mousemove', 'wheel'].forEach(function (evt) {
+    window.addEventListener(evt, function () { noteActivity(evt); }, { passive: true });
+  });
   window.addEventListener('akari:user-input', function () { noteActivity('user-input'); });
-  window.addEventListener('user_input_received', function () { noteActivity('user_input_received'); });
-  window.addEventListener('assistant_response', function () { noteActivity('assistant_response'); });
-  window.addEventListener('akari_emote_update', function () { noteActivity('emote_update'); });
-
   window.addEventListener('screensaver_hidden', function () { noteActivity('screensaver_hidden'); });
   window.addEventListener('screensaver_shown', function () { enterHibernate('screensaver'); });
-
-  window.addEventListener('storage', function (e) {
-    if (!e) return;
-    if (e.key === 'v2emote' && e.newValue && String(e.newValue).toLowerCase() !== 'hibernate') {
-      noteActivity('storage-v2emote');
-    }
-    if (e.key === 'emote' && e.newValue) noteActivity('storage-emote');
-    if (e.key === 'akari:lipsync') noteActivity('storage-lipsync');
-  });
-
-  function attachIframeActivity() {
-    try {
-      var ifr = document.getElementById('akari-vrm-iframe');
-      if (!ifr) return;
-      var win = ifr.contentWindow;
-      if (!win) return;
-      bindActivityEvents(win, false);
-      try {
-        if (win.document) bindActivityEvents(win.document, true);
-      } catch (e) {}
-    } catch (e) {}
-  }
-  (function watchIframe() {
-    var ifr = document.getElementById('akari-vrm-iframe');
-    if (ifr) {
-      ifr.addEventListener('load', attachIframeActivity);
-      setTimeout(attachIframeActivity, 500);
-      setTimeout(attachIframeActivity, 1500);
-      setTimeout(attachIframeActivity, 3000);
-    }
-  })();
 
   setInterval(function () {
     try {
@@ -139,17 +86,6 @@ loadscreen("(5th revision) Loading Akari's VRM...");
       }
     } catch (e) {}
   }, 200);
-
-  setInterval(function () {
-    try {
-      var cur = (localStorage.getItem('v2emote') || '').toLowerCase();
-      if (cur === 'hibernate' && !isHibernating) isHibernating = true;
-      if (cur !== 'hibernate' && isHibernating) {
-        isHibernating = false;
-        window.dispatchEvent(new CustomEvent('akari_vrm_wake', { detail: { source: 'poll-resync' } }));
-      }
-    } catch (e) {}
-  }, 1000);
 
   armHibernateTimer();
 
@@ -195,19 +131,7 @@ loadscreen("(5th revision) Loading Akari's VRM...");
     }
 
     async function processSequence(text) {
-      if (isHibernating()) {
-        try {
-          const sentenceRegex = /[A-Z][^.]*\\./g;
-          const matches = text.match(sentenceRegex) || [];
-          if (matches.length > 0) {
-            const emotion = analyzeEmotion(matches[0]).dominant;
-            setEmote(emotion);
-          } else {
-            setEmote('neutral');
-          }
-        } catch (e) { setEmote('neutral'); }
-        return;
-      }
+      if (isHibernating()) return;
       clearInterval(idleInterval);
       if (sequenceTimeout) clearTimeout(sequenceTimeout);
       const sentenceRegex = /[A-Z][^.]*\\./g;
