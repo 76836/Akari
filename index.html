@@ -55,7 +55,7 @@
         }
         html, body {
             margin: 0; height: 100%; width: 100%;
-            background: radial-gradient(circle at top, var(--bg-3) 0%, var(--bg-2) 35%, var(--bg-1) 100%);
+            background: #000;
             color: var(--text);
             font-family: 'Orbitron', sans-serif;
             overflow: hidden;
@@ -121,12 +121,12 @@
         }
         @keyframes borderAnim { 0% { border-color: red; } 100% { border-color: green; } }
         #overlay.fade-out { opacity: 0; pointer-events: none; }
+        /* Wallpaper layer — same stacking as pre-beta index so it stays visible behind avatar */
         #bkg-container {
-            position: fixed; inset: 0; z-index: 0; width: 100vw; height: 100vh;
-            pointer-events: none;
+            position: fixed; inset: 0; z-index: -2; width: 100vw; height: 100vh;
+            pointer-events: auto;
         }
-        .iframe-container { width: 100%; height: 100%; border: none; }
-        #avatar { position: relative; z-index: 1; }
+        .iframe-container { width: 100%; height: 100%; border: none; background: transparent; }
         #screensaver-container {
             position: fixed; inset: 0; display: none; z-index: 999998; background: #000; pointer-events: none;
         }
@@ -443,11 +443,13 @@ if ('serviceWorker' in navigator) {
                     const url = app.config.modules.bg;
                     const container = document.getElementById('bkg-container');
                     container.innerHTML = '';
+                    container.style.background = '';
                     if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
                         container.style.background = `url(${url}) center/cover no-repeat fixed`;
                     } else {
                         const ifr = document.createElement('iframe');
                         ifr.src = url; ifr.className = 'iframe-container';
+                        ifr.setAttribute('allowtransparency', 'true');
                         container.appendChild(ifr);
                     }
                 },
