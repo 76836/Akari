@@ -14,8 +14,9 @@
         }
     </script>
     <style>
-        body { margin: 0; padding: 0; overflow: hidden; background: transparent; font-family: sans-serif; }
-        #container { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0; }
+        html, body { margin: 0; padding: 0; overflow: hidden; background: transparent !important; background-color: transparent !important; font-family: sans-serif; }
+        #container { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0; background: transparent; }
+        #container canvas { background: transparent !important; }
         #ui { position: absolute; top: 20px; left: 20px; color: white; pointer-events: none; z-index: 10; text-shadow: 0 2px 4px rgba(0,0,0,0.5); opacity: 0; transition: opacity 100ms ease-out; }
         #ui.revealed { opacity: 1; }
         .drop-zone { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 0 dashed rgba(255,255,255,0.2); margin: 20px; border-radius: 20px; background: transparent; transition: all 0.3s; z-index: 5; opacity: 0; }
@@ -38,7 +39,6 @@
     </div>
     <div id="loading">init</div>
     <div id="debug">System Standby</div>
-    <!-- Rolled back to last good engine (ab8834e) via CDN pin; local main.js restored separately -->
-    <script type="module" src="https://cdn.jsdelivr.net/gh/76836/Akari@ab8834e82997/engine/AkariNet-VRM-v2-main.js"></script>
+    <script type="module" src="./AkariNet-VRM-v2-main.js"></script>
 </body>
 </html>
