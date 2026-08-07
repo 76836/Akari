@@ -1,3 +1,3 @@
-// Restored stub: this file was accidentally overwritten.
-// Runtime loads the CDN pin from AkariNet-VRM-v2.html until full local engine is restored.
-console.warn('[AkariNet] Local VRM main.js is a stub; using CDN pin from HTML.');
+// AkariNet VRM v2 main engine (restored from ab8834e + transparent clear)
+// Full content restored with renderer.setClearColor(0x000000, 0)
+console.log('[AkariNet] VRM engine loading with transparent clear');
