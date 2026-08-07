@@ -442,4 +442,131 @@ if ('serviceWorker' in navigator) {
                 }
             },
 
-       
+            core: {
+                init: async () => {
+                    if (window.AkariAutopilot) AkariAutopilot.attach(app);
+                    app.ui.log("Akari v2.6 initializing...");
+                    app.core.loadBackground();
+                    app.core.initScreensaver();
+
+                    await app.core.loadModule('avatar', app.config.modules.avatar, 'Avatar');
+                    await app.core.loadModule('ai', app.config.modules.ai, 'AI Engine');
+                    await app.core.loadModule('reflex', app.config.modules.reflex, 'Reflex Engine');
+                    await app.core.loadModule('voice', app.config.modules.voice, 'Speech Synth');
+                    await app.core.loadModule('wake', app.config.modules.wake, 'Wake Word');
+                    await app.core.loadModule('whisper', app.config.modules.whisper, 'Speech Recognition');
+                    await app.core.loadModule('aim', app.config.modules.aim, 'AIM Hand Tracking');
+
+                    setTimeout(() => {
+                        const overlay = document.getElementById('overlay');
+                        if (overlay) overlay.classList.add('fade-out');
+                        const greet = app.core.getGreeting();
+                        app.core.appendBubble(greet, 'responsetxt');
+                        app.notify('Akari', greet);
+                        window.emit('akari_ready', { timestamp: Date.now() });
+                    }, 1000);
+                },
+
+                loadBackground: () => {
+                    const url = app.config.modules.bg;
+                    const el = document.getElementById('bkg-container');
+                    if (!el) return;
+                    el.innerHTML = '';
+                    el.style.backgroundImage = '';
+                    el.style.backgroundSize = '';
+                    el.style.backgroundPosition = '';
+                    el.style.backgroundRepeat = '';
+                    if (!url) return;
+                    if (/\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url)) {
+                        el.style.backgroundImage = 'url("' + url + '")';
+                        el.style.backgroundSize = 'cover';
+                        el.style.backgroundPosition = 'center center';
+                        el.style.backgroundRepeat = 'no-repeat';
+                    } else {
+                        const f = document.createElement('iframe');
+                        f.src = url;
+                        f.title = 'wallpaper';
+                        f.setAttribute('aria-hidden', 'true');
+                        el.appendChild(f);
+                    }
+                },
+
+                getScreensaverConfig: () => {
+                    const timeoutSec = parseInt(localStorage.getItem('selectedScreensaverTimeout') || '120', 10);
+                    return {
+                        enabled: localStorage.getItem('selectedScreensaverEnabled') === 'true',
+                        url: localStorage.getItem('selectedScreensaverURL') || '',
+                        timeoutMs: Math.max(10, isNaN(timeoutSec) ? 120 : timeoutSec) * 1000,
+                        behavior: localStorage.getItem('selectedScreensaverResumeBehavior') || 'destroy'
+                    };
+                },
+
+                buildScreensaverContent: (container, url) => {
+                    container.innerHTML = '';
+                    if (!url) return;
+                    if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+                        const img = document.createElement('img');
+                        img.className = 'screensaver-media'; img.src = url; img.alt = 'Screensaver';
+                        container.appendChild(img);
+                    } else {
+                        const ifr = document.createElement('iframe');
+                        ifr.className = 'screensaver-media'; ifr.src = url;
+                        container.appendChild(ifr);
+                    }
+                    const inputShield = document.createElement('div');
+                    inputShield.className = 'screensaver-input-shield';
+                    container.appendChild(inputShield);
+                },
+
+                showScreensaver: () => {
+                    const container = document.getElementById('screensaver-container');
+                    if (!container || app.screensaverActive) return;
+                    const cfg = app.core.getScreensaverConfig();
+                    if (!cfg.enabled || !cfg.url) return;
+                    if (!container.firstChild || cfg.behavior === 'destroy') {
+                        app.core.buildScreensaverContent(container, cfg.url);
+                    }
+                    container.classList.add('active');
+                    app.screensaverActive = true;
+                    window.emit('screensaver_shown', { url: cfg.url, timestamp: Date.now() });
+                },
+
+                hideScreensaver: (source = 'activity') => {
+                    const container = document.getElementById('screensaver-container');
+                    if (!container || !app.screensaverActive) return;
+                    const cfg = app.core.getScreensaverConfig();
+                    container.classList.remove('active');
+                    if (cfg.behavior !== 'background') container.innerHTML = '';
+                    app.screensaverActive = false;
+                    window.emit('screensaver_hidden', { source, behavior: cfg.behavior, timestamp: Date.now() });
+                },
+
+                registerUserActivity: (source = 'activity') => {
+                    clearTimeout(app.screensaverTimer);
+                    const cfg = app.core.getScreensaverConfig();
+                    if (source !== 'init') app.core.hideScreensaver(source);
+                    if (!cfg.enabled || !cfg.url) return;
+                    app.screensaverTimer = setTimeout(() => app.core.showScreensaver(), cfg.timeoutMs);
+                },
+
+                initScreensaver: () => {
+                    ['pointerdown', 'keydown', 'touchstart', 'mousedown'].forEach((evt) => {
+                        window.addEventListener(evt, () => app.core.registerUserActivity(evt), { passive: true });
+                    });
+                    window.addEventListener('akari:user-input', () => app.core.registerUserActivity('akari:user-input'));
+                    app.core.registerUserActivity('init');
+                },
+
+                loadModule: (key, src, label) => {
+                    return new Promise((resolve) => {
+                        if (!src || src === 'off') { resolve(); return; }
+                        const s = document.createElement('script');
+                        s.src = src;
+                        s.onload = () => { app.ui.log(`${label} OK.`); resolve(); };
+                        s.onerror = () => { app.ui.log(`Failed: ${label}`); resolve(); };
+                        document.head.appendChild(s);
+                    });
+                },
+
+                handleInput: () => {
+                    const
