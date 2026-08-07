@@ -569,4 +569,117 @@ if ('serviceWorker' in navigator) {
                 },
 
                 handleInput: () => {
-                    const
+                    const box = document.getElementById('box');
+                    const val = box?.value.trim();
+                    if (!val) return;
+                    app.isSilentMode = true;
+                    window.dispatchEvent(new CustomEvent('akari:user-input', { detail: { source: 'text', value: val } }));
+                    window.emit('user_input_received', { source: 'text', text: val, timestamp: Date.now() });
+                    window.bubble_incoming(val);
+                    box.value = '';
+                    app.core.syncActionButton(true);
+                    app.ui.setTyping('Akari');
+                    if (val.toLowerCase().includes('settings')) {
+                        app.ui.openWindow('./settings');
+                        app.core.say("Opening settings panel.");
+                        return;
+                    }
+                    if (window.respond) window.respond(val);
+                },
+
+                say: (text) => {
+                    app.ui.setTyping(null);
+                    window.bubble(text);
+                    window.emit('assistant_response', { text, timestamp: Date.now() });
+                    app.notify('Akari', text, { borderColors: ['#A020F0', '#00FF00'] });
+                    window.emote(text);
+                    if (!app.isSilentMode) window.speak(text);
+                    app.isSilentMode = false;
+                },
+
+                appendBubble: (text, className) => {
+                    const container = document.getElementById('messages-container');
+                    if (!container) return;
+                    const div = document.createElement('div');
+                    div.className = className; div.innerHTML = text;
+                    container.appendChild(div);
+                    container.scrollTop = container.scrollHeight;
+                    if (!document.getElementById('chat-box').classList.contains('collapsed')) app.ui.resetAutoMin();
+                },
+
+                syncActionButton: (forceVoice) => {
+                    const btn = document.getElementById('micbutton');
+                    const box = document.getElementById('box');
+                    if (!btn) return;
+                    if (btn.innerText === 'Listening...' && !forceVoice) return;
+                    const hasText = !!(box && box.value.trim());
+                    btn.className = 'icemorphic-medium ice-button side-action';
+                    btn.style.minWidth = hasText && !forceVoice ? '52px' : '72px';
+                    btn.style.fontSize = hasText && !forceVoice ? '18px' : '';
+                    if (hasText && !forceVoice) {
+                        btn.innerText = '\u27A4';
+                        btn.setAttribute('aria-label', 'Send');
+                    } else {
+                        btn.innerText = 'voice';
+                        btn.setAttribute('aria-label', 'Voice');
+                    }
+                },
+
+                onActionButton: () => {
+                    const btn = document.getElementById('micbutton');
+                    if (btn && (btn.innerText === '\u27A4' || btn.innerText === '➤')) {
+                        app.core.handleInput();
+                        return;
+                    }
+                    app.core.toggleVoice();
+                },
+
+                toggleVoice: () => {
+                    const btn = document.getElementById('micbutton');
+                    app.isSilentMode = false;
+                    window.dispatchEvent(new CustomEvent('akari:user-input', { detail: { source: 'voice-toggle' } }));
+                    if (btn.innerText === 'voice' || btn.innerText === '\u27A4' || btn.innerText === '➤') {
+                        btn.className = 'icemorphic-medium ice-button side-action mic-on';
+                        btn.innerText = 'Listening...';
+                        btn.style.minWidth = '100px';
+                        btn.style.fontSize = '';
+                        if (window.whisperTranscriber) whisperTranscriber.start(true);
+                        window.emit('voice_listening_started', { timestamp: Date.now() });
+                    } else {
+                        app.ui.resetMic();
+                        window.emit('voice_listening_stopped', { timestamp: Date.now() });
+                    }
+                },
+
+                getGreeting: () => {
+                    const hr = new Date().getHours();
+                    if (hr < 12) return "Good morning.";
+                    if (hr < 18) return "Good afternoon.";
+                    return "Good evening.";
+                }
+            }
+        };
+
+        function typing(tyname) { app.ui.setTyping(tyname); }
+        function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+        document.addEventListener('transcriptionComplete', (e) => {
+            if (e.detail?.text) {
+                window.dispatchEvent(new CustomEvent('akari:user-input', { detail: { source: 'voice', value: e.detail.text } }));
+                app.core.appendBubble(e.detail.text, 'command');
+                if (window.respond) window.respond(e.detail.text);
+            }
+            app.ui.resetMic();
+        });
+
+        window.onload = app.core.init;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('chatToggle');
+            const box = document.getElementById('chat-box');
+            if (btn) btn.addEventListener('click', () => app.ui.toggleChat());
+            if (btn && box && box.classList.contains('collapsed')) btn.innerText = '+';
+        });
+    </script>
+</body>
+</html>
