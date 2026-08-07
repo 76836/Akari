@@ -16,7 +16,7 @@
     <style>
         html, body { margin: 0; padding: 0; overflow: hidden; background: transparent !important; background-color: transparent !important; font-family: sans-serif; }
         #container { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0; background: transparent; }
-        #container canvas { background: transparent !important; }
+        #container canvas { background: transparent !important; display: block; }
         #ui { position: absolute; top: 20px; left: 20px; color: white; pointer-events: none; z-index: 10; text-shadow: 0 2px 4px rgba(0,0,0,0.5); opacity: 0; transition: opacity 100ms ease-out; }
         #ui.revealed { opacity: 1; }
         .drop-zone { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 0 dashed rgba(255,255,255,0.2); margin: 20px; border-radius: 20px; background: transparent; transition: all 0.3s; z-index: 5; opacity: 0; }
@@ -39,6 +39,25 @@
     </div>
     <div id="loading">init</div>
     <div id="debug">System Standby</div>
-    <script type="module" src="./AkariNet-VRM-v2-main.js"></script>
+    <!-- CDN pin of last known-good engine (pre-PLACEHOLDER). Local main.js restored separately. -->
+    <script type="module" src="https://cdn.jsdelivr.net/gh/76836/Akari@ab8834e82997/engine/AkariNet-VRM-v2-main.js"></script>
+    <script type="module">
+      // Force clear alpha 0 after CDN engine initializes (wallpaper must show through)
+      const _raf = requestAnimationFrame;
+      function tryPatch() {
+        try {
+          const canvas = document.querySelector('#container canvas');
+          if (!canvas) { _raf(tryPatch); return; }
+          // Three stores renderer on canvas sometimes; patch via WebGL context clear
+          const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+          if (gl) {
+            gl.clearColor(0, 0, 0, 0);
+          }
+        } catch (e) {}
+      }
+      _raf(tryPatch);
+      setTimeout(tryPatch, 500);
+      setTimeout(tryPatch, 2000);
+    </script>
 </body>
 </html>
