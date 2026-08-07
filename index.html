@@ -177,4 +177,165 @@
             margin-bottom: 12px; height: 20px; gap: 8px;
         }
         .chat-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-left: auto; padding-right: 4px; }
-        .chat-title { font-weight: 700; font-size: 0.75rem; color: var(--text); padding-
+        .chat-title { font-weight: 700; font-size: 0.75rem; color: var(--text); padding-left: 10px; margin-right: auto; }
+        #settingsButton, #chatToggle {
+            background: rgba(15, 23, 42, 0.35); border: 1px solid var(--panel-border); color: var(--text);
+            width: 38px; min-width: 38px; height: 18px; padding: 0 8px; border-radius: 8px; cursor: pointer;
+            display: flex; justify-content: center; align-items: center; font-size: 18px; line-height: 1;
+            overflow: hidden; white-space: nowrap;
+        }
+        #messages-container { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; transition: all 0.3s ease; }
+        .chat-box.collapsed #messages-container > div { display: none; }
+        .chat-box.collapsed #messages-container > div:nth-last-child(-n+2) {
+            display: block; opacity: 0.8; transform: scale(0.95); pointer-events: none;
+        }
+        .responsetxt, .command {
+            padding: 10px 16px; font-size: 0.95rem; line-height: 1.4;
+            box-shadow: 0 4px 12px rgba(2, 6, 23, 0.18); border-radius: 15px; border: 1px solid var(--panel-border);
+        }
+        .responsetxt {
+            background: linear-gradient(135deg, rgba(31, 41, 55, 0.94), rgba(15, 23, 42, 0.92));
+            border-bottom-left-radius: 4px; color: var(--text);
+        }
+        .command {
+            background: linear-gradient(135deg, rgba(13, 70, 80, 0.82), rgba(10, 25, 35, 0.82));
+            border-bottom-right-radius: 4px; color: var(--success);
+        }
+        .controls {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: min(92vw, 760px); display: flex; justify-content: center; align-items: center;
+            gap: 8px; padding: 0 8px; box-sizing: border-box; z-index: 50;
+        }
+        .controls .ice-button {
+            flex: 0 0 auto; min-width: 44px; width: auto; padding: 0 12px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .controls .ice-button.side-action {
+            background: var(--input-bg) !important; border: none !important;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04) !important; color: var(--text) !important;
+        }
+        .controls #box { flex: 1 1 auto; width: auto; max-width: none; min-width: 120px; }
+        .box {
+            background: var(--input-bg); border: 2px solid var(--input-border); color: var(--text);
+            padding: 12px; border-radius: 20px; outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s ease; pointer-events: auto;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+        }
+        .box:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.18); }
+        .button-long, .toggle-btn {
+            color: white; padding: 10px 20px; border-radius: 20px; cursor: pointer;
+            font-family: inherit; font-size: 14px; pointer-events: auto;
+        }
+        .mic-on { background: #00ff00 !important; color: black !important; }
+        .toggle-btn { background: rgba(15, 23, 42, 0.45); border: 1px solid var(--panel-border); color: var(--text); }
+        .windowstyle {
+            border: 4px solid var(--panel-border); background: rgba(2, 6, 23, 0.9);
+            width: 86vw; height: 80vh; position: fixed; top: 7vh; left: 7vw; z-index: 100;
+            border-radius: 10px 10px 0px 0px;
+        }
+        .close-btn {
+            position: fixed; top: 87vh; left: 7vw; background: rgba(127, 29, 29, 0.8); color: var(--text);
+            font-weight: bolder; border: 2px solid var(--danger); padding: 10px;
+            border-radius: 0px 0px 10px 10px; width: calc(86vw + 2px); z-index: 101;
+        }
+        #legacy-anchor { display: none; position: absolute; }
+        #status-area { position: fixed; bottom: 80px; left: 20px; color: var(--muted); z-index: 51; }
+    </style>
+</head>
+<body>
+    <div id="bkg-container"></div>
+    <div id="avatar"></div>
+    <div id="overlay">
+        <div class="console" id="boot-log" style="font-size: 1rem; color: #fff;"></div>
+        <img src="./images/logo512.png" alt="Logo" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.6);">
+        <img src="./images/loading.gif" alt="Loading" style="position:fixed; top:65%; left:50%; transform:translate(-50%, -50%) scale(0.2);">
+    </div>
+    <div id="legacy-anchor"><div id="messages"></div></div>
+    <div id="notificationArea" style="position: fixed; top: 0; right: 0; z-index: 200;"></div>
+    <div id="screensaver-container" aria-hidden="true"></div>
+    <div id="chat-box" class="icemorphic chat-box collapsed" style="border: none;" aria-live="polite">
+        <div class="chat-header">
+            <button id="settingsButton" class="icemorphic toggle-btn" onclick="app.ui.openWindow('./settings')" aria-label="Open settings">⚙</button>
+            <div class="chat-title">loading...</div>
+            <div class="chat-actions">
+                <button id="chatToggle" class="icemorphic toggle-btn" aria-label="Toggle Chat">+</button>
+            </div>
+        </div>
+        <div id="messages-container" role="log"></div>
+    </div>
+    <div id="status-area"></div>
+    <div id="window-layer"></div>
+    <div class="controls">
+        <input type="text" id="box" class="icemorphic icemorphic-medium ice-input box" style="color: var(--text); background: var(--input-bg);" placeholder="What's up?" onkeydown="if(event.keyCode==13) app.core.handleInput()" oninput="app.core.syncActionButton()">
+        <button class="icemorphic-medium ice-button side-action" id="micbutton" onclick="app.core.onActionButton()" style="font-weight: bolder; min-width: 72px;">voice</button>
+    </div>
+    <script>
+    (function () {
+        function injectSVGFilter() {
+            if (document.getElementById('ice-refraction')) return;
+            if (!document.body) { setTimeout(injectSVGFilter, 10); return; }
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('style', 'position: absolute; width: 0; height: 0; pointer-events: none;');
+            svg.innerHTML = '<filter id="ice-refraction"><feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="3" result="noise" /><feDisplacementMap in="SourceGraphic" in2="noise" scale="75" xChannelSelector="R" yChannelSelector="G" /></filter>';
+            document.body.appendChild(svg);
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', injectSVGFilter);
+        else setTimeout(injectSVGFilter, 0);
+        window.Icemorphic = {
+            version: '1.0.0',
+            setDistortion: function (scale) {
+                const filter = document.querySelector('#ice-refraction feDisplacementMap');
+                if (filter) filter.setAttribute('scale', scale);
+            },
+            setBlur: function (blur) { document.documentElement.style.setProperty('--ice-blur', blur + 'px'); },
+            setTint: function (rgba) { document.documentElement.style.setProperty('--ice-tint', rgba); },
+            reinjectFilter: function () {
+                const existing = document.getElementById('ice-refraction');
+                if (existing && existing.parentElement) existing.parentElement.remove();
+                injectSVGFilter();
+            }
+        };
+    })();
+    </script>
+    <script>
+    (function () {
+        var titleElement = document.querySelector('.chat-title');
+        if (titleElement) {
+            var today = new Date();
+            var day = today.getDate();
+            var month = today.toLocaleString('default', { month: 'long' });
+            var year = today.getFullYear();
+            var suffix = (day % 10 === 1 && day !== 11) ? 'st' : (day % 10 === 2 && day !== 12) ? 'nd' : (day % 10 === 3 && day !== 13) ? 'rd' : 'th';
+            titleElement.textContent = month + ' ' + day + suffix + ', ' + year;
+        }
+    })();
+    </script>
+    <script src="./engine/autopilot/bridge.js"></script>
+    <script src="https://76836.github.io/AkariNet-Automata/ATPKLoader-1.1.0.js"></script>
+    <script>
+(function() {
+    'use strict';
+    const _eventHandlers = new Map();
+    window.on = function(eventName, handler) {
+        const handlerId = Math.random().toString(36).substr(2, 9);
+        const wrapper = (e) => handler(e.detail);
+        if (!_eventHandlers.has(eventName)) _eventHandlers.set(eventName, new Map());
+        _eventHandlers.get(eventName).set(handlerId, wrapper);
+        window.addEventListener(eventName, wrapper);
+        return handlerId;
+    };
+    window.emit = function(eventName, data) {
+        window.dispatchEvent(new CustomEvent(eventName, { detail: data }));
+    };
+
+    async function initAkariAutomata() {
+        if (typeof AutomatonLoader === 'undefined') return;
+        const loader = new AutomatonLoader();
+        window.automatonLoader = loader;
+        const defaultUrl = 'https://76836.github.io/AkariNet-Automata/demo.atpk';
+        let urls = [], blacklist = [];
+        try { urls = JSON.parse(localStorage.getItem('akari:automata_urls') || '[]'); if (!Array.isArray(urls)) urls = []; } catch { urls = []; }
+        try { blacklist = JSON.parse(localStorage.getItem('akari:automata_blacklist') || '[]'); if (!Array.isArray(blacklist)) blacklist = []; } catch { blacklist = []; }
+        if (urls.length === 0) { urls = [defaultUrl]; localStorage.setItem('akari:automata_urls', JSON.stringify(urls)); }
+        loader.setAutomataUrls(urls);
+        loader.setBlacklist(blacklist);
