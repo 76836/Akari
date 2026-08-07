@@ -339,3 +339,107 @@
         if (urls.length === 0) { urls = [defaultUrl]; localStorage.setItem('akari:automata_urls', JSON.stringify(urls)); }
         loader.setAutomataUrls(urls);
         loader.setBlacklist(blacklist);
+        if (window.AkariAutopilot) AkariAutopilot.beginDownload('Loading Automata…');
+        await loader.loadAll();
+        if (window.AkariAutopilot) AkariAutopilot.endDownload('Automata ready');
+    }
+    if (document.readyState === 'complete') initAkariAutomata();
+    else window.addEventListener('load', initAkariAutomata);
+})();
+
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
+}
+    </script>
+    <script>
+        window.serverStatus = "connected";
+        window.loadscreen = (msg) => app.ui.log(msg);
+        window.say = (text) => app.core.say(text);
+        window.bubble = (text) => app.core.appendBubble(text, 'responsetxt');
+        window.bubble_incoming = (text) => app.core.appendBubble(text, 'command');
+        window.emote = (text) => localStorage.setItem("emote", text);
+        window.showNotification = (t, m, o) => app.notify(t, m, o);
+        window.newwindow = (url) => app.ui.openWindow(url);
+
+        window.goakari = () => {
+            window.dispatchEvent(new CustomEvent('akari:user-input', { detail: { source: 'wake-word' } }));
+            app.core.toggleVoice();
+        };
+
+        window.speak = (text) => {
+            if (typeof window.speakt5 === 'function') window.speakt5(text);
+            else if ('speechSynthesis' in window) window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+        };
+
+        const app = window.app = {
+            isSilentMode: true,
+            autoMinTimer: null,
+            screensaverTimer: null,
+            screensaverActive: false,
+            config: {
+                modules: {
+                    voice: localStorage.getItem('selectedVoiceScript'),
+                    avatar: localStorage.getItem('selectedAvatarScript'),
+                    ai: localStorage.getItem('selectedAIScript') || './characters/akari/pollinations.js',
+                    reflex: localStorage.getItem('selectedReflexScript') || './characters/akari/response.js',
+                    whisper: localStorage.getItem('selectedWhisperScript') || './engine/web-speech-recognition.js',
+                    wake: localStorage.getItem('selectedWakeScript') || './characters/akari/wake.js',
+                    aim: localStorage.getItem('selectedAIMScript') || 'off',
+                    bg: localStorage.getItem('selectedBKGURL') || 'https://76836.github.io/squares'
+                }
+            },
+
+            notify: (title, message, options = {}) => {
+                const { duration = 5000, borderColors, borderColor, image } = options;
+                const container = document.getElementById('notificationArea');
+                const note = document.createElement('div');
+                note.className = 'notification-container';
+                let colors = borderColors || (borderColor ? [borderColor, borderColor] : null);
+                if (colors) {
+                    note.classList.add('animated-border');
+                    note.style.setProperty('--border-colors', colors.join(', '));
+                    note.style.setProperty('--glow-color', (colors[0].match(/\d+/g) || ['255','255','255']).join(','));
+                }
+                note.innerHTML = `${image ? `<img src="${image}" class="notification-image">` : ''}
+                    <div class="notification-content"><div class="notification-title">${title}</div><div class="notification-body">${message}</div></div>
+                    <button class="notification-close" style="position:absolute;top:12px;right:12px;width:20px;height:20px;border:none;background:none;cursor:pointer;color:white;">✕</button>`;
+                container.prepend(note);
+                requestAnimationFrame(() => note.classList.add('show'));
+                const close = () => { note.classList.remove('show'); setTimeout(() => note.remove(), 400); };
+                note.querySelector('.notification-close').onclick = close;
+                if (duration) setTimeout(close, duration);
+            },
+
+            ui: {
+                log: (msg) => { const log = document.getElementById('boot-log'); if (log) log.innerHTML += `${msg}<br>`; },
+                resetMic: () => {
+                    if (window.whisperTranscriber?.stop) whisperTranscriber.stop();
+                    app.core.syncActionButton(true);
+                },
+                openWindow: (url) => {
+                    document.getElementById('window-layer').innerHTML =
+                        `<iframe src="${url}" class="icemorphic icemorphic-dark windowstyle"></iframe><button class="icemorphic icemorphic-dark close-btn" onclick="app.ui.closeWindow()">Close Window</button>`;
+                },
+                closeWindow: () => document.getElementById('window-layer').innerHTML = '',
+                setTyping: (name) => { document.getElementById('status-area').innerText = name ? `${name} is thinking...` : ''; },
+                toggleChat: (forceState) => {
+                    const box = document.getElementById('chat-box');
+                    const btn = document.getElementById('chatToggle');
+                    if (!box || !btn) return;
+                    const isClosed = box.classList.contains('collapsed');
+                    const shouldClose = forceState === 'min' || (!isClosed && forceState !== 'open');
+                    if (shouldClose) {
+                        box.classList.add('collapsed'); btn.innerText = '+'; clearTimeout(app.autoMinTimer);
+                    } else {
+                        box.classList.remove('collapsed'); btn.innerText = '-'; app.ui.resetAutoMin();
+                    }
+                    const container = document.getElementById('messages-container');
+                    if (container) container.scrollTop = container.scrollHeight;
+                },
+                resetAutoMin: () => {
+                    clearTimeout(app.autoMinTimer);
+                    app.autoMinTimer = setTimeout(() => app.ui.toggleChat('min'), 60000);
+                }
+            },
+
+       
