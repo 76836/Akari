@@ -48,16 +48,34 @@
         try {
           const canvas = document.querySelector('#container canvas');
           if (!canvas) { _raf(tryPatch); return; }
-          // Three stores renderer on canvas sometimes; patch via WebGL context clear
           const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
-          if (gl) {
-            gl.clearColor(0, 0, 0, 0);
-          }
+          if (gl) gl.clearColor(0, 0, 0, 0);
         } catch (e) {}
       }
       _raf(tryPatch);
       setTimeout(tryPatch, 500);
       setTimeout(tryPatch, 2000);
+
+      // Minimal hibernate wake assist (CDN engine early-outs without polling v2emote):
+      // when parent sets a non-hibernate emote but the avatar is still frozen, reload
+      // this iframe so the normal teleport-in runs. Also clear hibernate on local taps.
+      function clearHibernateKey() {
+        try {
+          const cur = (localStorage.getItem('v2emote') || '').toLowerCase();
+          if (cur === 'hibernate') localStorage.setItem('v2emote', 'neutral');
+        } catch (e) {}
+      }
+      ['pointerdown', 'touchstart', 'mousedown'].forEach((evt) => {
+        window.addEventListener(evt, clearHibernateKey, { passive: true });
+      });
+      setInterval(() => {
+        try {
+          const key = (localStorage.getItem('v2emote') || '').toLowerCase().trim();
+          const dbg = document.getElementById('debug');
+          const frozen = dbg && /HIBERNATE/i.test(dbg.innerText || '');
+          if (key && key !== 'hibernate' && frozen) location.reload();
+        } catch (e) {}
+      }, 400);
     </script>
 </body>
 </html>
