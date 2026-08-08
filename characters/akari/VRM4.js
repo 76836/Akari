@@ -85,7 +85,11 @@ loadscreen("(5th revision) Loading Akari's VRM...");
 
   // Generic voice activity (main app + Audio Console style events)
   ['voice_listening_started', 'voice_listening_stopped', 'speechstart', 'speechend',
-   'wakesound', 'result', 'processing', 'processingend', 'speechdiscarded'].forEach(function (evt) {
+   'wakesound', 'result', 'processing', 'processingend', 'speechdiscarded',
+   // Audio Console adapter prefixes (engine/audioConsole.js)
+   'audioConsoleSpeechStart', 'audioConsoleSpeechEnd', 'audioConsoleWakeSound',
+   'audioConsoleResult', 'audioConsoleProcessing', 'audioConsoleProcessingEnd',
+   'audioConsoleSpeechDiscarded'].forEach(function (evt) {
     window.addEventListener(evt, function () { noteActivity(evt); });
   });
   document.addEventListener('transcriptionComplete', function () { noteActivity('transcriptionComplete'); });
