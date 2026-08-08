@@ -1,1 +1,90 @@
-PLACEHOLDER
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AkariNet VRM v2 (lipsync)</title>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+                "@pixiv/three-vrm": "https://unpkg.com/@pixiv/three-vrm@3.0.0/lib/three-vrm.module.js"
+            }
+        }
+    </script>
+    <style>
+        html, body { margin: 0; padding: 0; overflow: hidden; background: transparent !important; background-color: transparent !important; font-family: sans-serif; }
+        #container { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0; background: transparent; }
+        #container canvas { background: transparent !important; display: block; }
+        #ui { position: absolute; top: 20px; left: 20px; color: white; pointer-events: none; z-index: 10; text-shadow: 0 2px 4px rgba(0,0,0,0.5); opacity: 0; transition: opacity 100ms ease-out; }
+        #ui.revealed { opacity: 1; }
+        .drop-zone { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 0 dashed rgba(255,255,255,0.2); margin: 20px; border-radius: 20px; background: transparent; transition: all 0.3s; z-index: 5; opacity: 0; }
+        .drop-zone.shown { opacity: 1; }
+        .drop-zone.hidden { opacity: 0; pointer-events: none; }
+        .drop-zone.active { border-color: #77aaff; }
+        button { pointer-events: auto; padding: 10px 20px; border-radius: 8px; border: none; background: #77aaff; color: white; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        #loading { position: absolute; bottom: 20px; right: 20px; color: #77aaff; display: none; font-family: monospace; font-weight: bold; z-index: 10; }
+        #debug { position: absolute; bottom: 20px; left: 20px; color: rgba(255,255,255,0.4); font-size: 12px; pointer-events: none; font-family: monospace; z-index: 10; opacity: 0; transition: opacity 100ms ease-out; }
+        #debug.revealed { opacity: 1; }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <div id="ui"><h1>AkariNet VRM v2</h1></div>
+    <div id="dropZone" class="drop-zone">
+        <p>Drop a .VRM file here</p><p>or</p>
+        <button onclick="document.getElementById('fileInput').click()">Select File</button>
+        <input type="file" id="fileInput" accept=".vrm" style="display: none">
+    </div>
+    <div id="loading">init</div>
+    <div id="debug">System Standby</div>
+    <!-- CDN pin of last known-good engine (pre-PLACEHOLDER). Local main.js restored separately. -->
+    <script type="module" src="https://cdn.jsdelivr.net/gh/76836/Akari@ab8834e82997/engine/AkariNet-VRM-v2-main.js"></script>
+    <script type="module">
+      // Force clear alpha 0 after CDN engine initializes (wallpaper must show through)
+      const _raf = requestAnimationFrame;
+      function tryPatch() {
+        try {
+          const canvas = document.querySelector('#container canvas');
+          if (!canvas) { _raf(tryPatch); return; }
+          const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+          if (gl) gl.clearColor(0, 0, 0, 0);
+        } catch (e) {}
+      }
+      _raf(tryPatch);
+      setTimeout(tryPatch, 500);
+      setTimeout(tryPatch, 2000);
+
+      // Minimal hibernate wake assist (CDN engine early-outs without polling v2emote):
+      // Parent / Audio Console set v2emote + akari:vrm-wake; we reload so teleport-in runs.
+      // Also clear hibernate on local taps.
+      let lastWakePulse = '';
+      function clearHibernateKey() {
+        try {
+          const cur = (localStorage.getItem('v2emote') || '').toLowerCase();
+          if (cur === 'hibernate') localStorage.setItem('v2emote', 'neutral');
+        } catch (e) {}
+      }
+      function tryWakeFromParent() {
+        try {
+          const key = (localStorage.getItem('v2emote') || '').toLowerCase().trim();
+          const pulse = localStorage.getItem('akari:vrm-wake') || '';
+          const dbg = document.getElementById('debug');
+          const frozen = dbg && /HIBERNATE/i.test(dbg.innerText || '');
+          const pulseNew = pulse && pulse !== lastWakePulse;
+          if (pulseNew) lastWakePulse = pulse;
+          if (frozen && ((key && key !== 'hibernate') || pulseNew)) {
+            clearHibernateKey();
+            location.reload();
+          }
+        } catch (e) {}
+      }
+      ['pointerdown', 'touchstart', 'mousedown'].forEach((evt) => {
+        window.addEventListener(evt, clearHibernateKey, { passive: true });
+      });
+      setInterval(tryWakeFromParent, 250);
+      try { window.addEventListener('storage', tryWakeFromParent); } catch (e) {}
+    </script>
+</body>
+</html>
