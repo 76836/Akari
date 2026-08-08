@@ -31,6 +31,7 @@ loadscreen("(5th revision) Loading Akari's VRM...");
     if (current !== lastValue) {
       lastValue = current;
       window.dispatchEvent(new CustomEvent('akari_emote_update', { detail: current }));
+      noteActivity('emote-change');
     }
   }, 200);
 
@@ -66,12 +67,34 @@ loadscreen("(5th revision) Loading Akari's VRM...");
     armHibernateTimer();
   }
 
-  ['pointerdown', 'keydown', 'touchstart', 'mousedown', 'mousemove', 'wheel'].forEach(function (evt) {
-    window.addEventListener(evt, function () { noteActivity(evt); }, { passive: true });
-  });
+  function bindActivity(target, useCapture) {
+    ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'keydown', 'wheel'].forEach(function (evt) {
+      try {
+        target.addEventListener(evt, function () { noteActivity(evt); }, { passive: true, capture: !!useCapture });
+      } catch (e) {}
+    });
+  }
+  bindActivity(document, true);
+  bindActivity(window, false);
+
   window.addEventListener('akari:user-input', function () { noteActivity('user-input'); });
+  window.addEventListener('user_input_received', function () { noteActivity('user_input_received'); });
+  window.addEventListener('assistant_response', function () { noteActivity('assistant_response'); });
   window.addEventListener('screensaver_hidden', function () { noteActivity('screensaver_hidden'); });
   window.addEventListener('screensaver_shown', function () { enterHibernate('screensaver'); });
+
+  // Same-origin iframe: attach after load so taps on the avatar wake her
+  function attachIframeActivity() {
+    try {
+      var ifr = document.querySelector('#avatar iframe, iframe.avatariframe');
+      if (!ifr || !ifr.contentWindow) return;
+      bindActivity(ifr.contentWindow, false);
+      try { if (ifr.contentDocument) bindActivity(ifr.contentDocument, true); } catch (e) {}
+    } catch (e) {}
+  }
+  setTimeout(attachIframeActivity, 500);
+  setTimeout(attachIframeActivity, 1500);
+  setTimeout(attachIframeActivity, 3000);
 
   setInterval(function () {
     try {
