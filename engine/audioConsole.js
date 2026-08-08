@@ -134,8 +134,8 @@
                 statusBar.classList.add('active', 'wake');
                 if (btn) {
                     btn.className = 'button-long mic-on';
-                    const pct = detail.score != null ? \`(\${(detail.score * 100).toFixed(0)}%)\` : '';
-                    btn.innerText = \`● Akari \${pct}\`.trim();
+                    const pct = detail.score != null ? `(${(detail.score * 100).toFixed(0)}%)` : '';
+                    btn.innerText = `● Akari ${pct}`.trim();
                 }
                 apStatus('Wake detected — listening for command', { busy: false });
                 wakeResetTimer = setTimeout(() => setVisualState('idle'), 6000);
@@ -191,7 +191,7 @@
         if (!config.xlCache || !config.xlCache.enabled) return;
         if (document.getElementById('ac41-mic-dot')) return;
         const dotStyle = document.createElement('style');
-        dotStyle.textContent = \`
+        dotStyle.textContent = `
             #ac41-mic-dot {
                 position: fixed; top: 12px; right: 12px; width: 12px; height: 12px;
                 border-radius: 50%; background: #00e676;
@@ -214,14 +214,14 @@
                 width: 100%; margin-top: 4px;
             }
             #ac41-buffer-menu input[type=range] { width: 100%; accent-color: #00e676; }
-        \`;
+        `;
         document.head.appendChild(dotStyle);
         const dot = document.createElement('div');
         dot.id = 'ac41-mic-dot';
         document.body.appendChild(dot);
         const menu = document.createElement('div');
         menu.id = 'ac41-buffer-menu';
-        menu.innerHTML = \`
+        menu.innerHTML = `
             <div style="color:#00e676;margin-bottom:8px;">Audio Buffer
               <button style="width:auto;float:right;background:transparent;color:#888;border:1px solid #444;" onclick="document.getElementById('ac41-buffer-menu').classList.remove('open')">✕</button>
             </div>
@@ -231,7 +231,7 @@
             <button id="ac41-send-btn">Transcribe & Send</button>
             <button id="ac41-save-btn">Download WAV</button>
             <div id="ac41-send-msg" style="font-size:11px;color:#ffcc66;min-height:14px;"></div>
-        \`;
+        `;
         document.body.appendChild(menu);
         dot.onclick = (e) => {
             e.stopPropagation();
@@ -290,9 +290,9 @@
         apDownloadStart('Loading Audio Console models…');
         const script = document.createElement('script');
         script.type = 'module';
-        script.textContent = \`
+        script.textContent = `
             import { AkarinetVoice } from 'https://76836.github.io/AkariNet-AudioConsole/audioConsole-4.1.1.js';
-            const config = \${JSON.stringify(config)};
+            const config = ${JSON.stringify(config)};
             const assistant = new AkarinetVoice(config);
             window.__ac41Voice = assistant;
             assistant.addEventListener('ready', () => window.dispatchEvent(new CustomEvent('audioConsoleReady')));
@@ -309,7 +309,7 @@
             } catch (err) {
                 window.dispatchEvent(new CustomEvent('audioConsoleError', { detail: err.message || String(err) }));
             }
-        \`;
+        `;
         document.head.appendChild(script);
     }
 
