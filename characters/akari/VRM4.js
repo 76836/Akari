@@ -83,6 +83,13 @@ loadscreen("(5th revision) Loading Akari's VRM...");
   window.addEventListener('screensaver_hidden', function () { noteActivity('screensaver_hidden'); });
   window.addEventListener('screensaver_shown', function () { enterHibernate('screensaver'); });
 
+  // Generic voice activity (main app + Audio Console style events)
+  ['voice_listening_started', 'voice_listening_stopped', 'speechstart', 'speechend',
+   'wakesound', 'result', 'processing', 'processingend', 'speechdiscarded'].forEach(function (evt) {
+    window.addEventListener(evt, function () { noteActivity(evt); });
+  });
+  document.addEventListener('transcriptionComplete', function () { noteActivity('transcriptionComplete'); });
+
   // Same-origin iframe: attach after load so taps on the avatar wake her
   function attachIframeActivity() {
     try {
