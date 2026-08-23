@@ -66,16 +66,28 @@
   }
 
   function ensureButton() {
-    if (document.getElementById('historyButton')) return;
-    const settings = document.getElementById('settingsButton');
-    if (!settings || !settings.parentNode) return;
-    const btn = document.createElement('button');
-    btn.id = 'historyButton';
-    btn.className = 'icemorphic toggle-btn';
-    btn.setAttribute('aria-label', 'Chat history');
-    btn.textContent = '☰';
-    settings.insertAdjacentElement('afterend', btn);
-    btn.addEventListener('click', () => toggle(true));
+    let btn = document.getElementById('historyButton');
+    if (!btn) {
+      const settings = document.getElementById('settingsButton');
+      if (!settings || !settings.parentNode) return false;
+      btn = document.createElement('button');
+      btn.id = 'historyButton';
+      btn.className = 'icemorphic toggle-btn';
+      btn.type = 'button';
+      btn.setAttribute('aria-label', 'Chat history');
+      btn.title = 'Chat history';
+      btn.textContent = '☰';
+      settings.insertAdjacentElement('afterend', btn);
+    }
+    if (!btn.dataset.akariHistBound) {
+      btn.dataset.akariHistBound = '1';
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggle(true);
+      });
+    }
+    return true;
   }
 
   function ensureSidebar() {
@@ -162,13 +174,16 @@
 
   function boot() {
     injectStyles();
-    ensureButton();
     ensureSidebar();
+    let tries = 0;
+    (function tryBtn() {
+      if (ensureButton() || tries++ > 40) return;
+      setTimeout(tryBtn, 100);
+    })();
     window.addEventListener('akari:chat-changed', () => {
       if (window.AkariChat) AkariChat.renderActive();
       refreshList();
     });
-    // expose for optional app.ui hooks
     window.AkariChatUI = { toggle, refreshList };
   }
 
@@ -177,4 +192,6 @@
   } else {
     boot();
   }
+  // also try after full load (SW / late modules)
+  window.addEventListener('load', () => { ensureButton(); ensureSidebar(); });
 })();
