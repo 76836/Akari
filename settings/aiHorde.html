@@ -39,10 +39,16 @@
         .setbutton { display: block; width: 100%; margin: 6px 0; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,200,200,0.25); background: rgba(0,0,0,0.35); color: #e2e8f0; font-family: system-ui, sans-serif; font-size: 0.85rem; cursor: pointer; text-align: left; }
         .setbutton:hover { border-color: var(--cyan-bright); background: rgba(0,200,200,0.08); }
         .setbutton.primary { background: linear-gradient(135deg, rgba(0,139,139,0.45), rgba(0,100,120,0.45)); border-color: var(--cyan-bright); text-align: center; font-weight: 600; }
-        .box { width: 100%; margin: 8px 0; padding: 12px; border-radius: 10px; border: 1px solid rgba(0,200,200,0.3); background: var(--input-bg); color: #fff; font-family: system-ui, sans-serif; font-size: 0.9rem; }
+        .setbutton.small { display: inline-block; width: auto; padding: 6px 10px; margin: 2px 4px 2px 0; font-size: 0.75rem; }
+        .box { width: 100%; margin: 8px 0; padding: 12px; border-radius: 10px; border: 1px solid rgba(0,200,200,0.3); background: var(--input-bg); color: #fff; font-family: system-ui, sans-serif; font-size: 0.9rem; box-sizing: border-box; }
         .version-tag { text-align: center; font-size: 0.65rem; color: var(--text-dim); margin: 20px; letter-spacing: 0.08em; }
         .scroll-controls { position: fixed; right: 10px; bottom: 20px; display: flex; flex-direction: column; gap: 6px; }
         .scroll-btn { width: 36px; height: 36px; border-radius: 50%; background: rgba(30,38,38,0.95); border: 1px solid rgba(0,200,200,0.3); color: var(--cyan-bright); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.9rem; }
+        .live-list { max-height: 280px; overflow-y: auto; font-family: system-ui, sans-serif; font-size: 0.78rem; }
+        .live-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 6px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .live-row .name { flex: 1 1 140px; color: #e2e8f0; word-break: break-all; }
+        .live-row .meta { color: var(--text-dim); font-size: 0.7rem; }
+        .chip { display: inline-block; padding: 2px 8px; border-radius: 999px; background: rgba(0,200,200,0.15); color: var(--cyan-bright); font-size: 0.7rem; margin: 2px; }
     </style>
 </head>
 <body>
@@ -51,32 +57,81 @@
             <div class="container">
                 <a class="back" href="./AI">← Intelligence</a>
                 <p class="title">AI Horde</p>
-                <p class="subtitle">Community-run text workers at aihorde.net. Anonymous key works slowly; register for better priority.</p>
+                <p class="subtitle">Community text workers · live models · priority &amp; keyword filters</p>
+
                 <details open>
                     <summary>Connection</summary>
                     <div class="content">
                         <div class="script-group">
                             <span class="group-label">API key</span>
-                            <p class="hint">Stored as aihorde_API_KEY. Default anonymous key is 0000000000 (lowest priority).</p>
-                            <input class="box" id="hordeKey" type="password" placeholder="Your Horde API key" autocomplete="off">
+                            <p class="hint">Register at aihorde.net for better priority. Anonymous key is 0000000000.</p>
+                            <input class="box" id="hordeKey" type="password" placeholder="Horde API key" autocomplete="off">
                             <button class="setbutton primary" onclick="saveKey()">Save Horde key</button>
                             <button class="setbutton" onclick="clearKey()" style="background:transparent;border:1px solid var(--danger);color:#f88">Use anonymous key</button>
                         </div>
                         <div class="script-group">
-                            <span class="group-label">Model</span>
-                            <p class="hint">Worker model name (must be available on the Horde). Examples below fill the field.</p>
-                            <button class="setbutton" onclick="setModel('koboldcpp/MythoMax-L2-13B')">MythoMax-L2-13B</button>
-                            <button class="setbutton" onclick="setModel('koboldcpp/Llama-3.1-8B-Instruct')">Llama-3.1-8B-Instruct</button>
-                            <button class="setbutton" onclick="setModel('aphrodite/HuggingFaceH4/zephyr-7b-beta')">Zephyr-7B</button>
-                            <input class="box" id="hordeModel" type="text" placeholder="model name">
-                            <button class="setbutton primary" onclick="saveModel()">Save model</button>
+                            <span class="group-label">Options</span>
+                            <button class="setbutton" id="btnTrusted" onclick="toggleFlag('aihorde_trusted_only','btnTrusted','Trusted workers only')">Trusted workers only</button>
+                            <button class="setbutton" id="btnSlow" onclick="toggleFlag('aihorde_slow_workers','btnSlow','Allow slow workers', true)">Allow slow workers</button>
+                            <button class="setbutton" id="btnAuto" onclick="toggleFlag('aihorde_auto_model','btnAuto','Auto-pick fastest matching model', true)">Auto-pick fastest matching model</button>
                         </div>
+                    </div>
+                </details>
+
+                <details open>
+                    <summary>Model keywords (auto-pick)</summary>
+                    <div class="content">
                         <div class="script-group">
-                            <span class="group-label">Use this provider</span>
+                            <span class="group-label">Require keywords</span>
+                            <p class="hint">Comma-separated. Model name must include at least one (case-insensitive). Example: llama, gemma, instruct</p>
+                            <input class="box" id="requireKw" type="text" placeholder="llama, instruct">
+                            <span class="group-label">Blacklist keywords</span>
+                            <p class="hint">Exclude models whose names contain these. Example: 70B, uncensored</p>
+                            <input class="box" id="denyKw" type="text" placeholder="70B, NSFW">
+                            <button class="setbutton primary" onclick="saveKeywords()">Save keyword filters</button>
+                            <span class="group-label">Manual model lock (optional)</span>
+                            <p class="hint">If auto-pick is off, this exact model is used. With auto on, it is preferred if still available.</p>
+                            <input class="box" id="hordeModel" type="text" placeholder="koboldcpp/Model-Name">
+                            <button class="setbutton" onclick="saveModel()">Save model name</button>
+                        </div>
+                    </div>
+                </details>
+
+                <details open>
+                    <summary>Live text models</summary>
+                    <div class="content">
+                        <div class="script-group">
+                            <p class="hint">From /api/v2/status/models?type=text · sorted by performance. Tap Use to lock model.</p>
+                            <input class="box" id="modelSearch" type="search" placeholder="Filter models…" oninput="renderModels()">
+                            <button class="setbutton primary" onclick="loadModels()">Refresh models</button>
+                            <div class="live-list" id="modelList">Loading…</div>
+                        </div>
+                    </div>
+                </details>
+
+                <details open>
+                    <summary>Live workers · priority / block</summary>
+                    <div class="content">
+                        <div class="script-group">
+                            <p class="hint">From /api/v2/workers?type=text. Priority workers preferred (up to 5). Blocked used as blacklist when no priority list.</p>
+                            <input class="box" id="workerSearch" type="search" placeholder="Filter workers…" oninput="renderWorkers()">
+                            <button class="setbutton primary" onclick="loadWorkers()">Refresh workers</button>
+                            <div id="priorityChips"></div>
+                            <div id="blockChips"></div>
+                            <div class="live-list" id="workerList">Loading…</div>
+                        </div>
+                    </div>
+                </details>
+
+                <details>
+                    <summary>Use provider</summary>
+                    <div class="content">
+                        <div class="script-group">
                             <button class="setbutton primary" onclick="useProvider()">Use AI Horde as AI brain</button>
                         </div>
                     </div>
                 </details>
+
                 <div class="version-tag">AI HORDE · CONFIG</div>
             </div>
         </div>
@@ -86,35 +141,183 @@
         <div class="scroll-btn" onclick="document.getElementById('mainScroll').scrollBy({top:200,behavior:'smooth'})">▼</div>
     </div>
     <script>
-        document.getElementById('hordeModel').value = localStorage.getItem('aihorde_model') || 'koboldcpp/MythoMax-L2-13B';
-        function flash(btn) {
-            if (!btn) return;
-            const t = btn.innerText;
-            btn.innerText = '✓ Saved';
-            setTimeout(() => { btn.innerText = t; }, 1600);
+    const HORDE = 'https://aihorde.net/api/v2';
+    const CLIENT = 'AkariNet:2.6:github.com/76836/Akari';
+    let allModels = [];
+    let allWorkers = [];
+
+    function flash(btn) {
+        if (!btn) return;
+        const t = btn.innerText;
+        btn.innerText = '✓ Saved';
+        setTimeout(() => { btn.innerText = t; }, 1600);
+    }
+    function parseList(key) {
+        try {
+            const j = JSON.parse(localStorage.getItem(key) || '[]');
+            if (Array.isArray(j)) return j.map(String);
+        } catch (_) {}
+        return String(localStorage.getItem(key) || '').split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+    }
+    function saveList(key, arr) {
+        localStorage.setItem(key, JSON.stringify([...new Set(arr.map(String).filter(Boolean))]));
+    }
+    function saveKey() {
+        const k = document.getElementById('hordeKey').value.trim();
+        if (k) localStorage.setItem('aihorde_API_KEY', k);
+        document.getElementById('hordeKey').value = '';
+        flash(event.target);
+    }
+    function clearKey() {
+        localStorage.removeItem('aihorde_API_KEY');
+        alert('Using anonymous Horde key.');
+    }
+    function saveKeywords() {
+        const req = document.getElementById('requireKw').value.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+        const den = document.getElementById('denyKw').value.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+        saveList('aihorde_require_keywords', req);
+        saveList('aihorde_blacklist_keywords', den);
+        flash(event.target);
+    }
+    function saveModel() {
+        localStorage.setItem('aihorde_model', document.getElementById('hordeModel').value.trim());
+        flash(event.target);
+    }
+    function toggleFlag(key, btnId, label, defaultOn) {
+        const cur = localStorage.getItem(key);
+        let next;
+        if (defaultOn) next = cur === '0' ? '1' : '0';
+        else next = cur === '1' ? '0' : '1';
+        localStorage.setItem(key, next);
+        syncToggles();
+    }
+    function syncToggles() {
+        const auto = localStorage.getItem('aihorde_auto_model') !== '0';
+        const trusted = localStorage.getItem('aihorde_trusted_only') === '1';
+        const slow = localStorage.getItem('aihorde_slow_workers') !== '0';
+        const ba = document.getElementById('btnAuto');
+        const bt = document.getElementById('btnTrusted');
+        const bs = document.getElementById('btnSlow');
+        if (ba) ba.textContent = (auto ? '✓ ' : '') + 'Auto-pick fastest matching model';
+        if (bt) bt.textContent = (trusted ? '✓ ' : '') + 'Trusted workers only';
+        if (bs) bs.textContent = (slow ? '✓ ' : '') + 'Allow slow workers';
+    }
+    function useProvider() {
+        const m = document.getElementById('hordeModel').value.trim();
+        if (m) localStorage.setItem('aihorde_model', m);
+        localStorage.setItem('selectedAIScript', './characters/akari/aiHorde.js');
+        flash(event.target);
+        setTimeout(() => { location.href = './AI'; }, 800);
+    }
+    function lockModel(name) {
+        document.getElementById('hordeModel').value = name;
+        localStorage.setItem('aihorde_model', name);
+        alert('Locked model: ' + name);
+    }
+    async function loadModels() {
+        const el = document.getElementById('modelList');
+        el.textContent = 'Fetching…';
+        try {
+            const r = await fetch(HORDE + '/status/models?type=text', { headers: { 'Client-Agent': CLIENT } });
+            allModels = await r.json();
+            if (!Array.isArray(allModels)) allModels = [];
+            allModels.sort((a,b) => (Number(b.performance)||0) - (Number(a.performance)||0));
+            renderModels();
+        } catch (e) {
+            el.textContent = 'Failed: ' + e.message;
         }
-        function saveKey() {
-            const k = document.getElementById('hordeKey').value.trim();
-            if (k) localStorage.setItem('aihorde_API_KEY', k);
-            document.getElementById('hordeKey').value = '';
-            flash(event.target);
+    }
+    function renderModels() {
+        const q = (document.getElementById('modelSearch').value || '').toLowerCase();
+        const el = document.getElementById('modelList');
+        const rows = allModels.filter(m => !q || (m.name||'').toLowerCase().includes(q));
+        if (!rows.length) { el.textContent = 'No models'; return; }
+        el.innerHTML = rows.slice(0, 80).map(m => {
+            const n = String(m.name||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/'/g,'&#39;');
+            return '<div class="live-row"><span class="name">' + n + '</span><span class="meta">perf ' + (m.performance||'?') + ' · workers ' + (m.count||0) + ' · eta ' + (m.eta||0) + 's</span><button class="setbutton small" data-model="' + n + '">Use</button></div>';
+        }).join('');
+        el.querySelectorAll('[data-model]').forEach(btn => {
+            btn.addEventListener('click', () => lockModel(btn.getAttribute('data-model').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&amp;/g,'&')));
+        });
+    }
+    async function loadWorkers() {
+        const el = document.getElementById('workerList');
+        el.textContent = 'Fetching…';
+        try {
+            const r = await fetch(HORDE + '/workers?type=text', { headers: { 'Client-Agent': CLIENT } });
+            allWorkers = await r.json();
+            if (!Array.isArray(allWorkers)) allWorkers = [];
+            allWorkers = allWorkers.filter(w => w.online !== false);
+            renderWorkers();
+            renderChips();
+        } catch (e) {
+            el.textContent = 'Failed: ' + e.message;
         }
-        function clearKey() {
-            localStorage.removeItem('aihorde_API_KEY');
-            alert('Using anonymous Horde key.');
-        }
-        function setModel(m) { document.getElementById('hordeModel').value = m; }
-        function saveModel() {
-            localStorage.setItem('aihorde_model', document.getElementById('hordeModel').value.trim());
-            flash(event.target);
-        }
-        function useProvider() {
-            const m = document.getElementById('hordeModel').value.trim();
-            if (m) localStorage.setItem('aihorde_model', m);
-            localStorage.setItem('selectedAIScript', './characters/akari/aiHorde.js');
-            flash(event.target);
-            setTimeout(() => { location.href = './AI'; }, 800);
-        }
+    }
+    function renderChips() {
+        const pri = parseList('aihorde_priority_workers');
+        const blk = parseList('aihorde_blocked_workers');
+        const nameOf = id => {
+            const w = allWorkers.find(x => x.id === id);
+            return w ? w.name : id.slice(0, 8);
+        };
+        document.getElementById('priorityChips').innerHTML = pri.length
+            ? '<span class="group-label">Priority</span>' + pri.map(id => '<span class="chip">' + nameOf(id) + ' <button class="setbutton small" data-rm-pri="' + id + '">×</button></span>').join('')
+            : '';
+        document.getElementById('blockChips').innerHTML = blk.length
+            ? '<span class="group-label">Blocked</span>' + blk.map(id => '<span class="chip">' + nameOf(id) + ' <button class="setbutton small" data-rm-blk="' + id + '">×</button></span>').join('')
+            : '';
+        document.querySelectorAll('[data-rm-pri]').forEach(b => b.addEventListener('click', () => removePri(b.getAttribute('data-rm-pri'))));
+        document.querySelectorAll('[data-rm-blk]').forEach(b => b.addEventListener('click', () => removeBlk(b.getAttribute('data-rm-blk'))));
+    }
+    function addPri(id) {
+        const a = parseList('aihorde_priority_workers');
+        if (!a.includes(id) && a.length < 5) a.push(id);
+        saveList('aihorde_priority_workers', a);
+        renderChips();
+        renderWorkers();
+    }
+    function removePri(id) {
+        saveList('aihorde_priority_workers', parseList('aihorde_priority_workers').filter(x => x !== id));
+        renderChips();
+        renderWorkers();
+    }
+    function addBlk(id) {
+        const a = parseList('aihorde_blocked_workers');
+        if (!a.includes(id)) a.push(id);
+        saveList('aihorde_blocked_workers', a);
+        saveList('aihorde_priority_workers', parseList('aihorde_priority_workers').filter(x => x !== id));
+        renderChips();
+        renderWorkers();
+    }
+    function removeBlk(id) {
+        saveList('aihorde_blocked_workers', parseList('aihorde_blocked_workers').filter(x => x !== id));
+        renderChips();
+        renderWorkers();
+    }
+    function renderWorkers() {
+        const q = (document.getElementById('workerSearch').value || '').toLowerCase();
+        const el = document.getElementById('workerList');
+        const rows = allWorkers.filter(w => {
+            const hay = ((w.name||'') + ' ' + (w.models||[]).join(' ') + ' ' + (w.id||'')).toLowerCase();
+            return !q || hay.includes(q);
+        });
+        if (!rows.length) { el.textContent = 'No workers'; return; }
+        el.innerHTML = rows.slice(0, 60).map(w => {
+            const models = (w.models || []).slice(0, 3).join(', ');
+            const name = (w.name||'worker').replace(/</g,'');
+            return '<div class="live-row"><span class="name">' + name + '</span><span class="meta">' + (w.performance||'') + ' · ' + models + '</span><button class="setbutton small" data-pri="' + w.id + '">Priority</button><button class="setbutton small" data-blk="' + w.id + '">Block</button></div>';
+        }).join('');
+        el.querySelectorAll('[data-pri]').forEach(b => b.addEventListener('click', () => addPri(b.getAttribute('data-pri'))));
+        el.querySelectorAll('[data-blk]').forEach(b => b.addEventListener('click', () => addBlk(b.getAttribute('data-blk'))));
+    }
+
+    document.getElementById('hordeModel').value = localStorage.getItem('aihorde_model') || '';
+    document.getElementById('requireKw').value = parseList('aihorde_require_keywords').join(', ');
+    document.getElementById('denyKw').value = parseList('aihorde_blacklist_keywords').join(', ');
+    syncToggles();
+    loadModels();
+    loadWorkers();
     </script>
 </body>
 </html>
