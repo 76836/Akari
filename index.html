@@ -178,3 +178,639 @@
         }
         .chat-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-left: auto; padding-right: 4px; }
         .chat-title { font-weight: 700; font-size: 0.75rem; color: var(--text); padding-left: 10px; margin-right: auto; }
+        #settingsButton, #historyButton, #chatToggle {
+            background: rgba(15, 23, 42, 0.35); border: 1px solid var(--panel-border); color: var(--text);
+            width: 38px; min-width: 38px; height: 18px; padding: 0 8px; border-radius: 8px; cursor: pointer;
+            display: flex; justify-content: center; align-items: center; font-size: 16px; line-height: 1;
+            overflow: hidden; white-space: nowrap;
+        }
+        #chat-history-sidebar {
+            position: fixed; top: 0; left: 0; width: min(86vw, 320px); height: 100%;
+            z-index: 120; transform: translateX(-105%); transition: transform 0.28s ease;
+            background: var(--panel-strong); border-right: 1px solid var(--panel-border);
+            backdrop-filter: blur(12px); display: flex; flex-direction: column;
+            box-shadow: 8px 0 32px var(--shadow);
+        }
+        #chat-history-sidebar.open { transform: translateX(0); }
+        #chat-history-sidebar .hist-header {
+            display: flex; align-items: center; gap: 8px; padding: 12px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+        #chat-history-sidebar .hist-header h3 { margin: 0; font-size: 0.85rem; flex: 1; color: var(--text); }
+        #chat-history-search {
+            margin: 8px 12px; padding: 10px 12px; border-radius: 12px;
+            border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text);
+            outline: none; font-size: 0.9rem;
+        }
+        #chat-history-list {
+            flex: 1; overflow-y: auto; padding: 4px 8px 16px; display: flex; flex-direction: column; gap: 4px;
+        }
+        .hist-item {
+            text-align: left; padding: 10px 12px; border-radius: 12px; cursor: pointer;
+            border: 1px solid transparent; background: transparent; color: var(--text);
+            font-size: 0.85rem; line-height: 1.3; font-family: inherit;
+        }
+        .hist-item:hover { background: rgba(125, 211, 252, 0.08); }
+        .hist-item.active { border-color: var(--accent); background: rgba(125, 211, 252, 0.12); }
+        .hist-item .hist-meta { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
+        .hist-item .hist-del {
+            float: right; opacity: 0.5; border: none; background: transparent; color: var(--danger);
+            cursor: pointer; font-size: 0.85rem; padding: 0 4px;
+        }
+        #hist-new-btn {
+            margin: 0 12px 10px; padding: 8px; border-radius: 12px; cursor: pointer;
+            border: 1px solid var(--panel-border); background: rgba(125, 211, 252, 0.1);
+            color: var(--accent); font-weight: 600; font-size: 0.8rem; font-family: inherit;
+        }
+        #hist-backdrop {
+            position: fixed; inset: 0; background: rgba(2,6,23,0.45); z-index: 110;
+            opacity: 0; pointer-events: none; transition: opacity 0.25s;
+        }
+        #hist-backdrop.show { opacity: 1; pointer-events: auto; }
+
+        #messages-container { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; transition: all 0.3s ease; }
+        .chat-box.collapsed #messages-container > div { display: none; }
+        .chat-box.collapsed #messages-container > div:nth-last-child(-n+2) {
+            display: block; opacity: 0.8; transform: scale(0.95); pointer-events: none;
+        }
+        .responsetxt, .command {
+            padding: 10px 16px; font-size: 0.95rem; line-height: 1.4;
+            box-shadow: 0 4px 12px rgba(2, 6, 23, 0.18); border-radius: 15px; border: 1px solid var(--panel-border);
+        }
+        .responsetxt {
+            background: linear-gradient(135deg, rgba(31, 41, 55, 0.94), rgba(15, 23, 42, 0.92));
+            border-bottom-left-radius: 4px; color: var(--text);
+        }
+        .command {
+            background: linear-gradient(135deg, rgba(13, 70, 80, 0.82), rgba(10, 25, 35, 0.82));
+            border-bottom-right-radius: 4px; color: var(--success);
+        }
+        .controls {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: min(92vw, 760px); display: flex; justify-content: center; align-items: center;
+            gap: 8px; padding: 0 8px; box-sizing: border-box; z-index: 50;
+        }
+        .controls .ice-button {
+            flex: 0 0 auto; min-width: 44px; width: auto; padding: 0 12px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .controls .ice-button.side-action {
+            background: var(--input-bg) !important; border: none !important;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04) !important; color: var(--text) !important;
+        }
+        .controls #box { flex: 1 1 auto; width: auto; max-width: none; min-width: 120px; }
+        .box {
+            background: var(--input-bg); border: 2px solid var(--input-border); color: var(--text);
+            padding: 12px; border-radius: 20px; outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s ease; pointer-events: auto;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+        }
+        .box:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.18); }
+        .button-long, .toggle-btn {
+            color: white; padding: 10px 20px; border-radius: 20px; cursor: pointer;
+            font-family: inherit; font-size: 14px; pointer-events: auto;
+        }
+        .mic-on { background: #00ff00 !important; color: black !important; }
+        .toggle-btn { background: rgba(15, 23, 42, 0.45); border: 1px solid var(--panel-border); color: var(--text); }
+        .windowstyle {
+            border: 4px solid var(--panel-border); background: rgba(2, 6, 23, 0.9);
+            width: 86vw; height: 80vh; position: fixed; top: 7vh; left: 7vw; z-index: 100;
+            border-radius: 10px 10px 0px 0px;
+        }
+        .close-btn {
+            position: fixed; top: 87vh; left: 7vw; background: rgba(127, 29, 29, 0.8); color: var(--text);
+            font-weight: bolder; border: 2px solid var(--danger); padding: 10px;
+            border-radius: 0px 0px 10px 10px; width: calc(86vw + 2px); z-index: 101;
+        }
+        #legacy-anchor { display: none; position: absolute; }
+        #status-area { position: fixed; bottom: 80px; left: 20px; color: var(--muted); z-index: 51; }
+    </style>
+</head>
+<body>
+    <div id="bkg-container"></div>
+    <div id="avatar"></div>
+    <div id="overlay">
+        <div class="console" id="boot-log" style="font-size: 1rem; color: #fff;"></div>
+        <img src="./images/logo512.png" alt="Logo" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.6);">
+        <img src="./images/loading.gif" alt="Loading" style="position:fixed; top:65%; left:50%; transform:translate(-50%, -50%) scale(0.2);">
+    </div>
+    <div id="legacy-anchor"><div id="messages"></div></div>
+    <div id="notificationArea" style="position: fixed; top: 0; right: 0; z-index: 200;"></div>
+    <div id="screensaver-container" aria-hidden="true"></div>
+    <div id="chat-box" class="icemorphic chat-box collapsed" style="border: none;" aria-live="polite">
+        <div class="chat-header">
+            <button id="settingsButton" class="icemorphic toggle-btn" onclick="app.ui.openWindow('./settings')" aria-label="Open settings">⚙</button>
+            <button id="historyButton" class="icemorphic toggle-btn" type="button" aria-label="Chat history" title="Chat history">☰</button>
+            <div class="chat-title">loading...</div>
+            <div class="chat-actions">
+                <button id="chatToggle" class="icemorphic toggle-btn" aria-label="Toggle Chat">+</button>
+            </div>
+        </div>
+        <div id="messages-container" role="log"></div>
+    </div>
+
+    <div id="hist-backdrop" aria-hidden="true"></div>
+    <aside id="chat-history-sidebar" aria-label="Chat history">
+        <div class="hist-header">
+            <h3>Chats</h3>
+            <button id="hist-close" class="icemorphic toggle-btn" type="button" aria-label="Close history">×</button>
+        </div>
+        <input type="search" id="chat-history-search" placeholder="Search chats..." autocomplete="off">
+        <button type="button" id="hist-new-btn">+ New chat</button>
+        <div id="chat-history-list" role="list"></div>
+    </aside>
+    <div id="status-area"></div>
+    <div id="window-layer"></div>
+    <div class="controls">
+        <input type="text" id="box" class="icemorphic icemorphic-medium ice-input box" style="color: var(--text); background: var(--input-bg);" placeholder="What's up?" onkeydown="if(event.keyCode==13) app.core.handleInput()" oninput="app.core.syncActionButton()">
+        <button class="icemorphic-medium ice-button side-action" id="micbutton" onclick="app.core.onActionButton()" style="font-weight: bolder; min-width: 72px;">voice</button>
+    </div>
+    <script>
+    (function () {
+        function injectSVGFilter() {
+            if (document.getElementById('ice-refraction')) return;
+            if (!document.body) { setTimeout(injectSVGFilter, 10); return; }
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('style', 'position: absolute; width: 0; height: 0; pointer-events: none;');
+            svg.innerHTML = '<filter id="ice-refraction"><feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="3" result="noise" /><feDisplacementMap in="SourceGraphic" in2="noise" scale="75" xChannelSelector="R" yChannelSelector="G" /></filter>';
+            document.body.appendChild(svg);
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', injectSVGFilter);
+        else setTimeout(injectSVGFilter, 0);
+        window.Icemorphic = {
+            version: '1.0.0',
+            setDistortion: function (scale) {
+                const filter = document.querySelector('#ice-refraction feDisplacementMap');
+                if (filter) filter.setAttribute('scale', scale);
+            },
+            setBlur: function (blur) { document.documentElement.style.setProperty('--ice-blur', blur + 'px'); },
+            setTint: function (rgba) { document.documentElement.style.setProperty('--ice-tint', rgba); },
+            reinjectFilter: function () {
+                const existing = document.getElementById('ice-refraction');
+                if (existing && existing.parentElement) existing.parentElement.remove();
+                injectSVGFilter();
+            }
+        };
+    })();
+    </script>
+    <script>
+    (function () {
+        var titleElement = document.querySelector('.chat-title');
+        if (titleElement) {
+            var today = new Date();
+            var day = today.getDate();
+            var month = today.toLocaleString('default', { month: 'long' });
+            var year = today.getFullYear();
+            var suffix = (day % 10 === 1 && day !== 11) ? 'st' : (day % 10 === 2 && day !== 12) ? 'nd' : (day % 10 === 3 && day !== 13) ? 'rd' : 'th';
+            titleElement.textContent = month + ' ' + day + suffix + ', ' + year;
+        }
+    })();
+    </script>
+    <script src="./engine/chatHistory.js"></script>
+
+    <script>
+    (function () {
+      function refreshList(q) {
+        var list = document.getElementById('chat-history-list');
+        if (!list || !window.AkariChat) return;
+        var query = q != null ? q : (document.getElementById('chat-history-search') || {}).value || '';
+        var chats = AkariChat.search(query);
+        var activeId = AkariChat.getActiveId();
+        list.innerHTML = '';
+        if (!chats.length) {
+          list.innerHTML = '<div class="hist-item" style="opacity:0.6">No chats found</div>';
+          return;
+        }
+        chats.forEach(function (c) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'hist-item' + (c.id === activeId ? ' active' : '');
+          var when = c.updated ? new Date(c.updated).toLocaleString() : '';
+          var title = (c.title || 'Chat').replace(/</g, '<');
+          btn.innerHTML = '<span class="hist-del" title="Delete">×</span><div>' + title + '</div><div class="hist-meta">' + when + (c.provider ? ' · ' + c.provider : '') + '</div>';
+          btn.addEventListener('click', function (e) {
+            if (e.target.classList.contains('hist-del')) {
+              e.stopPropagation();
+              if (confirm('Delete this chat?') && AkariChat.delete(c.id)) {
+                refreshList();
+                AkariChat.renderActive();
+              }
+              return;
+            }
+            AkariChat.switchTo(c.id);
+            AkariChat.renderActive();
+            refreshList();
+            toggleHist(false);
+          });
+          list.appendChild(btn);
+        });
+      }
+      function toggleHist(force) {
+        var side = document.getElementById('chat-history-sidebar');
+        var back = document.getElementById('hist-backdrop');
+        if (!side) return;
+        var open = force === true || (force !== false && !side.classList.contains('open'));
+        side.classList.toggle('open', open);
+        if (back) back.classList.toggle('show', open);
+        if (open) refreshList();
+      }
+      function bind() {
+        var hb = document.getElementById('historyButton');
+        var close = document.getElementById('hist-close');
+        var back = document.getElementById('hist-backdrop');
+        var search = document.getElementById('chat-history-search');
+        var neu = document.getElementById('hist-new-btn');
+        if (hb) hb.addEventListener('click', function () { toggleHist(true); });
+        if (close) close.addEventListener('click', function () { toggleHist(false); });
+        if (back) back.addEventListener('click', function () { toggleHist(false); });
+        if (search) search.addEventListener('input', function (e) { refreshList(e.target.value); });
+        if (neu) neu.addEventListener('click', function () {
+          if (!window.AkariChat) return;
+          AkariChat.create('New chat');
+          AkariChat.renderActive();
+          refreshList();
+        });
+        window.addEventListener('akari:chat-changed', function () {
+          if (window.AkariChat) AkariChat.renderActive();
+          refreshList();
+        });
+        window.AkariChatUI = { toggle: toggleHist, refreshList: refreshList };
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
+      else bind();
+    })();
+    </script>
+
+    <script src="./engine/autopilot/bridge.js"></script>
+    <script src="https://76836.github.io/AkariNet-Automata/ATPKLoader-1.1.0.js"></script>
+    <script>
+(function() {
+    'use strict';
+    const _eventHandlers = new Map();
+    window.on = function(eventName, handler) {
+        const handlerId = Math.random().toString(36).substr(2, 9);
+        const wrapper = (e) => handler(e.detail);
+        if (!_eventHandlers.has(eventName)) _eventHandlers.set(eventName, new Map());
+        _eventHandlers.get(eventName).set(handlerId, wrapper);
+        window.addEventListener(eventName, wrapper);
+        return handlerId;
+    };
+    window.emit = function(eventName, data) {
+        window.dispatchEvent(new CustomEvent(eventName, { detail: data }));
+    };
+
+    async function initAkariAutomata() {
+        if (typeof AutomatonLoader === 'undefined') return;
+        const loader = new AutomatonLoader();
+        window.automatonLoader = loader;
+        const defaultUrl = 'https://76836.github.io/AkariNet-Automata/demo.atpk';
+        let urls = [], blacklist = [];
+        try { urls = JSON.parse(localStorage.getItem('akari:automata_urls') || '[]'); if (!Array.isArray(urls)) urls = []; } catch { urls = []; }
+        try { blacklist = JSON.parse(localStorage.getItem('akari:automata_blacklist') || '[]'); if (!Array.isArray(blacklist)) blacklist = []; } catch { blacklist = []; }
+        if (urls.length === 0) { urls = [defaultUrl]; localStorage.setItem('akari:automata_urls', JSON.stringify(urls)); }
+        loader.setAutomataUrls(urls);
+        loader.setBlacklist(blacklist);
+        if (window.AkariAutopilot) AkariAutopilot.beginDownload('Loading Automata…');
+        await loader.loadAll();
+        if (window.AkariAutopilot) AkariAutopilot.endDownload('Automata ready');
+    }
+    if (document.readyState === 'complete') initAkariAutomata();
+    else window.addEventListener('load', initAkariAutomata);
+})();
+
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
+}
+    </script>
+    <script>
+        window.serverStatus = "connected";
+        window.loadscreen = (msg) => app.ui.log(msg);
+        window.say = (text) => app.core.say(text);
+        window.bubble = (text) => app.core.appendBubble(text, 'responsetxt');
+        window.bubble_incoming = (text) => app.core.appendBubble(text, 'command');
+        window.emote = (text) => localStorage.setItem("emote", text);
+        window.showNotification = (t, m, o) => app.notify(t, m, o);
+        window.newwindow = (url) => app.ui.openWindow(url);
+
+        window.goakari = () => {
+            window.dispatchEvent(new CustomEvent('akari:user-input', { detail: { source: 'wake-word' } }));
+            app.core.toggleVoice();
+        };
+
+        window.speak = (text) => {
+            if (typeof window.speakt5 === 'function') window.speakt5(text);
+            else if ('speechSynthesis' in window) window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+        };
+
+        const app = window.app = {
+            isSilentMode: true,
+            autoMinTimer: null,
+            screensaverTimer: null,
+            screensaverActive: false,
+            config: {
+                modules: {
+                    voice: localStorage.getItem('selectedVoiceScript'),
+                    avatar: localStorage.getItem('selectedAvatarScript'),
+                    ai: localStorage.getItem('selectedAIScript') || './characters/akari/pollinations.js',
+                    reflex: localStorage.getItem('selectedReflexScript') || './characters/akari/response.js',
+                    whisper: localStorage.getItem('selectedWhisperScript') || './engine/web-speech-recognition.js',
+                    wake: localStorage.getItem('selectedWakeScript') || './characters/akari/wake.js',
+                    aim: localStorage.getItem('selectedAIMScript') || 'off',
+                    bg: localStorage.getItem('selectedBKGURL') || 'https://76836.github.io/squares'
+                }
+            },
+
+            notify: (title, message, options = {}) => {
+                const { duration = 5000, borderColors, borderColor, image } = options;
+                const container = document.getElementById('notificationArea');
+                const note = document.createElement('div');
+                note.className = 'notification-container';
+                let colors = borderColors || (borderColor ? [borderColor, borderColor] : null);
+                if (colors) {
+                    note.classList.add('animated-border');
+                    note.style.setProperty('--border-colors', colors.join(', '));
+                    note.style.setProperty('--glow-color', (colors[0].match(/\d+/g) || ['255','255','255']).join(','));
+                }
+                note.innerHTML = `${image ? `<img src="${image}" class="notification-image">` : ''}
+                    <div class="notification-content"><div class="notification-title">${title}</div><div class="notification-body">${message}</div></div>
+                    <button class="notification-close" style="position:absolute;top:12px;right:12px;width:20px;height:20px;border:none;background:none;cursor:pointer;color:white;">✕</button>`;
+                container.prepend(note);
+                requestAnimationFrame(() => note.classList.add('show'));
+                const close = () => { note.classList.remove('show'); setTimeout(() => note.remove(), 400); };
+                note.querySelector('.notification-close').onclick = close;
+                if (duration) setTimeout(close, duration);
+            },
+
+            ui: {
+                log: (msg) => { const log = document.getElementById('boot-log'); if (log) log.innerHTML += `${msg}<br>`; },
+                resetMic: () => {
+                    if (window.whisperTranscriber?.stop) whisperTranscriber.stop();
+                    app.core.syncActionButton(true);
+                },
+                openWindow: (url) => {
+                    document.getElementById('window-layer').innerHTML =
+                        `<iframe src="${url}" class="icemorphic icemorphic-dark windowstyle"></iframe><button class="icemorphic icemorphic-dark close-btn" onclick="app.ui.closeWindow()">Close Window</button>`;
+                },
+                closeWindow: () => document.getElementById('window-layer').innerHTML = '',
+                setTyping: (name) => { document.getElementById('status-area').innerText = name ? `${name} is thinking...` : ''; },
+                toggleChat: (forceState) => {
+                    const box = document.getElementById('chat-box');
+                    const btn = document.getElementById('chatToggle');
+                    if (!box || !btn) return;
+                    const isClosed = box.classList.contains('collapsed');
+                    const shouldClose = forceState === 'min' || (!isClosed && forceState !== 'open');
+                    if (shouldClose) {
+                        box.classList.add('collapsed'); btn.innerText = '+'; clearTimeout(app.autoMinTimer);
+                    } else {
+                        box.classList.remove('collapsed'); btn.innerText = '-'; app.ui.resetAutoMin();
+                    }
+                    const container = document.getElementById('messages-container');
+                    if (container) container.scrollTop = container.scrollHeight;
+                },
+                resetAutoMin: () => {
+                    clearTimeout(app.autoMinTimer);
+                    app.autoMinTimer = setTimeout(() => app.ui.toggleChat('min'), 60000);
+                }
+            },
+
+            core: {
+                init: async () => {
+                    if (window.AkariAutopilot) AkariAutopilot.attach(app);
+                    app.ui.log("Akari v2.6 initializing...");
+                    app.core.loadBackground();
+                    app.core.initScreensaver();
+
+                    await app.core.loadModule('avatar', app.config.modules.avatar, 'Avatar');
+                    await app.core.loadModule('ai', app.config.modules.ai, 'AI Engine');
+                    await app.core.loadModule('reflex', app.config.modules.reflex, 'Reflex Engine');
+                    await app.core.loadModule('voice', app.config.modules.voice, 'Speech Synth');
+                    await app.core.loadModule('wake', app.config.modules.wake, 'Wake Word');
+                    await app.core.loadModule('whisper', app.config.modules.whisper, 'Speech Recognition');
+                    await app.core.loadModule('aim', app.config.modules.aim, 'AIM Hand Tracking');
+
+                    setTimeout(() => {
+                        const overlay = document.getElementById('overlay');
+                        if (overlay) overlay.classList.add('fade-out');
+                        const greet = app.core.getGreeting();
+                        app.core.appendBubble(greet, 'responsetxt');
+                        app.notify('Akari', greet);
+                        window.emit('akari_ready', { timestamp: Date.now() });
+                    }, 1000);
+                },
+
+                loadBackground: () => {
+                    const url = app.config.modules.bg;
+                    const el = document.getElementById('bkg-container');
+                    if (!el) return;
+                    el.innerHTML = '';
+                    el.style.backgroundImage = '';
+                    el.style.backgroundSize = '';
+                    el.style.backgroundPosition = '';
+                    el.style.backgroundRepeat = '';
+                    if (!url) return;
+                    if (/\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url)) {
+                        el.style.backgroundImage = 'url("' + url + '")';
+                        el.style.backgroundSize = 'cover';
+                        el.style.backgroundPosition = 'center center';
+                        el.style.backgroundRepeat = 'no-repeat';
+                    } else {
+                        const f = document.createElement('iframe');
+                        f.src = url;
+                        f.title = 'wallpaper';
+                        f.setAttribute('aria-hidden', 'true');
+                        el.appendChild(f);
+                    }
+                },
+
+                getScreensaverConfig: () => {
+                    const timeoutSec = parseInt(localStorage.getItem('selectedScreensaverTimeout') || '120', 10);
+                    return {
+                        enabled: localStorage.getItem('selectedScreensaverEnabled') === 'true',
+                        url: localStorage.getItem('selectedScreensaverURL') || '',
+                        timeoutMs: Math.max(10, isNaN(timeoutSec) ? 120 : timeoutSec) * 1000,
+                        behavior: localStorage.getItem('selectedScreensaverResumeBehavior') || 'destroy'
+                    };
+                },
+
+                buildScreensaverContent: (container, url) => {
+                    container.innerHTML = '';
+                    if (!url) return;
+                    if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+                        const img = document.createElement('img');
+                        img.className = 'screensaver-media'; img.src = url; img.alt = 'Screensaver';
+                        container.appendChild(img);
+                    } else {
+                        const ifr = document.createElement('iframe');
+                        ifr.className = 'screensaver-media'; ifr.src = url;
+                        container.appendChild(ifr);
+                    }
+                    const inputShield = document.createElement('div');
+                    inputShield.className = 'screensaver-input-shield';
+                    container.appendChild(inputShield);
+                },
+
+                showScreensaver: () => {
+                    const container = document.getElementById('screensaver-container');
+                    if (!container || app.screensaverActive) return;
+                    const cfg = app.core.getScreensaverConfig();
+                    if (!cfg.enabled || !cfg.url) return;
+                    if (!container.firstChild || cfg.behavior === 'destroy') {
+                        app.core.buildScreensaverContent(container, cfg.url);
+                    }
+                    container.classList.add('active');
+                    app.screensaverActive = true;
+                    window.emit('screensaver_shown', { url: cfg.url, timestamp: Date.now() });
+                },
+
+                hideScreensaver: (source = 'activity') => {
+                    const container = document.getElementById('screensaver-container');
+                    if (!container || !app.screensaverActive) return;
+                    const cfg = app.core.getScreensaverConfig();
+                    container.classList.remove('active');
+                    if (cfg.behavior !== 'background') container.innerHTML = '';
+                    app.screensaverActive = false;
+                    window.emit('screensaver_hidden', { source, behavior: cfg.behavior, timestamp: Date.now() });
+                },
+
+                registerUserActivity: (source = 'activity') => {
+                    clearTimeout(app.screensaverTimer);
+                    const cfg = app.core.getScreensaverConfig();
+                    if (source !== 'init') app.core.hideScreensaver(source);
+                    if (!cfg.enabled || !cfg.url) return;
+                    app.screensaverTimer = setTimeout(() => app.core.showScreensaver(), cfg.timeoutMs);
+                },
+
+                initScreensaver: () => {
+                    ['pointerdown', 'keydown', 'touchstart', 'mousedown'].forEach((evt) => {
+                        window.addEventListener(evt, () => app.core.registerUserActivity(evt), { passive: true });
+                    });
+                    window.addEventListener('akari:user-input', () => app.core.registerUserActivity('akari:user-input'));
+                    app.core.registerUserActivity('init');
+                },
+
+                loadModule: (key, src, label) => {
+                    return new Promise((resolve) => {
+                        if (!src || src === 'off') { resolve(); return; }
+                        const s = document.createElement('script');
+                        s.src = src;
+                        s.onload = () => { app.ui.log(`${label} OK.`); resolve(); };
+                        s.onerror = () => { app.ui.log(`Failed: ${label}`); resolve(); };
+                        document.head.appendChild(s);
+                    });
+                },
+
+                handleInput: () => {
+                    const box = document.getElementById('box');
+                    const val = box?.value.trim();
+                    if (!val) return;
+                    app.isSilentMode = true;
+                    window.dispatchEvent(new CustomEvent('akari:user-input', { detail: { source: 'text', value: val } }));
+                    window.emit('user_input_received', { source: 'text', text: val, timestamp: Date.now() });
+                    window.bubble_incoming(val);
+                    box.value = '';
+                    app.core.syncActionButton(true);
+                    app.ui.setTyping('Akari');
+                    if (val.toLowerCase().includes('settings')) {
+                        app.ui.openWindow('./settings');
+                        app.core.say("Opening settings panel.");
+                        return;
+                    }
+                    if (window.respond) window.respond(val);
+                },
+
+                say: (text) => {
+                    app.ui.setTyping(null);
+                    window.bubble(text);
+                    window.emit('assistant_response', { text, timestamp: Date.now() });
+                    app.notify('Akari', text, { borderColors: ['#A020F0', '#00FF00'] });
+                    window.emote(text);
+                    if (!app.isSilentMode) window.speak(text);
+                    app.isSilentMode = false;
+                },
+
+                appendBubble: (text, className) => {
+                    const container = document.getElementById('messages-container');
+                    if (!container) return;
+                    const div = document.createElement('div');
+                    div.className = className; div.innerHTML = text;
+                    container.appendChild(div);
+                    container.scrollTop = container.scrollHeight;
+                    if (!document.getElementById('chat-box').classList.contains('collapsed')) app.ui.resetAutoMin();
+                },
+
+                syncActionButton: (forceVoice) => {
+                    const btn = document.getElementById('micbutton');
+                    const box = document.getElementById('box');
+                    if (!btn) return;
+                    if (btn.innerText === 'Listening...' && !forceVoice) return;
+                    const hasText = !!(box && box.value.trim());
+                    btn.className = 'icemorphic-medium ice-button side-action';
+                    btn.style.minWidth = hasText && !forceVoice ? '52px' : '72px';
+                    btn.style.fontSize = hasText && !forceVoice ? '18px' : '';
+                    if (hasText && !forceVoice) {
+                        btn.innerText = '\u27A4';
+                        btn.setAttribute('aria-label', 'Send');
+                    } else {
+                        btn.innerText = 'voice';
+                        btn.setAttribute('aria-label', 'Voice');
+                    }
+                },
+
+                onActionButton: () => {
+                    const btn = document.getElementById('micbutton');
+                    if (btn && (btn.innerText === '\u27A4' || btn.innerText === '➤')) {
+                        app.core.handleInput();
+                        return;
+                    }
+                    app.core.toggleVoice();
+                },
+
+                toggleVoice: () => {
+                    const btn = document.getElementById('micbutton');
+                    app.isSilentMode = false;
+                    window.dispatchEvent(new CustomEvent('akari:user-input', { detail: { source: 'voice-toggle' } }));
+                    if (btn.innerText === 'voice' || btn.innerText === '\u27A4' || btn.innerText === '➤') {
+                        btn.className = 'icemorphic-medium ice-button side-action mic-on';
+                        btn.innerText = 'Listening...';
+                        btn.style.minWidth = '100px';
+                        btn.style.fontSize = '';
+                        if (window.whisperTranscriber) whisperTranscriber.start(true);
+                        window.emit('voice_listening_started', { timestamp: Date.now() });
+                    } else {
+                        app.ui.resetMic();
+                        window.emit('voice_listening_stopped', { timestamp: Date.now() });
+                    }
+                },
+
+                getGreeting: () => {
+                    const hr = new Date().getHours();
+                    if (hr < 12) return "Good morning.";
+                    if (hr < 18) return "Good afternoon.";
+                    return "Good evening.";
+                }
+            }
+        };
+
+        function typing(tyname) { app.ui.setTyping(tyname); }
+        function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+        document.addEventListener('transcriptionComplete', (e) => {
+            if (e.detail?.text) {
+                window.dispatchEvent(new CustomEvent('akari:user-input', { detail: { source: 'voice', value: e.detail.text } }));
+                app.core.appendBubble(e.detail.text, 'command');
+                if (window.respond) window.respond(e.detail.text);
+            }
+            app.ui.resetMic();
+        });
+
+        window.onload = app.core.init;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('chatToggle');
+            const box = document.getElementById('chat-box');
+            if (btn) btn.addEventListener('click', () => app.ui.toggleChat());
+            if (btn && box && box.classList.contains('collapsed')) btn.innerText = '+';
+        });
+    </script>
+</body>
+</html>
