@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html id="html" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cyan: #008b8b;
+            --cyan-bright: #00c8c8;
+            --bg: #141414;
+            --card: #1e2626;
+            --input-bg: rgba(0, 0, 0, 0.35);
+            --danger: #a33;
+            --accent-glow: rgba(0, 180, 180, 0.25);
+            --text-dim: rgba(255,255,255,0.55);
+        }
+        html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; background-color: var(--bg); }
+        body { font-family: 'Orbitron', system-ui, sans-serif; color: #fff; display: flex; flex-direction: column; }
+        .viewport-wrapper { flex: 1; display: flex; flex-direction: column; width: 100%; height: 100%; }
+        .scroll-area { flex: 1; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; display: flex; flex-direction: column; }
+        .scroll-area::-webkit-scrollbar { display: none; }
+        .container { width: 100%; flex: 1; display: flex; flex-direction: column; padding-bottom: 100px; }
+        .title { font-size: clamp(1.15rem, 5.5vw, 2rem); color: var(--cyan-bright); margin: 18px 0 6px; text-align: center; text-shadow: 0 0 12px var(--accent-glow); letter-spacing: 0.04em; }
+        .subtitle { text-align: center; font-size: 0.7rem; color: var(--text-dim); margin: 0 16px 14px; line-height: 1.4; font-family: system-ui, sans-serif; }
+        .back { display: block; text-align: center; color: var(--cyan-bright); font-size: 0.8rem; margin-bottom: 8px; text-decoration: none; opacity: 0.85; }
+        details { background: var(--card); margin: 0; width: 100%; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        summary { padding: 16px 20px; cursor: pointer; font-size: clamp(0.85rem, 3.8vw, 1.1rem); display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); transition: background 0.15s; list-style: none; }
+        summary:hover { background: rgba(255,255,255,0.07); }
+        summary::-webkit-details-marker { display: none; }
+        summary::after { content: '▼'; font-size: 0.65rem; opacity: 0.45; transition: transform 0.25s; }
+        details[open] summary::after { transform: rotate(180deg); color: var(--cyan-bright); opacity: 1; }
+        .content { padding: 18px 20px 22px; background: rgba(0,0,0,0.22); }
+        .script-group { background: rgba(255,255,255,0.03); border-radius: 10px; padding: 16px; margin-bottom: 14px; border: 1px solid rgba(255,255,255,0.07); border-left: 3px solid var(--cyan-bright); }
+        .group-label { display: block; font-size: 0.75rem; color: var(--cyan-bright); margin-bottom: 6px; letter-spacing: 0.03em; }
+        .hint { font-family: system-ui, sans-serif; font-size: 0.72rem; color: var(--text-dim); margin-bottom: 10px; line-height: 1.35; }
+        .setbutton { display: block; width: 100%; margin: 6px 0; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,200,200,0.25); background: rgba(0,0,0,0.35); color: #e2e8f0; font-family: system-ui, sans-serif; font-size: 0.85rem; cursor: pointer; text-align: left; }
+        .setbutton:hover { border-color: var(--cyan-bright); background: rgba(0,200,200,0.08); }
+        .setbutton.primary { background: linear-gradient(135deg, rgba(0,139,139,0.45), rgba(0,100,120,0.45)); border-color: var(--cyan-bright); text-align: center; font-weight: 600; }
+        .box { width: 100%; margin: 8px 0; padding: 12px; border-radius: 10px; border: 1px solid rgba(0,200,200,0.3); background: var(--input-bg); color: #fff; font-family: system-ui, sans-serif; font-size: 0.9rem; }
+        .version-tag { text-align: center; font-size: 0.65rem; color: var(--text-dim); margin: 20px; letter-spacing: 0.08em; }
+        .scroll-controls { position: fixed; right: 10px; bottom: 20px; display: flex; flex-direction: column; gap: 6px; }
+        .scroll-btn { width: 36px; height: 36px; border-radius: 50%; background: rgba(30,38,38,0.95); border: 1px solid rgba(0,200,200,0.3); color: var(--cyan-bright); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="viewport-wrapper">
+        <div class="scroll-area" id="mainScroll">
+            <div class="container">
+                <a class="back" href="./AI">← Intelligence</a>
+                <p class="title">Pollinations</p>
+                <p class="subtitle">Cloud text models via gen.pollinations.ai. Optional free key from enter.pollinations.ai.</p>
+                <details open>
+                    <summary>Connection</summary>
+                    <div class="content">
+                        <div class="script-group">
+                            <span class="group-label">API key</span>
+                            <p class="hint">Stored only on this device as pollinations_API_KEY. Leave blank to try without a key (rate limits apply).</p>
+                            <input class="box" id="pollKey" type="password" placeholder="pk_… or sk_…" autocomplete="off">
+                            <button class="setbutton primary" onclick="saveKey()">Save Pollinations key</button>
+                            <button class="setbutton" onclick="clearKey()" style="background:transparent;border:1px solid var(--danger);color:#f88">Clear key</button>
+                        </div>
+                        <div class="script-group">
+                            <span class="group-label">Use this provider</span>
+                            <p class="hint">Sets the AI brain script to Pollinations and returns to Intelligence.</p>
+                            <button class="setbutton primary" onclick="useProvider()">Use Pollinations as AI brain</button>
+                        </div>
+                    </div>
+                </details>
+                <div class="version-tag">POLLINATIONS · CONFIG</div>
+            </div>
+        </div>
+    </div>
+    <div class="scroll-controls">
+        <div class="scroll-btn" onclick="document.getElementById('mainScroll').scrollBy({top:-200,behavior:'smooth'})">▲</div>
+        <div class="scroll-btn" onclick="document.getElementById('mainScroll').scrollBy({top:200,behavior:'smooth'})">▼</div>
+    </div>
+    <script>
+        function flash(btn) {
+            if (!btn) return;
+            const t = btn.innerText;
+            btn.innerText = '✓ Saved';
+            setTimeout(() => { btn.innerText = t; }, 1600);
+        }
+        function saveKey() {
+            const k = document.getElementById('pollKey').value.trim();
+            if (k) localStorage.setItem('pollinations_API_KEY', k);
+            document.getElementById('pollKey').value = '';
+            flash(event.target);
+        }
+        function clearKey() {
+            localStorage.removeItem('pollinations_API_KEY');
+            alert('Pollinations key cleared.');
+        }
+        function useProvider() {
+            localStorage.setItem('selectedAIScript', './characters/akari/pollinations.js');
+            flash(event.target);
+            setTimeout(() => { location.href = './AI'; }, 800);
+        }
+    </script>
+</body>
+</html>
