@@ -10,6 +10,18 @@ if (localStorage.getItem('privacynotice') !== 'hide') {
   const ANON_KEY = '0000000000';
   const CLIENT = 'AkariNet:2.6:github.com/76836/Akari';
 
+  function hordeNotify(title, message, opts) {
+    try {
+      if (window.app && typeof app.notify === 'function') {
+        app.notify(title, message, opts || { duration: 4000, borderColors: ['#7dd3fc', '#a78bfa'] });
+        return;
+      }
+      if (typeof showNotification === 'function') {
+        showNotification(title, message, opts || {});
+      }
+    } catch (_) {}
+  }
+
   const systemPrompt = `Your name is Akari, an AI girl with a vibrant and cheerful personality.
 You don't like it when people ask you dumb questions, and if you can't give an accurate answer to a question, you shy away from the conversation.
 You give short answers, and sometimes end your messages with sarcastic remarks, and don't always try not to offend people,
@@ -113,8 +125,14 @@ Chat is private: False (community workers)`;
     else if (window.app?.ui?.setTyping) app.ui.setTyping('Akari');
 
     try {
+      hordeNotify('AI Horde', 'Selecting model…', { duration: 2500 });
       const models = await resolveModels();
       const { priority, blocked } = getWorkerPrefs();
+      const modelLabel = models[0] || '(any)';
+      const extra = models.length > 1 ? ' (+' + (models.length - 1) + ' fallbacks)' : '';
+      hordeNotify('AI Horde', 'Model: ' + modelLabel + extra, { duration: 5000, borderColors: ['#7dd3fc', '#5eead4'] });
+      if (typeof typing === 'function') typing('Horde · ' + modelLabel.split('/').pop());
+      else if (window.app?.ui?.setTyping) app.ui.setTyping('Horde · ' + modelLabel.split('/').pop());
       const body = {
         prompt: buildPrompt(userText),
         models,
@@ -152,8 +170,11 @@ Chat is private: False (community workers)`;
       }
       const job = await res.json();
       if (!job.id) throw new Error('No job id from Horde');
+      hordeNotify('AI Horde', 'Job queued · ' + modelLabel, { duration: 3500 });
 
       let text = null;
+      let usedModel = modelLabel;
+      let usedWorker = '';
       for (let i = 0; i < 90; i++) {
         await new Promise(r => setTimeout(r, 2000));
         const st = await fetch(HORDE + '/generate/text/status/' + job.id, {
@@ -162,32 +183,44 @@ Chat is private: False (community workers)`;
         if (!st.ok) continue;
         const status = await st.json();
         if (status.faulted) {
+          hordeNotify('AI Horde', 'Job faulted', { duration: 6000, borderColors: ['#f87171', '#f87171'] });
           say('[ERROR] AI Horde job faulted.');
           return;
         }
         if (status.done && status.generations && status.generations.length) {
-          text = status.generations[0].text || status.generations[0].content;
+          const gen = status.generations[0];
+          text = gen.text || gen.content;
+          if (gen.model) usedModel = gen.model;
+          if (gen.worker_name) usedWorker = gen.worker_name;
           break;
         }
         if (i === 0 || i % 5 === 0) {
-          const q = status.queue_position != null ? ' (queue #' + status.queue_position + ')' : '';
-          if (typeof typing === 'function') typing('Akari' + q);
-          else if (window.app?.ui?.setTyping) app.ui.setTyping('Akari' + q);
+          const q = status.queue_position != null ? 'queue #' + status.queue_position : 'waiting';
+          const wait = status.wait_time != null ? ' · ~' + status.wait_time + 's' : '';
+          if (typeof typing === 'function') typing('Horde · ' + q);
+          else if (window.app?.ui?.setTyping) app.ui.setTyping('Horde · ' + q);
+          if (i === 0 || i % 10 === 0) {
+            hordeNotify('AI Horde', q + wait + ' · ' + modelLabel, { duration: 3000 });
+          }
         }
       }
 
       if (!text) {
         const errText = '[ERROR] AI Horde timed out waiting for a worker.';
+        hordeNotify('AI Horde', 'Timed out waiting for a worker', { duration: 6000, borderColors: ['#f87171', '#f87171'] });
         say(errText);
         return errText;
       }
 
       text = String(text).replace(/<\/?s>|<\|.*?\|>/g, '').trim();
+      const who = usedWorker ? usedWorker + ' · ' : '';
+      hordeNotify('AI Horde', 'Done · ' + who + usedModel, { duration: 4500, borderColors: ['#5eead4', '#7dd3fc'] });
       if (window.AkariChat) AkariChat.append('assistant', text, { provider: 'aihorde' });
       say(text);
       return text;
     } catch (e) {
       const errText = '[ERROR] AI Horde: ' + (e.message || e);
+      hordeNotify('AI Horde', String(e.message || e).slice(0, 120), { duration: 6000, borderColors: ['#f87171', '#f87171'] });
       say(errText);
       return errText;
     }
