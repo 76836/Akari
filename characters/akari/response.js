@@ -324,7 +324,10 @@ async function respond(outcome) {
         };
 
 
+
     };
+
+
 
 
 
@@ -343,6 +346,7 @@ async function respond(outcome) {
     };
 
 
+
     if (outcome.includes("time") && outcome.includes("what") == true) {
         console.log('keywords "time" & "what" found');
         var d = new Date();
@@ -350,6 +354,7 @@ async function respond(outcome) {
 
         return;
     };
+
 
 
     if (outcome.includes("directions ") && (outcome.includes(" to ") || outcome.includes("get ") == true)) {
@@ -371,11 +376,13 @@ async function respond(outcome) {
     };
 
 
+
     if (outcome.includes("help") && outcome.length < 15 == true) {
         console.log('command "help" entered');
         say("I can open apps, search for youtube video videos, get directions to places, solve basic math, and search with bing. I also know the time, can reload or exit this project, and close windows; that's all if you AREN'T connected to AI services");
         return;
     };
+
 
 
     const YesSynonyms = new Array("good", "i did", "i will", "yeah", "great", "yes");
@@ -418,6 +425,7 @@ async function respond(outcome) {
     };
 
 
+
     if (outcome.includes("youtube") || outcome.includes(" play ") == true) {
         console.log('keywords "youtube" & "search"/"play" found');
         var video = outcome.replace('youtube', "");
@@ -433,6 +441,7 @@ async function respond(outcome) {
         });
         return;
     };
+
 
 
     if (outcome.includes("destruct") && outcome.includes("self") && outcome.length < 30 == true) {
@@ -479,16 +488,16 @@ async function respond(outcome) {
     }
 
 
-    if (serverStatus == "connected") {
+    // Cloud AI providers (Horde, Pollinations, Gemini, …) take priority over legacy socket
+    if (CloudAI == true && typeof GenerateResponse === 'function') {
+        if (__automataState.handledRequestId === requestId) return;
+        typing("Akari AI");
+        GenerateResponse(ogtxt);
+    } else if (serverStatus == "connected" && typeof socket !== 'undefined' && socket && typeof socket.send === 'function') {
         if (__automataState.handledRequestId === requestId) return;
         typing("Akari AI");
         socket.send(ogtxt);
     } else {
-        if (CloudAI == true) {
-            if (__automataState.handledRequestId === requestId) return;
-            typing("Akari AI");
-            GenerateResponse(ogtxt);
-        }else{
         console.log('no keywords found, too bad.');
         var excuses = [];
         excuses[1] = "Sorry, I don't understand that command.";
@@ -500,7 +509,6 @@ async function respond(outcome) {
         excuses[7] = "I don't know what to do, sorry about that.";
         excuses[8] = "I don't understand the command, maybe try rephrasing it?";
         say(excuses[1 + Math.floor(Math.random() * 8)]);
-        };
     };
 
     __automataState.activeRequestId = null;
