@@ -104,19 +104,51 @@ Chat is private: False (community workers)`;
     return { priority: priority.slice(0, 5), blocked };
   }
 
+  /** Rough token estimate (Horde-style ~chars/4). */
+  function estTokens(s) {
+    return Math.ceil(String(s || '').length / 4);
+  }
+
+  /**
+   * Build prompt under a token budget so anon/low-kudos keys avoid KudosUpfront.
+   * Horde requires kudos upfront once total tokens exceed ~774.
+   */
   function buildPrompt(userText) {
+    const budget = parseInt(localStorage.getItem('aihorde_prompt_budget') || '520', 10);
     const msgs = window.AkariChat ? AkariChat.getMessagesForLLM(true) : [];
-    let prompt = systemPrompt + '\n\n';
-    msgs.forEach(m => {
-      if (m.role === 'system') return;
-      if (m.role === 'user') prompt += 'User: ' + m.content + '\n';
-      else if (m.role === 'assistant') prompt += 'Akari: ' + m.content + '\n';
-    });
-    if (!msgs.length || msgs[msgs.length - 1].content !== userText) {
-      prompt += 'User: ' + userText + '\n';
+    const tail = 'User: ' + userText + '\nAkari:';
+    let sys = systemPrompt + '\n\n';
+    // keep system short if needed
+    while (estTokens(sys) + estTokens(tail) > budget && sys.length > 80) {
+      sys = sys.slice(0, Math.floor(sys.length * 0.8));
     }
-    prompt += 'Akari:';
-    return prompt;
+    const room = Math.max(40, budget - estTokens(sys) - estTokens(tail));
+    // newest messages first, then reverse
+    const picked = [];
+    let used = 0;
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i];
+      if (!m || m.role === 'system') continue;
+      if (m.role === 'user' && m.content === userText && i === msgs.length - 1) continue;
+      const line = (m.role === 'user' ? 'User: ' : 'Akari: ') + m.content + '\n';
+      const t = estTokens(line);
+      if (used + t > room) break;
+      picked.push(line);
+      used += t;
+    }
+    picked.reverse();
+    return sys + picked.join('') + tail;
+  }
+
+  function genParams() {
+    const ctx = parseInt(localStorage.getItem('aihorde_max_context') || '1024', 10);
+    const len = parseInt(localStorage.getItem('aihorde_max_length') || '80', 10);
+    return {
+      max_context_length: Math.min(Math.max(ctx, 256), 2048),
+      max_length: Math.min(Math.max(len, 16), 180),
+      temperature: 0.8,
+      top_p: 0.9
+    };
   }
 
   globalThis.GenerateResponse = async function (userText) {
@@ -133,17 +165,27 @@ Chat is private: False (community workers)`;
       hordeNotify('AI Horde', 'Model: ' + modelLabel + extra, { duration: 5000, borderColors: ['#7dd3fc', '#5eead4'] });
       if (typeof typing === 'function') typing('Horde · ' + modelLabel.split('/').pop());
       else if (window.app?.ui?.setTyping) app.ui.setTyping('Horde · ' + modelLabel.split('/').pop());
+      const prompt = buildPrompt(userText);
+      const params = genParams();
+      // Align context cap with actual prompt so kudos calc stays low
+      const promptTok = estTokens(prompt);
+      params.max_context_length = Math.max(
+        256,
+        Math.min(params.max_context_length, promptTok + params.max_length + 32)
+      );
+      hordeNotify(
+        'AI Horde',
+        'Prompt ~' + promptTok + ' tok · gen ' + params.max_length + ' · ctx ' + params.max_context_length,
+        { duration: 3500 }
+      );
       const body = {
-        prompt: buildPrompt(userText),
+        prompt,
         models,
         trusted_workers: localStorage.getItem('aihorde_trusted_only') === '1',
         slow_workers: localStorage.getItem('aihorde_slow_workers') !== '0',
-        params: {
-          max_context_length: 2048,
-          max_length: 180,
-          temperature: 0.8,
-          top_p: 0.9
-        }
+        // Auto-shrink if still over free threshold (no kudos)
+        allow_downgrade: localStorage.getItem('aihorde_allow_downgrade') !== '0',
+        params
       };
 
       if (priority.length) {
@@ -219,8 +261,12 @@ Chat is private: False (community workers)`;
       say(text);
       return text;
     } catch (e) {
-      const errText = '[ERROR] AI Horde: ' + (e.message || e);
-      hordeNotify('AI Horde', String(e.message || e).slice(0, 120), { duration: 6000, borderColors: ['#f87171', '#f87171'] });
+      let msg = String(e.message || e);
+      if (/KudosUpfront|required kudos/i.test(msg)) {
+        msg = 'Need more kudos for this size request. Try a shorter chat, or set a registered API key at aihorde.net/register (adapter will also allow_downgrade when possible).';
+      }
+      const errText = '[ERROR] AI Horde: ' + msg;
+      hordeNotify('AI Horde', msg.slice(0, 140), { duration: 7000, borderColors: ['#f87171', '#f87171'] });
       say(errText);
       return errText;
     }
