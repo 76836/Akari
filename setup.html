@@ -201,11 +201,15 @@
 
         <div class="stage" data-stage="4">
             <h2>How should Akari think?</h2>
-            <p class="hint">Smarter answers use an AI model. You can switch anytime.</p>
+            <p class="hint">Smarter answers use an AI model. You can switch anytime in Settings → Intelligence.</p>
             <div class="options" id="aiOpts">
                 <button type="button" class="opt selected" data-ai="pollinations">
                     Free cloud AI (no key)
                     <small>Pollinations — works immediately, good default</small>
+                </button>
+                <button type="button" class="opt" data-ai="horde">
+                    AI Horde (community)
+                    <small>Shared volunteer GPUs — optional key for better priority; configure models in Settings</small>
                 </button>
                 <button type="button" class="opt" data-ai="gemini">
                     Gemini (API key later)
@@ -478,6 +482,8 @@
         function applyAi(mode) {
             if (mode === 'pollinations') {
                 localStorage.setItem('selectedAIScript', './characters/akari/pollinations.js');
+            } else if (mode === 'horde') {
+                localStorage.setItem('selectedAIScript', './characters/akari/aiHorde.js');
             } else if (mode === 'gemini') {
                 localStorage.setItem('selectedAIScript', picks.char === 'Hiyori'
                     ? './characters/hiyori/Gemini.js'
@@ -509,7 +515,7 @@
                 }
             }
             localStorage.setItem('akari_setupComplete', '1');
-            localStorage.setItem('akari_setupVersion', '2.6');
+            localStorage.setItem('akari_setupVersion', '2.7');
             window.location.replace('./');
         }
 
