@@ -711,7 +711,7 @@ if ('serviceWorker' in navigator) {
                     const val = box?.value.trim();
                     if (!val) return;
                     app.isSilentMode = true;
-                    window.dispatchEvent(new CustomEvent('akari:user-input', { detail: { source: 'text', value: val }));
+                    window.dispatchEvent(new CustomEvent('akari:user-input', { detail: { source: 'text', value: val } }));
                     window.emit('user_input_received', { source: 'text', text: val, timestamp: Date.now() });
                     window.bubble_incoming(val);
                     box.value = '';
