@@ -1,4 +1,4 @@
-say('AI Horde connected (adapter v1.1 · aihorde.net)');
+say('AI Horde connected (adapter v1.2 · aihorde.net)');
 var CloudAI = true;
 
 if (localStorage.getItem('privacynotice') !== 'hide') {
@@ -27,8 +27,11 @@ You don't like it when people ask you dumb questions, and if you can't give an a
 You give short answers, and sometimes end your messages with sarcastic remarks, and don't always try not to offend people,
 but you're generally kind and respectful to everyone...
 
+Important: Reply only as Akari. Never write lines for the user. Never invent "User:" turns or continue the dialogue as both speakers.
+Write one reply, then stop.
+
 System information:
-Akari AI · AI Horde v1.1
+Akari AI · AI Horde v1.2
 Persistent chat history: global (AkariChat)
 Message rendering method: HTML
 Chat is private: False (community workers)`;
@@ -143,12 +146,56 @@ Chat is private: False (community workers)`;
   function genParams() {
     const ctx = parseInt(localStorage.getItem('aihorde_max_context') || '1024', 10);
     const len = parseInt(localStorage.getItem('aihorde_max_length') || '80', 10);
+    // Stop sequences keep instruct/chat models from inventing extra User:/Akari: turns
+    // (common failure mode on Llama / MythoMax style workers without a chat template).
+    const stops = [
+      '\nUser:',
+      '\nUser ',
+      '\nHuman:',
+      '\nHuman ',
+      'User:',
+      'Human:',
+      '\n###',
+      '\n\nUser'
+    ];
+    try {
+      const extra = JSON.parse(localStorage.getItem('aihorde_stop_sequences') || 'null');
+      if (Array.isArray(extra)) {
+        extra.forEach(function (s) {
+          if (s && typeof s === 'string' && stops.indexOf(s) < 0) stops.push(s);
+        });
+      }
+    } catch (_) {}
     return {
       max_context_length: Math.min(Math.max(ctx, 256), 2048),
       max_length: Math.min(Math.max(len, 16), 180),
       temperature: 0.8,
-      top_p: 0.9
+      top_p: 0.9,
+      stop_sequence: stops
     };
+  }
+
+  /** Trim model bleed: fake multi-turn continuations after the real reply. */
+  function sanitizeReply(raw) {
+    let text = String(raw == null ? '' : raw);
+    text = text.replace(/<\/?s>|<\|.*?\|>/g, '');
+    // If the model echoed a stop token / role label, cut there
+    const cutMarkers = [
+      /\nUser\s*:/,
+      /\nHuman\s*:/,
+      /\n###/,
+      /\n\nUser\b/,
+      /\nAkari\s*:/  // second assistant turn — keep first only
+    ];
+    for (let i = 0; i < cutMarkers.length; i++) {
+      const m = text.match(cutMarkers[i]);
+      if (m && m.index != null && m.index > 0) {
+        text = text.slice(0, m.index);
+      }
+    }
+    // Leading role echo
+    text = text.replace(/^\s*Akari\s*:\s*/i, '');
+    return text.trim();
   }
 
   globalThis.GenerateResponse = async function (userText) {
@@ -254,7 +301,7 @@ Chat is private: False (community workers)`;
         return errText;
       }
 
-      text = String(text).replace(/<\/?s>|<\|.*?\|>/g, '').trim();
+      text = sanitizeReply(text);
       const who = usedWorker ? usedWorker + ' · ' : '';
       hordeNotify('AI Horde', 'Done · ' + who + usedModel, { duration: 4500, borderColors: ['#5eead4', '#7dd3fc'] });
       if (window.AkariChat) AkariChat.append('assistant', text, { provider: 'aihorde' });
