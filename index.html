@@ -429,6 +429,9 @@
           AkariChat.create('New chat');
           AkariChat.renderActive();
           refreshList();
+          if (window.app && app.core && typeof app.core.sendGreeting === 'function') {
+            app.core.sendGreeting();
+          }
         });
         window.addEventListener('akari:chat-changed', function () {
           if (window.AkariChat) AkariChat.renderActive();
@@ -591,9 +594,13 @@ if ('serviceWorker' in navigator) {
                     setTimeout(() => {
                         const overlay = document.getElementById('overlay');
                         if (overlay) overlay.classList.add('fade-out');
-                        const greet = app.core.getGreeting();
-                        app.core.appendBubble(greet, 'responsetxt');
-                        app.notify('Akari', greet);
+                        // Fresh session: auto "+ New chat" then greeting
+                        if (window.AkariChat) {
+                            AkariChat.create('New chat');
+                            AkariChat.renderActive();
+                            if (window.AkariChatUI && AkariChatUI.refreshList) AkariChatUI.refreshList();
+                        }
+                        app.core.sendGreeting();
                         window.emit('akari_ready', { timestamp: Date.now() });
                     }, 1000);
                 },
@@ -704,7 +711,7 @@ if ('serviceWorker' in navigator) {
                     const val = box?.value.trim();
                     if (!val) return;
                     app.isSilentMode = true;
-                    window.dispatchEvent(new CustomEvent('akari:user-input', { detail: { source: 'text', value: val } }));
+                    window.dispatchEvent(new CustomEvent('akari:user-input', { detail: { source: 'text', value: val }));
                     window.emit('user_input_received', { source: 'text', text: val, timestamp: Date.now() });
                     window.bubble_incoming(val);
                     box.value = '';
@@ -787,6 +794,15 @@ if ('serviceWorker' in navigator) {
                     if (hr < 12) return "Good morning.";
                     if (hr < 18) return "Good afternoon.";
                     return "Good evening.";
+                },
+
+                sendGreeting: () => {
+                    const greet = app.core.getGreeting();
+                    app.core.appendBubble(greet, 'responsetxt');
+                    if (window.AkariChat && typeof AkariChat.append === 'function') {
+                        try { AkariChat.append('assistant', greet); } catch (e) {}
+                    }
+                    app.notify('Akari', greet);
                 }
             }
         };
