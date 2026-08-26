@@ -170,6 +170,19 @@
                     </div>
                 </details>
 
+                <details open>
+                    <summary>Thinking models</summary>
+                    <div class="content">
+                        <div class="script-group">
+                            <span class="group-label">Show thought process</span>
+                            <p class="hint">When a model returns chain-of-thought tags (&lt;think&gt;, &lt;thinking&gt;, etc.), show them in a collapsible panel above the reply. Speech and notifications always use the final answer only.</p>
+                            <button class="setbutton" id="thinkOnBtn" onclick="setThinking(true)">Show thinking (default)</button>
+                            <button class="setbutton" id="thinkOffBtn" onclick="setThinking(false)">Hide thinking</button>
+                            <p class="hint" id="thinkStatus" style="margin-top:10px;margin-bottom:0;"></p>
+                        </div>
+                    </div>
+                </details>
+
                 <details>
                     <summary>API key & servers</summary>
                     <div class="content">
@@ -242,6 +255,23 @@
             document.getElementById('APIKey').value = '';
             flash(event.target);
         }
+
+        function thinkingEnabled() {
+            return localStorage.getItem('akari_show_thinking') !== '0';
+        }
+        function refreshThinkStatus() {
+            const el = document.getElementById('thinkStatus');
+            if (!el) return;
+            el.textContent = thinkingEnabled()
+                ? 'Currently: thinking panels are visible when the model provides them.'
+                : 'Currently: thinking panels are hidden (answer only).';
+        }
+        function setThinking(on) {
+            localStorage.setItem('akari_show_thinking', on ? '1' : '0');
+            refreshThinkStatus();
+            flash(event && event.target);
+        }
+        refreshThinkStatus();
     </script>
 </body>
 </html>
