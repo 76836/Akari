@@ -82,7 +82,7 @@
 
             worker = new Worker(BASE + 'worker.js');
 
-            var modelRes = await fetch(BASE + 'model.onnx');
+            var modelRes = await fetch(BASE + 'https://huggingface.co/76836-HW/AkariNet-PiperTTS/resolve/main/model.onnx');
             var modelBytes = await modelRes.arrayBuffer();
 
             await new Promise(function (resolve, reject) {
