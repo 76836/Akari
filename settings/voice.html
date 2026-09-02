@@ -199,6 +199,19 @@
                             </div>
                             <p class="hint">When on, Akari randomly says “what’s up?”, “hey”, “hello”, “hi”, or “yeah?” with her TTS voice instead of playing Summon.mp3.</p>
                         </div>
+                        <div class="script-group">
+                            <span class="group-label">Continued conversation</span>
+                            <div class="row between">
+                                <span>Keep listening after replies (like Google Home)</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="continuedConversationToggle" onchange="saveContinuedConversation()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <p class="hint">When on, after Akari finishes speaking she listens for a follow-up without needing “hey Akari” again. Stays open for the window below, then goes idle if you say nothing.</p>
+                            <label class="hint" for="continuedMsBox">Follow-up window (seconds)</label>
+                            <input class="box" id="continuedMsBox" type="number" min="3" max="30" step="1" value="7" onchange="saveContinuedMs()">
+                        </div>
                     </div>
                 </details>
 
@@ -388,6 +401,11 @@
             document.getElementById('requireWakeToggle').checked = localStorage.getItem('ac41_requireWake') !== 'false';
 
             document.getElementById('ttsGreetingToggle').checked = localStorage.getItem('ac41_ttsGreeting') === 'true';
+            const contEl = document.getElementById('continuedConversationToggle');
+            if (contEl) contEl.checked = localStorage.getItem('ac41_continuedConversation') === 'true';
+            const contMs = document.getElementById('continuedMsBox');
+            if (contMs) contMs.value = String(Math.round((parseFloat(localStorage.getItem('ac41_continuedMs') || '7000') || 7000) / 1000));
+
 
             const xlOn = localStorage.getItem('ac41_xlEnabled') === 'true';
             document.getElementById('xlToggle').checked = xlOn;
