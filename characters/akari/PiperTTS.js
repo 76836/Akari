@@ -10,6 +10,7 @@
 
     var BASE = 'https://76836.github.io/AkariNet-PiperTTS/';
     var MODEL_URL = 'https://huggingface.co/76836-HW/AkariNet-PiperTTS/resolve/main/model.onnx';
+    var PLAYBACK_RATE = 1.123;
 
     function ensureLipsync() {
         if (window.AkariLipsync) return Promise.resolve();
@@ -52,7 +53,8 @@
                 _playing: false,
                 _interrupted: false,
                 _ctx: null,
-                INFERENCE: { noise_scale: 0.667, noise_w: 0.8 }
+                INFERENCE: { noise_scale: 0.667, noise_w: 0.8 },
+                PLAYBACK_RATE: PLAYBACK_RATE
             };
 
             function ensureCtx() {
@@ -71,6 +73,7 @@
                 var buffer = tts._queue.shift();
                 var source = tts._ctx.createBufferSource();
                 source.buffer = buffer;
+                source.playbackRate.value = PLAYBACK_RATE;
                 var finish = function () {
                     tts._playing = false;
                     setTimeout(playNext, 200);
@@ -162,7 +165,7 @@
                 window._speechQueue = [];
             }
 
-            console.log('[TTS] PiperTTS ready (lipsync enabled).');
+            console.log('[TTS] PiperTTS ready (lipsync enabled, 1.123x playback).');
         } catch (err) {
             console.error('[TTS] Failed to load PiperTTS:', err);
         }
