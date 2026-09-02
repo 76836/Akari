@@ -35,7 +35,7 @@
 
         header { margin-bottom: 24px; text-align: center; }
         header h1 { font-family: 'Google Sans', sans-serif; font-size: 28px; margin: 0; color: var(--md-primary); }
-        header p { font-size: 14px; color: var(--md-on-surface-variant); }
+        header p { font-size: 14px; color: var(--md-on-surface-variant); margin-top: 6px; }
 
         .card {
             background: rgba(15, 23, 42, 0.85);
@@ -64,6 +64,7 @@
         input:focus { border: 1px solid var(--md-primary); box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.20); }
 
         .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .btn-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
         button {
             padding: 12px;
             border-radius: 100px;
@@ -80,6 +81,7 @@
         .btn-tonal:hover:not(:disabled) { background: rgba(148, 163, 184, 0.36); }
         .btn-outline { background: transparent; border: 1px solid var(--md-outline); color: var(--md-on-surface); }
         .btn-danger { background: rgba(249, 115, 22, 0.2); color: #f97316; border: 1px solid #f97316; }
+        .btn-local { background: rgba(52, 211, 153, 0.2); color: #34d399; border: 1px solid #34d399; }
 
         .progress-track { height: 6px; background: rgba(148, 163, 184, 0.25); border-radius: 3px; overflow: hidden; margin: 16px 0; display: none; position: relative; }
         .progress-track.active::before {
@@ -177,14 +179,14 @@
         }
 
         .server-header { display: flex; justify-content: space-between; align-items: flex-start; }
-        .server-url { font-weight: 500; color: #8ab4f8; font-family: monospace; }
-        .status-badge { font-size: 10px; padding: 2px 8px; border-radius: 8px; text-transform: uppercase; font-weight: bold; }
+        .server-url { font-weight: 500; color: #8ab4f8; font-family: monospace; word-break: break-all; }
+        .status-badge { font-size: 10px; padding: 2px 8px; border-radius: 8px; text-transform: uppercase; font-weight: bold; white-space: nowrap; }
         .status-online { background: rgba(52, 211, 153, 0.16); color: #22c55e; }
         .status-offline { background: rgba(248, 113, 16, 0.16); color: #fb923c; }
         .status-checking { background: rgba(148, 163, 184, 0.18); color: #94a3b8; }
 
         .server-details { font-size: 13px; color: var(--md-on-surface-variant); line-height: 1.4; }
-        .action-row { display: flex; gap: 12px; margin-top: 8px; }
+        .action-row { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
         .delete-btn { color: #f97316; background: none; border: none; font-size: 12px; padding: 0; text-decoration: underline; cursor: pointer; }
         .logon-btn { color: var(--md-primary); background: none; border: none; font-size: 12px; padding: 0; text-decoration: underline; cursor: pointer; }
 
@@ -203,6 +205,13 @@
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.7); z-index: 999; display: none;
         }
+
+        .hint {
+            font-size: 12px;
+            color: var(--md-on-surface-variant);
+            margin: 8px 0 0;
+            line-height: 1.4;
+        }
     </style>
 </head>
 <body>
@@ -216,6 +225,7 @@
 <div class="container">
     <header>
         <h1>Autodetect Llama.CPP Servers</h1>
+        <p>Scan your LAN or connect to a server on this device (localhost).</p>
     </header>
 
     <div class="card">
@@ -223,16 +233,17 @@
             <label>Subnet Base:</label>
             <input type="text" id="subnetInput" placeholder="e.g. 192.168.1">
         </div>
-        <div class="btn-row">
+        <div class="btn-row-3">
             <button class="btn-primary" id="scanBtn">Start Scan</button>
             <button class="btn-tonal" id="detectBtn">Auto Detect</button>
+            <button class="btn-local" id="localhostBtn">Check Localhost</button>
         </div>
         
         <a class="advanced-toggle" onclick="toggleAdvanced()">Advanced Settings</a>
         
         <div id="advancedMenu">
             <div class="setting-row">
-                <span>Use HTTPS protocol</span>
+                <span>Use HTTPS protocol (LAN scan)</span>
                 <label class="switch">
                     <input type="checkbox" id="httpsToggle">
                     <span class="slider"></span>
@@ -257,7 +268,8 @@
         <div class="progress-track" id="progressTrack">
             <div id="progressFill" class="progress-fill"></div>
         </div>
-        <div id="log">Ready to scan local network...</div>
+        <div id="log">Ready to scan local network or localhost...</div>
+        <p class="hint">Localhost (127.0.0.1) is allowed from HTTPS pages. Use HTTP for plain llama.cpp --server, or HTTPS if you run the Akari AI Server proxy.</p>
     </div>
 
     <div id="serverList"></div>
@@ -266,7 +278,12 @@
 <script>
     // State
     let servers = JSON.parse(localStorage.getItem('lcpp_servers') || '[]');
-    let config = JSON.parse(localStorage.getItem('lcpp_config') || '{"https": false, "ports": [8443]}');
+    // Default ports: 8443 (Akari AI Server HTTPS), 8080 (llama.cpp default), 11434 (Ollama)
+    let config = JSON.parse(localStorage.getItem('lcpp_config') || '{"https": false, "ports": [8443, 8080, 11434]}');
+    // Ensure ports array exists and has sensible defaults if user has old config
+    if (!Array.isArray(config.ports) || config.ports.length === 0) {
+        config.ports = [8443, 8080, 11434];
+    }
     let isScanning = false;
     let activePopups = new Map();
 
@@ -354,10 +371,11 @@
             
             const statusClass = s.checking ? 'status-checking' : (s.online ? 'status-online' : 'status-offline');
             const statusText = s.checking ? 'Checking...' : (s.online ? 'Online' : 'Offline');
+            const isLocal = s.url.includes('127.0.0.1') || s.url.includes('localhost');
 
             item.innerHTML = `
                 <div class="server-header">
-                    <span class="server-url">${s.url}</span>
+                    <span class="server-url">${s.url}${isLocal ? ' <span style="color:#34d399;font-size:11px;">(local)</span>' : ''}</span>
                     <span class="status-badge ${statusClass}">${statusText}</span>
                 </div>
                 <div class="server-details">
@@ -382,7 +400,7 @@
         renderServers();
 
         try {
-            const res = await fetch(`${url}/v1/models`, { signal: AbortSignal.timeout(2000) });
+            const res = await fetch(`${url}/v1/models`, { signal: AbortSignal.timeout(2500) });
             if (res.ok) {
                 const data = await res.json();
                 server.model = data.data?.[0]?.id || 'Unknown Model';
@@ -405,6 +423,18 @@
             saveServers();
             renderServers();
         }
+    }
+
+    function addServerIfNew(url) {
+        if (!servers.find(s => s.url === url)) {
+            servers.push({ url, online: true, lastSeen: Date.now() });
+            saveServers();
+            checkServerHealth(url);
+            return true;
+        }
+        // Refresh existing
+        checkServerHealth(url);
+        return false;
     }
 
     window.logonToServer = (url) => {
@@ -436,7 +466,7 @@
                 await checkServerHealth(url);
                 const finalS = servers.find(sv => sv.url === url);
                 if (!finalS || !finalS.online) {
-                    customAlert(`Failed to connect to ${url}. Ensure the server is running an externally accessable instance of llama.cpp and that you have accepted any SSL certificates.`);
+                    customAlert(`Failed to connect to ${url}. Ensure the server is running an externally accessible instance of llama.cpp and that you have accepted any SSL certificates.`);
                 }
                 return;
             }
@@ -475,11 +505,7 @@
                     // Quick check
                     const res = await fetch(`${url}/v1/models`, { signal: AbortSignal.timeout(1200) });
                     if (res.ok) {
-                        if (!servers.find(s => s.url === url)) {
-                            servers.push({ url, online: true, lastSeen: Date.now() });
-                            saveServers();
-                            checkServerHealth(url);
-                        }
+                        addServerIfNew(url);
                     }
                 } catch (e) {
                     // We don't catch silent SSL failures here easily as they just throw TypeErrors
@@ -495,6 +521,76 @@
         progressTrack.classList.remove('active');
         document.getElementById('scanBtn').disabled = false;
         writeLog("Scan complete.");
+        renderServers();
+    }
+
+    /**
+     * Check localhost / 127.0.0.1 for llama.cpp servers.
+     * Browsers treat localhost as a secure context exception, so HTTP is allowed
+     * even when the page itself is served over HTTPS (GitHub Pages).
+     */
+    async function checkLocalhost() {
+        if (isScanning) return;
+        isScanning = true;
+        progressTrack.style.display = 'block';
+        progressTrack.classList.add('active');
+        progressFill.style.width = '0%';
+        document.getElementById('localhostBtn').disabled = true;
+        writeLog("Checking localhost...");
+
+        // Common hosts + protocols. Prefer HTTP for raw llama.cpp, HTTPS for Akari AI Server.
+        const hosts = ['127.0.0.1', 'localhost'];
+        const protocols = ['http', 'https'];
+        // Use configured ports plus a few extras that are very common
+        const extraPorts = [8080, 8081, 8443, 11434, 1234, 3000, 5000, 8000];
+        const ports = [...new Set([...config.ports, ...extraPorts])];
+
+        const tasks = [];
+        hosts.forEach(host => {
+            protocols.forEach(proto => {
+                ports.forEach(port => {
+                    tasks.push(`${proto}://${host}:${port}`);
+                });
+            });
+        });
+
+        let completed = 0;
+        const total = tasks.length;
+        const found = [];
+
+        // Larger batches are fine for localhost (very low latency)
+        const batchSize = 24;
+
+        for (let i = 0; i < tasks.length; i += batchSize) {
+            if (!isScanning) break;
+            const batch = tasks.slice(i, i + batchSize);
+
+            await Promise.all(batch.map(async (url) => {
+                try {
+                    const res = await fetch(`${url}/v1/models`, { signal: AbortSignal.timeout(900) });
+                    if (res.ok) {
+                        const added = addServerIfNew(url);
+                        if (added || !found.includes(url)) found.push(url);
+                    }
+                } catch (e) {
+                    // ignore
+                }
+                completed++;
+                progressFill.style.width = `${(completed / total) * 100}%`;
+            }));
+            writeLog(`Localhost check... ${completed}/${total}`);
+        }
+
+        isScanning = false;
+        progressTrack.style.display = 'none';
+        progressTrack.classList.remove('active');
+        document.getElementById('localhostBtn').disabled = false;
+
+        if (found.length > 0) {
+            writeLog(`Found ${found.length} localhost server(s).`);
+        } else {
+            writeLog("No llama.cpp server found on localhost. Start one (e.g. llama-server --port 8080) and try again.");
+        }
         renderServers();
     }
 
@@ -579,6 +675,7 @@
     };
 
     document.getElementById('scanBtn').onclick = scanNetwork;
+    document.getElementById('localhostBtn').onclick = checkLocalhost;
 
     window.addEventListener('load', () => {
         detectSecurityContext();
@@ -588,6 +685,12 @@
         if (!subnetInput.value.trim()) {
             document.getElementById('detectBtn').click();
         }
+        // Auto-check localhost on first visit so users with a local server see it immediately
+        setTimeout(() => {
+            if (servers.length === 0 || !servers.some(s => s.online)) {
+                checkLocalhost();
+            }
+        }, 800);
     });
 
 </script>
