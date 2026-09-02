@@ -391,7 +391,16 @@
     });
 
     window.addEventListener('audioConsoleWakeSound', (e) => {
-        setVisualState('wake', { score: e.detail.score });
+        const cls = e.detail && e.detail.class;
+        // Manual button / continued conversation: stay in listening (do NOT start the
+        // 6s wake→idle timer, which was cancelling the session and stranding UI).
+        if (cls === 'manual' || cls === 'continued') {
+            setVisualState('listening');
+            if (cls === 'manual') playWakeSound();
+            pulseVrmWake('audioConsole-wakesound');
+            return;
+        }
+        setVisualState('wake', { score: e.detail && e.detail.score });
         playWakeSound();
         pulseVrmWake('audioConsole-wakesound');
     });
@@ -399,12 +408,10 @@
         setVisualState('listening');
         pulseVrmWake('audioConsole-speechstart');
     });
-    // Don't flip to Processing on speechend alone — wait for real 'processing'
-    // (avoids stuck UI when the utterance is discarded before ASR runs).
     window.addEventListener('audioConsoleSpeechEnd', () => {
-        if (visualState === 'listening' || visualState === 'wake') {
-            apStatus('Speech ended…', { busy: true });
-        }
+        // Show processing, but always arm a safety timeout so UI cannot stick forever.
+        if (visualState !== 'result') setVisualState('processing');
+        armProcessingSafety(12000);
     });
     window.addEventListener('audioConsoleProcessing', () => {
         if (visualState !== 'result') setVisualState('processing');
@@ -456,16 +463,28 @@
     window.whisperTranscriber = {
         start: function () {
             const v = window.__ac41Voice || voiceInstance;
-            if (!v) return;
+            if (!v) {
+                console.warn('[AudioConsole] start() — voice engine not ready');
+                return;
+            }
             clearProcessingSafety();
+            // Cancel any prior hung state before arming a new listen
+            if (typeof v.cancelProcessing === 'function') {
+                try { v.cancelProcessing(); } catch (_) {}
+            } else {
+                v._isProcessing = false;
+                v._armUntil = 0;
+            }
             try {
                 v.activateWakeWord({ listenMs: manualListenMs(), kind: 'manual' });
             } catch (e) {
                 console.error('[AudioConsole] activateWakeWord failed', e);
+                resetVisuals();
+                return;
             }
+            // wakesound handler sets listening for class=manual; set it here too as fallback
             setVisualState('listening');
             apStatus('Listening…', { busy: true });
-            // If the user never speaks, return to idle when the arm expires
             const ms = manualListenMs();
             setTimeout(() => {
                 if (visualState === 'listening' || visualState === 'wake') {
