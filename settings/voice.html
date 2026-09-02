@@ -493,6 +493,21 @@
             localStorage.setItem('ac41_ttsGreeting', document.getElementById('ttsGreetingToggle').checked ? 'true' : 'false');
         }
 
+        function saveContinuedConversation() {
+            const el = document.getElementById('continuedConversationToggle');
+            if (!el) return;
+            localStorage.setItem('ac41_continuedConversation', el.checked ? 'true' : 'false');
+        }
+
+        function saveContinuedMs() {
+            const el = document.getElementById('continuedMsBox');
+            if (!el) return;
+            const sec = parseFloat(el.value);
+            const ms = Math.max(3000, Math.min(30000, (isNaN(sec) ? 7 : sec) * 1000));
+            localStorage.setItem('ac41_continuedMs', String(ms));
+            el.value = String(Math.round(ms / 1000));
+        }
+
         function toggleXl() {
             const on = document.getElementById('xlToggle').checked;
             localStorage.setItem('ac41_xlEnabled', on ? 'true' : 'false');
