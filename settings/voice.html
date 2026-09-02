@@ -187,6 +187,18 @@
                             </div>
                             <p class="hint">On = needs “Hey Akari” (or mic button) first. Off = may transcribe more speech.</p>
                         </div>
+
+                        <div class="script-group">
+                            <span class="group-label">Wake response</span>
+                            <div class="row">
+                                <span>Say a greeting instead of summon sound</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="ttsGreetingToggle" onchange="saveTtsGreeting()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <p class="hint">When on, Akari randomly says “what’s up?”, “hey”, “hello”, “hi”, or “yeah?” with her TTS voice instead of playing Summon.mp3.</p>
+                        </div>
                     </div>
                 </details>
 
@@ -375,6 +387,8 @@
 
             document.getElementById('requireWakeToggle').checked = localStorage.getItem('ac41_requireWake') !== 'false';
 
+            document.getElementById('ttsGreetingToggle').checked = localStorage.getItem('ac41_ttsGreeting') === 'true';
+
             const xlOn = localStorage.getItem('ac41_xlEnabled') === 'true';
             document.getElementById('xlToggle').checked = xlOn;
             document.getElementById('xlOptions').style.display = xlOn ? 'block' : 'none';
@@ -455,6 +469,10 @@
 
         function saveRequireWake() {
             localStorage.setItem('ac41_requireWake', document.getElementById('requireWakeToggle').checked ? 'true' : 'false');
+        }
+
+        function saveTtsGreeting() {
+            localStorage.setItem('ac41_ttsGreeting', document.getElementById('ttsGreetingToggle').checked ? 'true' : 'false');
         }
 
         function toggleXl() {
