@@ -1,0 +1,406 @@
+atpk-name: akari-actions
+atpk-description: Parses StarSeries <action>/<action_input> tool calls and runs AkariNet tools with permission modes and turn limits
+
+!AUTOMATON
+name: akari-actions
+version: 1.0.0
+description: AkariNet Actions — tool-use for StarSeries models (enabled by default)
+priority: 90
+respondsto: assistant_response, message_sent
+controls: say, newwindow, bubble, GenerateResponse, respond
+code>
+module.exports.default = {
+  setup() {
+    const LS = {
+      enabled: 'akari_actions_enabled',
+      mode: 'akari_actions_mode',
+      maxTurns: 'akari_actions_max_turns',
+      stripTags: 'akari_actions_strip_tags'
+    };
+
+    function cfg() {
+      const enabled = localStorage.getItem(LS.enabled);
+      return {
+        enabled: enabled === null || enabled === '1' || enabled === 'true',
+        mode: (localStorage.getItem(LS.mode) || 'general').toLowerCase(),
+        maxTurns: Math.max(1, Math.min(20, parseInt(localStorage.getItem(LS.maxTurns) || '5', 10) || 5)),
+        stripTags: localStorage.getItem(LS.stripTags) !== '0'
+      };
+    }
+
+    const state = (window.__akariActionsState = window.__akariActionsState || {
+      turns: 0,
+      lastRequestId: null,
+      pendingConfirm: null,
+      running: false
+    });
+
+    const TOOLS = {
+      get_time: {
+        danger: false,
+        run: async () => 'The time is ' + new Date().toLocaleTimeString()
+      },
+      get_date: {
+        danger: false,
+        run: async () => 'The date is ' + new Date().toLocaleDateString()
+      },
+      get_battery: {
+        danger: false,
+        run: async () => {
+          if (!navigator.getBattery) return 'Battery API not available on this device.';
+          const b = await navigator.getBattery();
+          return 'Battery: ' + Math.round(b.level * 100) + '% (' + (b.charging ? 'charging' : 'not charging') + ')';
+        }
+      },
+      get_weather: {
+        danger: false,
+        run: async (input) => {
+          const loc = (input.match(/location:\s*(.+)/i) || [])[1] || 'current location';
+          if (typeof newwindow === 'function') newwindow('https://bing.com/search?q=' + encodeURIComponent('weather ' + loc));
+          return 'Opened weather search for: ' + loc;
+        }
+      },
+      get_news: {
+        danger: false,
+        run: async () => {
+          if (typeof newwindow === 'function') newwindow('https://news.google.com');
+          return 'Opened Google News.';
+        }
+      },
+      get_joke: {
+        danger: false,
+        run: async () => {
+          try {
+            const r = await fetch('https://official-joke-api.appspot.com/random_joke');
+            const j = await r.json();
+            return (j.setup || '') + ' ' + (j.punchline || '');
+          } catch (e) {
+            return 'Could not fetch a joke right now.';
+          }
+        }
+      },
+      web_search: {
+        danger: false,
+        run: async (input) => {
+          const q = (input.match(/(?:query|q):\s*(.+)/i) || input.match(/^(.+)$/))[1] || input;
+          if (typeof newwindow === 'function') newwindow('https://bing.com/search?q=' + encodeURIComponent(q.trim()));
+          return 'Searched the web for: ' + q.trim();
+        }
+      },
+      stock_price: {
+        danger: false,
+        run: async (input) => {
+          const sym = ((input.match(/symbol:\s*(\S+)/i) || [])[1] || input).trim();
+          if (typeof newwindow === 'function') newwindow('https://bing.com/search?q=' + encodeURIComponent(sym + ' stock price'));
+          return 'Opened stock lookup for ' + sym;
+        }
+      },
+      calculator: {
+        danger: false,
+        run: async (input) => {
+          const expr = (input.match(/(?:expression|expr):\s*(.+)/i) || [null, input])[1];
+          try {
+            const safe = String(expr).replace(/[^0-9+\-*/().%\s]/g, '');
+            const val = Function('"use strict"; return (' + safe + ')')();
+            return 'Result: ' + val;
+          } catch (e) {
+            if (typeof newwindow === 'function') newwindow('https://76836.github.io/webdesk/programs/calculator');
+            return 'Opened calculator (could not evaluate: ' + e.message + ')';
+          }
+        }
+      },
+      open_app: {
+        danger: false,
+        run: async (input) => {
+          const name = ((input.match(/(?:app|name):\s*(.+)/i) || [null, input])[1] || '').trim().toLowerCase();
+          if (name.includes('settings')) {
+            if (typeof newwindow === 'function') newwindow('./settings');
+            return 'Opened settings.';
+          }
+          if (name.includes('calculator')) {
+            if (typeof newwindow === 'function') newwindow('https://76836.github.io/webdesk/programs/calculator');
+            return 'Opened calculator.';
+          }
+          if (name.includes('actions')) {
+            if (typeof newwindow === 'function') newwindow('./settings/actions');
+            return 'Opened AkariNet Actions settings.';
+          }
+          if (typeof newwindow === 'function') newwindow('https://' + name.replace(/\s+/g, '') + '.com');
+          return 'Tried to open app: ' + name;
+        }
+      },
+      close_app: {
+        danger: false,
+        run: async () => {
+          try { window.close(); } catch (e) {}
+          return 'Attempted to close this window (may be blocked by the browser).';
+        }
+      },
+      set_reminder: {
+        danger: false,
+        run: async (input) => {
+          const text = ((input.match(/(?:text|message):\s*(.+)/i) || [null, input])[1] || '').trim();
+          const list = JSON.parse(localStorage.getItem('akari_reminders') || '[]');
+          list.push({ text, at: Date.now(), id: Math.random().toString(36).slice(2, 9) });
+          localStorage.setItem('akari_reminders', JSON.stringify(list.slice(-50)));
+          if (typeof showNotification === 'function') showNotification('Reminder', text);
+          return 'Reminder saved: ' + text;
+        }
+      },
+      get_sports: {
+        danger: false,
+        run: async (input) => {
+          const q = input || 'sports scores';
+          if (typeof newwindow === 'function') newwindow('https://bing.com/search?q=' + encodeURIComponent(q));
+          return 'Opened sports search.';
+        }
+      },
+      translate: {
+        danger: false,
+        run: async (input) => {
+          const text = ((input.match(/(?:text|q):\s*(.+)/i) || [null, input])[1] || '').trim();
+          if (typeof newwindow === 'function') newwindow('https://translate.google.com/?sl=auto&tl=en&text=' + encodeURIComponent(text));
+          return 'Opened translator for: ' + text.slice(0, 120);
+        }
+      },
+      youtube: {
+        danger: false,
+        run: async (input) => {
+          const q = ((input.match(/(?:query|q|video):\s*(.+)/i) || [null, input])[1] || '').trim();
+          if (typeof newwindow === 'function') newwindow('https://www.youtube.com/results?search_query=' + encodeURIComponent(q));
+          return 'Searching YouTube for: ' + q;
+        }
+      },
+      media_control: {
+        danger: false,
+        run: async (input) => {
+          return 'Media control requested (' + (input || 'no args') + '). No system media session bound — use device controls.';
+        }
+      },
+      lights_control: {
+        danger: false,
+        run: async (input) => 'Smart light command noted: ' + (input || '') + '. No Hue/Nest bridge configured in this browser session.'
+      },
+      thermostat_control: {
+        danger: false,
+        run: async (input) => 'Thermostat command noted: ' + (input || '') + '. No smart thermostat linked.'
+      },
+      garage_door_control: {
+        danger: true,
+        run: async (input) => 'Garage door command blocked unless unlimited mode — safety. Input: ' + (input || '')
+      },
+      tool_search: {
+        danger: false,
+        run: async (input) => {
+          const keys = Object.keys(TOOLS);
+          const kw = ((input.match(/keywords?:\s*(.+)/i) || [null, input])[1] || '').toLowerCase();
+          const hits = kw ? keys.filter((k) => k.includes(kw.replace(/\s+/g, '_'))) : keys;
+          return 'Available tools (' + hits.length + '): ' + hits.slice(0, 40).join(', ') + (hits.length > 40 ? '…' : '');
+        }
+      },
+      present_html: {
+        danger: true,
+        run: async (input) => {
+          let html = input;
+          const m = input.match(/(?:html|content):\s*([\s\S]+)/i);
+          if (m) html = m[1];
+          html = html.replace(/^```(?:html)?\s*/i, '').replace(/```\s*$/,'');
+          const w = window.open('', '_blank', 'noopener,noreferrer,width=720,height=640');
+          if (!w) return 'Popup blocked — allow popups to present HTML.';
+          w.document.open();
+          w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Akari present_html</title></head><body>' + html + '</body></html>');
+          w.document.close();
+          return 'Presented HTML page in a new window.';
+        }
+      },
+      eval_js: {
+        danger: true,
+        run: async (input) => {
+          let code = input;
+          const m = input.match(/(?:code|js|javascript):\s*([\s\S]+)/i);
+          if (m) code = m[1];
+          code = code.replace(/^```(?:js|javascript)?\s*/i, '').replace(/```\s*$/,'');
+          try {
+            const result = await Promise.resolve(Function('"use strict"; return (async () => { ' + code + '\n })()')());
+            return 'eval_js result: ' + String(result);
+          } catch (e) {
+            return 'eval_js error: ' + (e && e.message ? e.message : e);
+          }
+        }
+      },
+      bash: {
+        danger: true,
+        run: async (input) => {
+          return 'bash is not available inside the browser sandbox. Request: ' + (input || '').slice(0, 200);
+        }
+      },
+      clear_logs: {
+        danger: true,
+        run: async () => {
+          console.clear();
+          return 'Console cleared.';
+        }
+      }
+    };
+
+    // aliases
+    TOOLS.get_price = TOOLS.stock_price;
+    TOOLS.search = TOOLS.web_search;
+    TOOLS.solve = TOOLS.calculator;
+    TOOLS.open_url = {
+      danger: false,
+      run: async (input) => {
+        let url = ((input.match(/url:\s*(\S+)/i) || [null, input])[1] || '').trim();
+        if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+        if (typeof newwindow === 'function') newwindow(url);
+        else window.open(url, '_blank', 'noopener,noreferrer');
+        return 'Opened ' + url;
+      }
+    };
+    TOOLS.factory_reset = {
+      danger: true,
+      run: async () => 'factory_reset refused — use Settings → reset manually.'
+    };
+
+    function parseActions(text) {
+      if (!text || typeof text !== 'string') return [];
+      const found = [];
+      const re = /<action>\s*([^<]+?)\s*<\/action>\s*(?:<action_input>([\s\S]*?)<\/action_input>)?/gi;
+      let m;
+      while ((m = re.exec(text)) !== null) {
+        found.push({ name: m[1].trim(), input: (m[2] || '').trim() });
+      }
+      // unclosed action_input
+      if (!found.length) {
+        const m2 = text.match(/<action>\s*([^<]+?)\s*<\/action>/i);
+        if (m2) {
+          const rest = text.slice(text.toLowerCase().indexOf('<action_input>') + 14);
+          found.push({ name: m2[1].trim(), input: rest.replace(/<\/action_input>[\s\S]*$/i, '').trim() });
+        }
+      }
+      return found;
+    }
+
+    function needsConfirm(tool, mode) {
+      if (mode === 'unlimited') return false;
+      if (mode === 'strict') return true;
+      // general
+      return !!(tool && tool.danger);
+    }
+
+    function confirmAction(name, input) {
+      const preview = (input || '').slice(0, 160);
+      return window.confirm(
+        'Akari wants to run tool:\n\n' + name + (preview ? '\n\nInput: ' + preview : '') + '\n\nAllow?'
+      );
+    }
+
+    async function executeOne(name, input, mode) {
+      const key = String(name || '').trim().toLowerCase().replace(/\s+/g, '_');
+      const tool = TOOLS[key];
+      if (!tool) {
+        return 'Unknown tool "' + name + '". Use tool_search to list tools.';
+      }
+      if (needsConfirm(tool, mode)) {
+        if (!confirmAction(key, input)) return 'User denied tool: ' + key;
+      }
+      try {
+        return await tool.run(input || '');
+      } catch (e) {
+        return 'Tool error (' + key + '): ' + (e && e.message ? e.message : e);
+      }
+    }
+
+    function feedToolResponse(results) {
+      const body = results
+        .map((r) => '<tool_response>\n' + r + '\n</tool_response>')
+        .join('\n');
+      // Visible note in chat
+      if (typeof bubble === 'function') {
+        try {
+          bubble('<i style="opacity:.75">[tool] ' + results.map((r) => String(r).slice(0, 120)).join(' | ') + '</i>');
+        } catch (e) {}
+      }
+      // Continue model turn
+      if (typeof GenerateResponse === 'function') {
+        GenerateResponse(body);
+      } else if (typeof respond === 'function') {
+        respond(body);
+      } else if (typeof say === 'function') {
+        say(body);
+      }
+    }
+
+    async function handleAssistantText(text) {
+      const c = cfg();
+      if (!c.enabled || state.running) return;
+      const actions = parseActions(text);
+      if (!actions.length) {
+        state.turns = 0;
+        return;
+      }
+      if (state.turns >= c.maxTurns) {
+        if (typeof bubble === 'function') {
+          bubble('<i>AkariNet Actions: reached ' + c.maxTurns + ' autonomous turns. Say something to continue.</i>');
+        }
+        state.turns = 0;
+        return;
+      }
+      state.running = true;
+      state.turns += 1;
+      try {
+        const results = [];
+        for (const a of actions) {
+          const out = await executeOne(a.name, a.input, c.mode);
+          results.push(a.name + ': ' + out);
+        }
+        feedToolResponse(results);
+      } finally {
+        state.running = false;
+      }
+    }
+
+    // Primary hook: AI finished a reply (index.html say() emits raw + stripped text)
+    on('assistant_response', (event) => {
+      const text = (event && (event.raw || event.text || event.message)) || '';
+      // Defer so bubble/TTS can finish first
+      setTimeout(() => handleAssistantText(text), 30);
+    });
+
+    // Fallback if a provider calls say before emit is wired
+    if (!window.__akariActionsSayHook && typeof window.say === 'function') {
+      const prevSay = window.say;
+      window.say = function (text) {
+        const ret = prevSay.apply(this, arguments);
+        // Only handle if assistant_response will not fire (no app.core.say)
+        if (!window.app || !window.app.core || !window.app.core.say) {
+          setTimeout(() => handleAssistantText(text), 30);
+        }
+        return ret;
+      };
+      window.__akariActionsSayHook = true;
+    }
+
+    // User speech resets autonomous turn budget
+    on('message_sent', () => {
+      state.turns = 0;
+    });
+
+    window.AkariActions = {
+      tools: TOOLS,
+      parseActions,
+      cfg,
+      state,
+      run: executeOne
+    };
+
+    if (typeof log === 'function') log('info', 'akari-actions automaton ready');
+  },
+
+  teardown() {
+    try {
+      delete window.AkariActions;
+    } catch (e) {}
+  }
+};
+<code

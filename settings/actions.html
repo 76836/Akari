@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AkariNet Actions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg:#0b0f14; --card:#121821; --text:#e8eef7; --muted:#9aa7b8; --accent:#7c5cff; --line:#243041; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--text); padding:16px; }
+    h1 { font-family: Orbitron, sans-serif; font-size:1.2rem; margin:0 0 8px; }
+    .sub { color:var(--muted); font-size:13px; margin-bottom:16px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:12px; }
+    .row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:10px 0; flex-wrap:wrap; }
+    label { color:var(--muted); font-size:14px; }
+    select, input[type=number] { background:#0e141c; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
+    .hint { font-size:12px; color:var(--muted); line-height:1.45; margin-top:6px; }
+    .back { display:inline-block; margin-bottom:14px; color:#c4b5fd; text-decoration:none; }
+    .ok { color:#4ade80; font-size:13px; }
+    code { background:#0e141c; padding:1px 5px; border-radius:4px; font-size:12px; }
+    .switch { position:relative; width:46px; height:26px; }
+    .switch input { opacity:0; width:0; height:0; }
+    .slider { position:absolute; inset:0; background:#334155; border-radius:999px; cursor:pointer; transition:.2s; }
+    .slider:before { content:""; position:absolute; height:20px; width:20px; left:3px; top:3px; background:white; border-radius:50%; transition:.2s; }
+    input:checked + .slider { background:var(--accent); }
+    input:checked + .slider:before { transform:translateX(20px); }
+  </style>
+</head>
+<body>
+  <a class="back" href="./">← Settings</a>
+  <h1>AkariNet Actions</h1>
+  <p class="sub">Let StarSeries models call tools with <code>&lt;action&gt;</code> / <code>&lt;action_input&gt;</code> tags. Runs as the <b>akari-actions</b> automaton (on by default).</p>
+
+  <div class="card">
+    <div class="row">
+      <span>Enable Actions</span>
+      <label class="switch">
+        <input type="checkbox" id="enabled" checked />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <p class="hint">When off, action tags in replies are ignored.</p>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <label for="mode">Permission mode</label>
+      <select id="mode">
+        <option value="strict">Strict — confirm every tool</option>
+        <option value="general" selected>General — confirm dangerous tools only</option>
+        <option value="unlimited">Unlimited — no confirms</option>
+      </select>
+    </div>
+    <p class="hint">
+      <b>Strict:</b> confirm all tools.<br>
+      <b>General:</b> auto-run safe tools (time, search, weather…); confirm <code>eval_js</code>, <code>present_html</code>, <code>bash</code>, garage, etc.<br>
+      <b>Unlimited:</b> Akari can run any registered tool without asking.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <label for="maxTurns">Max autonomous turns</label>
+      <input type="number" id="maxTurns" min="1" max="20" value="5" style="width:72px" />
+    </div>
+    <p class="hint">After this many tool→model loops, Actions stops until you send a message (default 5).</p>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <span>Strip action tags from speech path</span>
+      <label class="switch">
+        <input type="checkbox" id="stripTags" checked />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <p class="hint">Tools still run; tags are mainly for the model protocol.</p>
+  </div>
+
+  <div class="card">
+    <button id="save" style="background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer">Save</button>
+    <span id="status" class="ok" style="margin-left:10px"></span>
+    <p class="hint" style="margin-top:12px">Built-in tools include: get_time, get_date, get_weather, web_search, calculator, open_app, set_reminder, present_html, eval_js, tool_search, and more. List them in chat with a model call to <code>tool_search</code>.</p>
+  </div>
+
+  <script>
+    const keys = {
+      enabled: 'akari_actions_enabled',
+      mode: 'akari_actions_mode',
+      maxTurns: 'akari_actions_max_turns',
+      stripTags: 'akari_actions_strip_tags'
+    };
+    function load() {
+      const en = localStorage.getItem(keys.enabled);
+      document.getElementById('enabled').checked = en === null || en === '1' || en === 'true';
+      document.getElementById('mode').value = localStorage.getItem(keys.mode) || 'general';
+      document.getElementById('maxTurns').value = localStorage.getItem(keys.maxTurns) || '5';
+      document.getElementById('stripTags').checked = localStorage.getItem(keys.stripTags) !== '0';
+    }
+    function save() {
+      localStorage.setItem(keys.enabled, document.getElementById('enabled').checked ? '1' : '0');
+      localStorage.setItem(keys.mode, document.getElementById('mode').value);
+      localStorage.setItem(keys.maxTurns, String(document.getElementById('maxTurns').value || 5));
+      localStorage.setItem(keys.stripTags, document.getElementById('stripTags').checked ? '1' : '0');
+      document.getElementById('status').textContent = 'Saved';
+      setTimeout(() => { document.getElementById('status').textContent = ''; }, 2000);
+    }
+    load();
+    document.getElementById('save').onclick = save;
+  </script>
+</body>
+</html>

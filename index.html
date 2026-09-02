@@ -485,10 +485,20 @@
         const loader = new AutomatonLoader();
         window.automatonLoader = loader;
         const defaultUrl = 'https://76836.github.io/AkariNet-Automata/demo.atpk';
+        const actionsUrl = new URL('./engine/akari-actions.atpk', window.location.href).href;
         let urls = [], blacklist = [];
         try { urls = JSON.parse(localStorage.getItem('akari:automata_urls') || '[]'); if (!Array.isArray(urls)) urls = []; } catch { urls = []; }
         try { blacklist = JSON.parse(localStorage.getItem('akari:automata_blacklist') || '[]'); if (!Array.isArray(blacklist)) blacklist = []; } catch { blacklist = []; }
-        if (urls.length === 0) { urls = [defaultUrl]; localStorage.setItem('akari:automata_urls', JSON.stringify(urls)); }
+        if (urls.length === 0) { urls = [defaultUrl]; }
+        // Pre-install AkariNet Actions (enabled by default; user can blacklist in Automata Manager)
+        if (!urls.includes(actionsUrl) && !urls.some(u => String(u).includes('akari-actions.atpk'))) {
+            urls = [actionsUrl].concat(urls);
+        }
+        localStorage.setItem('akari:automata_urls', JSON.stringify(urls));
+        // Default Actions settings if unset
+        if (localStorage.getItem('akari_actions_enabled') === null) localStorage.setItem('akari_actions_enabled', '1');
+        if (localStorage.getItem('akari_actions_mode') === null) localStorage.setItem('akari_actions_mode', 'general');
+        if (localStorage.getItem('akari_actions_max_turns') === null) localStorage.setItem('akari_actions_max_turns', '5');
         loader.setAutomataUrls(urls);
         loader.setBlacklist(blacklist);
         if (window.AkariAutopilot) AkariAutopilot.beginDownload('Loading Automata…');
@@ -776,9 +786,18 @@ if ('serviceWorker' in navigator) {
                 say: (text) => {
                     app.ui.setTyping(null);
                     const parsed = app.core.parseThinking(text);
-                    const answer = parsed.answer || text;
-                    window.bubble(text);
-                    window.emit('assistant_response', { text: answer, thinking: parsed.thinking || null, timestamp: Date.now() });
+                    let answer = parsed.answer || text;
+                    const raw = String(text || '');
+                    // Strip tool protocol tags from visible/spoken text (tools still see raw via emit)
+                    if (localStorage.getItem('akari_actions_strip_tags') !== '0') {
+                        answer = answer
+                            .replace(/<action>[\s\S]*?<\/action>/gi, '')
+                            .replace(/<action_input>[\s\S]*?<\/action_input>/gi, '')
+                            .replace(/<tool_response>[\s\S]*?<\/tool_response>/gi, '')
+                            .trim() || answer;
+                    }
+                    window.bubble(raw);
+                    window.emit('assistant_response', { text: answer, raw: raw, thinking: parsed.thinking || null, timestamp: Date.now() });
                     app.notify('Akari', answer, { borderColors: ['#A020F0', '#00FF00'] });
                     window.emote(answer);
                     if (!app.isSilentMode) window.speak(answer);
