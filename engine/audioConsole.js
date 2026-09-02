@@ -24,9 +24,12 @@
         wakesoundURL: ls('ac41_tmUrl', 'https://teachablemachine.withgoogle.com/models/SwNFRUBwu/'),
         wakesoundThreshold: wakeThreshold,
         wakesoundIndex: 2,
-        wakesoundDuration: 2750,
+        wakesoundDuration: 8000,
         wakesoundDelay: 5000,
+        manualListenMs: lsNum('ac41_manualListenMs', 12000),
         requireWakeSound: lsBool('ac41_requireWake', true),
+        continuedConversation: lsBool('ac41_continuedConversation', false),
+        continuedMs: lsNum('ac41_continuedMs', 7000),
 
         speechRecognitionProvider: ls('ac41_srProvider', 'transformers'),
         modelId: ls('ac41_transformersModel', 'onnx-community/moonshine-base-ONNX'),
@@ -192,6 +195,61 @@
     }
 
     let voiceInstance = null;
+    let processingSafetyTimer = null;
+    let continuedArmTimer = null;
+    let continuedEnabled = () => lsBool('ac41_continuedConversation', false);
+    let continuedMs = () => lsNum('ac41_continuedMs', 7000);
+    let manualListenMs = () => lsNum('ac41_manualListenMs', 12000);
+
+    function clearProcessingSafety() {
+        if (processingSafetyTimer) {
+            clearTimeout(processingSafetyTimer);
+            processingSafetyTimer = null;
+        }
+    }
+
+    function armProcessingSafety(ms) {
+        clearProcessingSafety();
+        processingSafetyTimer = setTimeout(() => {
+            processingSafetyTimer = null;
+            console.warn('[AudioConsole] Processing safety timeout — forcing cancel');
+            if (voiceInstance && typeof voiceInstance.cancelProcessing === 'function') {
+                voiceInstance.cancelProcessing();
+            } else if (voiceInstance) {
+                voiceInstance._isProcessing = false;
+                try { voiceInstance.dispatchEvent(new Event('processingend')); } catch (_) {}
+            }
+            resetVisuals();
+            apStatus('Listening timed out', { busy: false, idle: true });
+        }, ms || 15000);
+    }
+
+    /** Re-arm listening without wake word (Google Home style continued conversation). */
+    function armContinuedListen() {
+        if (!continuedEnabled()) return;
+        if (!voiceInstance) return;
+        const ms = continuedMs();
+        if (continuedArmTimer) clearTimeout(continuedArmTimer);
+        // Small delay so we don't capture Akari's own TTS tail
+        continuedArmTimer = setTimeout(() => {
+            continuedArmTimer = null;
+            if (!continuedEnabled() || !voiceInstance) return;
+            try {
+                voiceInstance.activateWakeWord({ listenMs: ms, kind: 'continued' });
+                setVisualState('listening');
+                apStatus('Continued listening…', { busy: true });
+                // Auto-idle if nothing is said within the window
+                setTimeout(() => {
+                    if (visualState === 'listening' || visualState === 'wake') {
+                        resetVisuals();
+                    }
+                }, ms + 400);
+            } catch (e) {
+                console.warn('[AudioConsole] continued arm failed', e);
+            }
+        }, 600);
+    }
+
 
     function injectGreenDot() {
         if (!config.xlCache || !config.xlCache.enabled) return;
@@ -341,25 +399,51 @@
         setVisualState('listening');
         pulseVrmWake('audioConsole-speechstart');
     });
-    window.addEventListener('audioConsoleSpeechEnd', () => setVisualState('processing'));
+    // Don't flip to Processing on speechend alone — wait for real 'processing'
+    // (avoids stuck UI when the utterance is discarded before ASR runs).
+    window.addEventListener('audioConsoleSpeechEnd', () => {
+        if (visualState === 'listening' || visualState === 'wake') {
+            apStatus('Speech ended…', { busy: true });
+        }
+    });
     window.addEventListener('audioConsoleProcessing', () => {
         if (visualState !== 'result') setVisualState('processing');
+        armProcessingSafety(15000);
     });
     window.addEventListener('audioConsoleResult', (e) => {
+        clearProcessingSafety();
         if (window.app) app.isSilentMode = false;
         if (window.bubble_incoming) window.bubble_incoming(e.detail.text);
         if (window.app?.ui?.setTyping) app.ui.setTyping('Akari');
         if (window.respond) window.respond(e.detail.text);
         setVisualState('result');
         pulseVrmWake('audioConsole-result');
+        // Continued conversation is armed after TTS finishes (see speak wrap below).
+        // Fallback: if silent mode / no TTS, arm shortly after result.
+        if (continuedEnabled()) {
+            setTimeout(() => {
+                if (window.app?.isSilentMode || typeof window.speak !== 'function') {
+                    armContinuedListen();
+                }
+            }, 1200);
+        }
     });
-    window.addEventListener('audioConsoleSpeechDiscarded', () => resetVisuals());
+    window.addEventListener('audioConsoleSpeechDiscarded', () => {
+        clearProcessingSafety();
+        resetVisuals();
+    });
     window.addEventListener('audioConsoleProcessingEnd', () => {
+        clearProcessingSafety();
         if (visualState === 'processing') resetVisuals();
     });
     window.addEventListener('audioConsoleError', (e) => {
         console.error('Audio Console Error:', e.detail);
+        clearProcessingSafety();
         apDownloadEnd('Audio Console error');
+        const v = window.__ac41Voice || voiceInstance;
+        if (v && typeof v.cancelProcessing === 'function') {
+            try { v.cancelProcessing(); } catch (_) {}
+        }
         resetVisuals();
         if (window.app?.notify) {
             app.notify('AkariNet', 'Audio Console error: ' + e.detail, {
@@ -368,14 +452,84 @@
         }
     });
 
-    if (!window.whisperTranscriber) {
-        window.whisperTranscriber = {
-            start: function () {
-                if (window.__ac41Voice) window.__ac41Voice.activateWakeWord();
-            },
-            stop: function () {}
-        };
-    }
+    // Always install / upgrade the bridge so stop() can unstick Processing...
+    window.whisperTranscriber = {
+        start: function () {
+            const v = window.__ac41Voice || voiceInstance;
+            if (!v) return;
+            clearProcessingSafety();
+            try {
+                v.activateWakeWord({ listenMs: manualListenMs(), kind: 'manual' });
+            } catch (e) {
+                console.error('[AudioConsole] activateWakeWord failed', e);
+            }
+            setVisualState('listening');
+            apStatus('Listening…', { busy: true });
+            // If the user never speaks, return to idle when the arm expires
+            const ms = manualListenMs();
+            setTimeout(() => {
+                if (visualState === 'listening' || visualState === 'wake') {
+                    resetVisuals();
+                }
+            }, ms + 500);
+        },
+        stop: function () {
+            clearProcessingSafety();
+            if (continuedArmTimer) {
+                clearTimeout(continuedArmTimer);
+                continuedArmTimer = null;
+            }
+            const v = window.__ac41Voice || voiceInstance;
+            if (v && typeof v.cancelProcessing === 'function') {
+                v.cancelProcessing();
+            } else if (v) {
+                v._isProcessing = false;
+                v.wakeSoundDetectedTime = null;
+                v._armUntil = 0;
+                try { v.dispatchEvent(new Event('processingend')); } catch (_) {}
+            }
+            resetVisuals();
+            apStatus('Audio Console idle', { busy: false, idle: true });
+        }
+    };
+
+    // Hook TTS completion so continued conversation starts after Akari finishes speaking
+    (function wrapSpeakForContinued() {
+        function install() {
+            if (typeof window.speak !== 'function') return false;
+            if (window.speak.__ac41ContinuedWrapped) return true;
+            const orig = window.speak;
+            window.speak = function ac41SpeakWrapped(text) {
+                const ret = orig.apply(this, arguments);
+                // Prefer Audio element / utterance end; also use a generous fallback.
+                let armed = false;
+                const armOnce = () => {
+                    if (armed) return;
+                    armed = true;
+                    armContinuedListen();
+                };
+                try {
+                    // PocketTTS / KittenTTS often use Web Audio; listen for a custom event if fired
+                    const onEnd = () => armOnce();
+                    window.addEventListener('akari:tts-end', onEnd, { once: true });
+                    // Fallback timing based on text length (~16 chars/sec) + margin
+                    const approxMs = Math.min(60000, Math.max(1500, String(text || '').length * 60 + 800));
+                    setTimeout(armOnce, approxMs);
+                } catch (_) {
+                    setTimeout(armOnce, 3000);
+                }
+                return ret;
+            };
+            window.speak.__ac41ContinuedWrapped = true;
+            return true;
+        }
+        if (!install()) {
+            let tries = 0;
+            const t = setInterval(() => {
+                if (install() || ++tries > 40) clearInterval(t);
+            }, 500);
+        }
+    })();
 
     if (window.loadscreen) window.loadscreen('AkariNet Audio Console v4.1.1 starting up...');
     if (document.readyState === 'loading') {
