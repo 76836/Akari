@@ -162,9 +162,11 @@
                         <div class="script-group">
                             <span class="group-label">Reflex engine</span>
                             <p class="hint">Handles short, instant commands before the full AI runs.</p>
-                            <button class="setbutton" onclick="setReflexVal('./characters/akari/response.js')">Akari reflexes (default)</button>
+                            <p class="hint">With <b>AI Horde</b> or <b>llama.cpp</b>, reflexes stay <b>off</b> by default so StarSeries Actions and the model handle tools. Turn reflexes on only if you want keyword shortcuts.</p>
+                            <button class="setbutton" onclick="setReflexVal('off')">Off (recommended with Horde / llama.cpp)</button>
+                            <button class="setbutton" onclick="setReflexVal('./characters/akari/response.js')">Akari reflexes</button>
                             <button class="setbutton" onclick="setReflexVal('./engine/automataAsReflex.js')">Automata reflexes</button>
-                            <input class="box" id="reflexurl" type="text" placeholder="Script path">
+                            <input class="box" id="reflexurl" type="text" placeholder="Script path or off">
                             <button class="setbutton primary" onclick="setreflex()">Save reflexes</button>
                         </div>
                     </div>
@@ -236,16 +238,31 @@
             setTimeout(() => { btn.innerText = t; }, 1600);
         }
 
-        function setAIVal(v) { document.getElementById('AIurl').value = v; }
+        function setAIVal(v) {
+            document.getElementById('AIurl').value = v;
+            if (/aiHorde\.js|lcpp\.js/i.test(v)) {
+                document.getElementById('reflexurl').value = 'off';
+            }
+        }
         function setReflexVal(v) { document.getElementById('reflexurl').value = v; }
 
         function setAI() {
-            localStorage.setItem('selectedAIScript', document.getElementById('AIurl').value);
+            var path = document.getElementById('AIurl').value;
+            localStorage.setItem('selectedAIScript', path);
+            // Actions-compatible providers: disable reflex by default
+            if (/aiHorde\.js|lcpp\.js/i.test(path)) {
+                localStorage.setItem('selectedReflexScript', 'off');
+                var r = document.getElementById('reflexurl');
+                if (r) r.value = 'off';
+            }
             flash(event.target);
         }
 
         function setreflex() {
-            localStorage.setItem('selectedReflexScript', document.getElementById('reflexurl').value);
+            var v = (document.getElementById('reflexurl').value || '').trim();
+            localStorage.setItem('selectedReflexScript', v || 'off');
+            if (v && v !== 'off' && v !== 'none') localStorage.setItem('akari_reflex_force', '1');
+            else localStorage.removeItem('akari_reflex_force');
             flash(event.target);
         }
 

@@ -543,7 +543,20 @@ if ('serviceWorker' in navigator) {
                     voice: localStorage.getItem('selectedVoiceScript'),
                     avatar: localStorage.getItem('selectedAvatarScript'),
                     ai: localStorage.getItem('selectedAIScript') || './characters/akari/pollinations.js',
-                    reflex: localStorage.getItem('selectedReflexScript') || './characters/akari/response.js',
+                    // Actions-compatible providers (Horde, llama.cpp): reflex off by default
+                    reflex: (function () {
+                        var ai = localStorage.getItem('selectedAIScript') || '';
+                        var reflex = localStorage.getItem('selectedReflexScript');
+                        var actionsAI = /aiHorde\.js|lcpp\.js/i.test(ai);
+                        var stock = './characters/akari/response.js';
+                        if (reflex === 'off' || reflex === 'none' || reflex === '') return 'off';
+                        // Horde / llama.cpp: stock reflex off unless user forced it back on
+                        if (actionsAI && localStorage.getItem('akari_reflex_force') !== '1') {
+                            if (!reflex || reflex === stock) return 'off';
+                        }
+                        if (reflex) return reflex;
+                        return stock;
+                    })(),
                     whisper: localStorage.getItem('selectedWhisperScript') || './engine/web-speech-recognition.js',
                     wake: localStorage.getItem('selectedWakeScript') || './characters/akari/wake.js',
                     aim: localStorage.getItem('selectedAIMScript') || 'off',
@@ -751,6 +764,8 @@ if ('serviceWorker' in navigator) {
                         return;
                     }
                     if (window.respond) window.respond(val);
+                    else if (typeof GenerateResponse === 'function') GenerateResponse(val);
+                    else app.core.say("No AI or reflex engine is loaded. Open Settings → Intelligence.");
                 },
 
                 parseThinking: (raw) => {
