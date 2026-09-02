@@ -179,7 +179,13 @@
         wakeAudio.preload = 'auto';
         wakeAudio.volume = 1.0;
     }
+    const WAKE_GREETINGS = ["what's up?", "hey", "hello", "hi", "yeah?"];
     function playWakeSound() {
+        if (lsBool('ac41_ttsGreeting', false) && typeof window.speak === 'function') {
+            const phrase = WAKE_GREETINGS[Math.floor(Math.random() * WAKE_GREETINGS.length)];
+            try { window.speak(phrase); } catch (e) { console.log('Wake TTS greeting failed:', e); }
+            return;
+        }
         if (!wakeAudio) return;
         wakeAudio.currentTime = 0;
         wakeAudio.play().catch(err => console.log('Wake sound playback failed:', err));
