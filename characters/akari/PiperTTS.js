@@ -1,12 +1,15 @@
 /**
  * PiperTTS loader + lipsync playback tap.
- * Engine lives at https://76836.github.io/AkariNet-PiperTTS/
- * Upload model.onnx + WASM/phonemizer binaries to that repo first.
+ * Engine runtime assets live at https://76836.github.io/AkariNet-PiperTTS/
+ * The voice model is hosted on Hugging Face.
  */
 (function () {
     'use strict';
 
     window._speechQueue = window._speechQueue || [];
+
+    var BASE = 'https://76836.github.io/AkariNet-PiperTTS/';
+    var MODEL_URL = 'https://huggingface.co/76836-HW/AkariNet-PiperTTS/resolve/main/model.onnx';
 
     function ensureLipsync() {
         if (window.AkariLipsync) return Promise.resolve();
@@ -19,169 +22,28 @@
         });
     }
 
-    // Minimal Piper engine that matches the speak/interrupt surface of Kitten/Pocket
-    function createPiperEngine(baseUrl) {
-        var BASE = baseUrl.replace(/\/$/, '') + '/';
-        var config = null;
-        var worker = null;
-        var ready = false;
-        var audioCtx = null;
-        var queue = [];
-        var playing = false;
-        var interrupted = false;
-
-        var INFERENCE = { noise_scale: 0.667, noise_w: 0.8 };
-
-        function encodeWav(samples, sampleRate) {
-            var buf = new ArrayBuffer(44 + samples.length * 2);
-            var v = new DataView(buf);
-            function str(o, s) { for (var i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); }
-            str(0, 'RIFF'); v.setUint32(4, 36 + samples.length * 2, true);
-            str(8, 'WAVE'); str(12, 'fmt ');
-            v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
-            v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate * 2, true);
-            v.setUint16(32, 2, true); v.setUint16(34, 16, true);
-            str(36, 'data'); v.setUint32(40, samples.length * 2, true);
-            for (var i = 0, o = 44; i < samples.length; i++, o += 2) {
-                var s = Math.max(-1, Math.min(1, samples[i]));
-                v.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-            }
-            return buf;
+    function encodeWav(samples, sampleRate) {
+        var buf = new ArrayBuffer(44 + samples.length * 2);
+        var v = new DataView(buf);
+        function str(o, s) { for (var i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); }
+        str(0, 'RIFF'); v.setUint32(4, 36 + samples.length * 2, true);
+        str(8, 'WAVE'); str(12, 'fmt ');
+        v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+        v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate * 2, true);
+        v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+        str(36, 'data'); v.setUint32(40, samples.length * 2, true);
+        for (var i = 0, o = 44; i < samples.length; i++, o += 2) {
+            var s = Math.max(-1, Math.min(1, samples[i]));
+            v.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7fff, true);
         }
-
-        function ensureCtx() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: (config && config.audio && config.audio.sample_rate) || 22050 });
-            if (audioCtx.state === 'suspended') return audioCtx.resume();
-            return Promise.resolve();
-        }
-
-        function playNext() {
-            if (playing || queue.length === 0) return;
-            playing = true;
-            var item = queue.shift();
-            var source = audioCtx.createBufferSource();
-            source.buffer = item;
-
-            var finish = function () {
-                playing = false;
-                setTimeout(playNext, 200);
-            };
-
-            if (window.AkariLipsync) {
-                window.AkariLipsync.playThrough(audioCtx, source, finish);
-            } else {
-                source.connect(audioCtx.destination);
-                source.onended = finish;
-            }
-            source.start();
-        }
-
-        async function init() {
-            var cfgRes = await fetch(BASE + 'config.json');
-            config = await cfgRes.json();
-
-            worker = new Worker(BASE + 'worker.js');
-
-            var modelRes = await fetch(BASE + 'https://huggingface.co/76836-HW/AkariNet-PiperTTS/resolve/main/model.onnx');
-            var modelBytes = await modelRes.arrayBuffer();
-
-            await new Promise(function (resolve, reject) {
-                var handler = function (e) {
-                    if (e.data.type === 'ready') { worker.removeEventListener('message', handler); resolve(); }
-                    else if (e.data.type === 'error') { worker.removeEventListener('message', handler); reject(new Error(e.data.message)); }
-                };
-                worker.addEventListener('message', handler);
-                worker.postMessage({ type: 'init', modelBytes: modelBytes, config: config }, [modelBytes]);
-            });
-
-            worker.onmessage = function (e) {
-                var d = e.data;
-                if (d.type === 'chunk') {
-                    var samples = new Float32Array(d.audio);
-                    var wav = encodeWav(samples, config.audio.sample_rate);
-                    // Decode WAV into AudioBuffer for lipsync compatibility
-                    audioCtx.decodeAudioData(wav.slice(0)).then(function (buf) {
-                        if (!interrupted) {
-                            queue.push(buf);
-                            playNext();
-                        }
-                    }).catch(function () {
-                        // fallback: create buffer directly
-                        var buf = audioCtx.createBuffer(1, samples.length, config.audio.sample_rate);
-                        buf.copyToChannel(samples, 0);
-                        if (!interrupted) {
-                            queue.push(buf);
-                            playNext();
-                        }
-                    });
-                }
-            };
-
-            ready = true;
-            console.log('[PiperTTS] Ready');
-        }
-
-        return {
-            get isReady() { return ready; },
-            ready: null, // filled below
-            speak: function (text) {
-                if (!ready) {
-                    window._speechQueue.push(text);
-                    return;
-                }
-                interrupted = false;
-                ensureCtx().then(function () {
-                    worker.postMessage({
-                        type: 'speak',
-                        text: text,
-                        lengthScale: 1.0,
-                        noise_scale: INFERENCE.noise_scale,
-                        noise_w: INFERENCE.noise_w
-                    });
-                });
-            },
-            interrupt: function () {
-                interrupted = true;
-                queue = [];
-                playing = false;
-                if (worker) worker.postMessage({ type: 'stop' });
-                if (window.AkariLipsync) window.AkariLipsync.reset();
-            }
-        };
+        return buf;
     }
-
-    window.speak = function (text) {
-        if (window.tts && window.tts.isReady) {
-            window.tts.speak(text);
-        } else {
-            window._speechQueue.push(text);
-        }
-    };
-
-    window.interruptTTS = function () {
-        if (window.AkariLipsync) window.AkariLipsync.reset();
-        if (window.tts && typeof window.tts.interrupt === 'function') {
-            window.tts.interrupt();
-        }
-    };
 
     var load = async function () {
         try {
             await ensureLipsync();
             console.log('[TTS] Loading PiperTTS…');
 
-            var engine = createPiperEngine('https://76836.github.io/AkariNet-PiperTTS');
-            engine.ready = engine.init ? engine.init() : Promise.resolve();
-            // init is internal; call it
-            await (async function () {
-                // re-bind so we can await the real init
-                var e = createPiperEngine('https://76836.github.io/AkariNet-PiperTTS');
-                // the create function already has init closed over; call the internal one via a small hack
-                // Better: expose init on the returned object
-            })();
-
-            // Cleaner version: rebuild with explicit init
-            var BASE = 'https://76836.github.io/AkariNet-PiperTTS/';
             var tts = {
                 isReady: false,
                 _worker: null,
@@ -193,25 +55,12 @@
                 INFERENCE: { noise_scale: 0.667, noise_w: 0.8 }
             };
 
-            function encodeWav(samples, sampleRate) {
-                var buf = new ArrayBuffer(44 + samples.length * 2);
-                var v = new DataView(buf);
-                function str(o, s) { for (var i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); }
-                str(0, 'RIFF'); v.setUint32(4, 36 + samples.length * 2, true);
-                str(8, 'WAVE'); str(12, 'fmt ');
-                v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
-                v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate * 2, true);
-                v.setUint16(32, 2, true); v.setUint16(34, 16, true);
-                str(36, 'data'); v.setUint32(40, samples.length * 2, true);
-                for (var i = 0, o = 44; i < samples.length; i++, o += 2) {
-                    var s = Math.max(-1, Math.min(1, samples[i]));
-                    v.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-                }
-                return buf;
-            }
-
             function ensureCtx() {
-                if (!tts._ctx) tts._ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: tts._config.audio.sample_rate });
+                if (!tts._ctx) {
+                    tts._ctx = new (window.AudioContext || window.webkitAudioContext)({
+                        sampleRate: tts._config.audio.sample_rate
+                    });
+                }
                 if (tts._ctx.state === 'suspended') return tts._ctx.resume();
                 return Promise.resolve();
             }
@@ -235,23 +84,34 @@
                 source.start();
             }
 
-            // Load config + model + worker
+            // Runtime configuration and worker are hosted by GitHub Pages.
             var cfgRes = await fetch(BASE + 'config.json');
+            if (!cfgRes.ok) throw new Error('Failed to load PiperTTS config: HTTP ' + cfgRes.status);
             tts._config = await cfgRes.json();
 
             tts._worker = new Worker(BASE + 'worker.js');
 
-            var modelRes = await fetch(BASE + 'model.onnx');
-            if (!modelRes.ok) throw new Error('model.onnx not found — upload it to AkariNet-PiperTTS');
+            // The large ONNX voice model is hosted on Hugging Face, not GitHub Pages.
+            var modelRes = await fetch(MODEL_URL);
+            if (!modelRes.ok) throw new Error('Failed to load PiperTTS model: HTTP ' + modelRes.status);
             var modelBytes = await modelRes.arrayBuffer();
 
             await new Promise(function (resolve, reject) {
                 var h = function (e) {
-                    if (e.data.type === 'ready') { tts._worker.removeEventListener('message', h); resolve(); }
-                    else if (e.data.type === 'error') { tts._worker.removeEventListener('message', h); reject(new Error(e.data.message)); }
+                    if (e.data.type === 'ready') {
+                        tts._worker.removeEventListener('message', h);
+                        resolve();
+                    } else if (e.data.type === 'error') {
+                        tts._worker.removeEventListener('message', h);
+                        reject(new Error(e.data.message));
+                    }
                 };
                 tts._worker.addEventListener('message', h);
-                tts._worker.postMessage({ type: 'init', modelBytes: modelBytes, config: tts._config }, [modelBytes]);
+                tts._worker.postMessage({
+                    type: 'init',
+                    modelBytes: modelBytes,
+                    config: tts._config
+                }, [modelBytes]);
             });
 
             tts._worker.onmessage = function (e) {
@@ -269,7 +129,10 @@
 
             tts.isReady = true;
             tts.speak = function (text) {
-                if (!tts.isReady) { window._speechQueue.push(text); return; }
+                if (!tts.isReady) {
+                    window._speechQueue.push(text);
+                    return;
+                }
                 tts._interrupted = false;
                 ensureCtx().then(function () {
                     tts._worker.postMessage({
@@ -281,6 +144,7 @@
                     });
                 });
             };
+
             tts.interrupt = function () {
                 tts._interrupted = true;
                 tts._queue = [];
