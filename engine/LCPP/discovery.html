@@ -62,6 +62,23 @@
             transition: border 0.2s, box-shadow 0.2s;
         }
         input:focus { border: 1px solid var(--md-primary); box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.20); }
+        textarea.sysprompt {
+            width: 100%;
+            min-height: 160px;
+            padding: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.40);
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.8);
+            font-size: 14px;
+            line-height: 1.45;
+            color: var(--md-on-surface);
+            outline: none;
+            resize: vertical;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+        textarea.sysprompt:focus { border: 1px solid var(--md-primary); box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.20); }
+        .tools-note { font-size: 12px; color: var(--md-on-surface-variant); line-height: 1.45; margin-top: 8px; }
+        .tools-note code { background: rgba(0,0,0,.35); padding: 1px 5px; border-radius: 4px; }
 
         .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
         .btn-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
@@ -270,6 +287,24 @@
         </div>
         <div id="log">Ready to scan local network or localhost...</div>
         <p class="hint">Localhost uses HTTP by default (browsers allow it from HTTPS pages). The HTTPS toggle above only applies to LAN subnet scans.</p>
+    </div>
+
+
+    <div class="card" id="systemPromptCard">
+        <div class="input-group" style="margin-bottom:8px;">
+            <label>System prompt (llama.cpp)</label>
+            <textarea class="sysprompt" id="systemPrompt" spellcheck="true" placeholder="Personality and instructions for the model…"></textarea>
+        </div>
+        <div class="btn-row">
+            <button type="button" class="btn-primary" id="savePromptBtn">Save system prompt</button>
+            <button type="button" class="btn-tonal" id="resetPromptBtn">Reset to default</button>
+        </div>
+        <p class="tools-note" id="toolsNote">
+            When <b>AkariNet Actions</b> is enabled, a tool-use appendix is added automatically at chat time
+            (you do not need to paste it here). It tells the model to use
+            <code>&lt;action&gt;tool_search&lt;/action&gt;</code> and other tools.
+        </p>
+        <p class="hint" id="promptStatus" style="margin-top:8px;"></p>
     </div>
 
     <div id="serverList"></div>
@@ -677,6 +712,66 @@
             }
         }, 900);
     });
+
+
+    const DEFAULT_LCPP_SYSTEM_PROMPT = `Your name is Akari, an AI girl with a vibrant and cheerful personality.
+You don't like it when people ask you dumb questions, and if you can't give an accurate answer to a question, you shy away from the conversation.
+You give short answers, and sometimes end your messages with sarcastic remarks, and don't always try not to offend people,
+but you're generally kind and respectful to everyone...
+
+System information:
+Akari AI with Llama.cpp
+Persistent chat history: global (AkariChat)
+Message rendering method: HTML
+Chat is private: True`;
+
+    function loadSystemPrompt() {
+        const ta = document.getElementById('systemPrompt');
+        if (!ta) return;
+        const saved = localStorage.getItem('lcpp_system_prompt');
+        ta.value = (saved && saved.trim()) ? saved : DEFAULT_LCPP_SYSTEM_PROMPT;
+        updateToolsNote();
+    }
+
+    function updateToolsNote() {
+        const el = document.getElementById('toolsNote');
+        if (!el) return;
+        const on = localStorage.getItem('akari_actions_enabled');
+        const enabled = on === null || on === '1' || on === 'true';
+        el.innerHTML = enabled
+            ? 'AkariNet Actions is <b>on</b> — a tool-use appendix is appended automatically when chatting (tool_search, &lt;action&gt; tags, etc.).'
+            : 'AkariNet Actions is <b>off</b> — no tool appendix will be added. Enable it under Settings → AkariNet Actions.';
+    }
+
+    function saveSystemPrompt() {
+        const ta = document.getElementById('systemPrompt');
+        const status = document.getElementById('promptStatus');
+        if (!ta) return;
+        const v = ta.value.trim();
+        if (!v) {
+            localStorage.removeItem('lcpp_system_prompt');
+        } else {
+            localStorage.setItem('lcpp_system_prompt', v);
+        }
+        // Force system message refresh on next chat
+        localStorage.setItem('lcpp_system_prompt_rev', String(Date.now()));
+        if (status) {
+            status.textContent = 'System prompt saved. New chats / next reply will use it (reload Akari if already connected).';
+            setTimeout(() => { status.textContent = ''; }, 4000);
+        }
+    }
+
+    function resetSystemPrompt() {
+        localStorage.removeItem('lcpp_system_prompt');
+        localStorage.setItem('lcpp_system_prompt_rev', String(Date.now()));
+        loadSystemPrompt();
+        const status = document.getElementById('promptStatus');
+        if (status) status.textContent = 'Reset to default Akari prompt.';
+    }
+
+    document.getElementById('savePromptBtn')?.addEventListener('click', saveSystemPrompt);
+    document.getElementById('resetPromptBtn')?.addEventListener('click', resetSystemPrompt);
+    loadSystemPrompt();
 
 </script>
 </body>
