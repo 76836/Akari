@@ -37,8 +37,7 @@
         whisperCpp: ls('ac41_whisperUrl', '') ? { baseUrl: ls('ac41_whisperUrl', '') } : null,
         webSpeech: { lang: ls('ac41_webspeechLang', 'en-US') },
         vosk: {
-            modelUrl: ls('ac41_voskModelUrl', 'https://ccoreilly.github.io/vosk-browser/models/vosk-model-small-en-us-0.15.tar.gz'),
-            continuous: true
+            modelUrl: ls('ac41_voskModelUrl', 'https://ccoreilly.github.io/vosk-browser/models/vosk-model-small-en-us-0.15.tar.gz')
         },
 
         vadThreshold: lsNum('ac41_vadThreshold', 0.5),
