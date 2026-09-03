@@ -557,8 +557,8 @@ if ('serviceWorker' in navigator) {
                         if (reflex) return reflex;
                         return stock;
                     })(),
-                    whisper: localStorage.getItem('selectedWhisperScript') || './engine/web-speech-recognition.js',
-                    wake: localStorage.getItem('selectedWakeScript') || './characters/akari/wake.js',
+                    whisper: localStorage.getItem('selectedWhisperScript') || 'off',
+                    wake: localStorage.getItem('selectedWakeScript') || './engine/audioConsole.js',
                     aim: localStorage.getItem('selectedAIMScript') || 'off',
                     bg: localStorage.getItem('selectedBKGURL') || 'https://76836.github.io/squares'
                 }
