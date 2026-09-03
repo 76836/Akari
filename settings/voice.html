@@ -248,11 +248,19 @@
 
                         <div class="script-group">
                             <span class="group-label">Speech recognition</span>
-                            <p class="hint">What turns your speech into text after the wake word.</p>
+                            <p class="hint">What turns your speech into text after the wake word. Vosk is continuous offline STT and works best with custom plain-text wake words.</p>
+                            <button class="setbutton" data-sr="vosk" onclick="selectSrProvider(this)">Vosk offline (recommended)</button>
                             <button class="setbutton" data-sr="transformers" onclick="selectSrProvider(this)">On-device (Moonshine / Whisper)</button>
                             <button class="setbutton" data-sr="whispercpp" onclick="selectSrProvider(this)">Local whisper.cpp server</button>
                             <button class="setbutton" data-sr="webspeech" onclick="selectSrProvider(this)">Browser speech (may use cloud)</button>
                             <button class="setbutton" data-sr="none" onclick="selectSrProvider(this)">None (wake only)</button>
+                        </div>
+
+                        <div class="script-group" id="voskGroup">
+                            <span class="group-label">Vosk model</span>
+                            <p class="hint">URL of a Vosk model archive (.zip / .tar.gz). Leave default for small English (~40 MB, cached after first load).</p>
+                            <input class="box" id="voskModelUrl" placeholder="https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip" type="text">
+                            <button class="setbutton primary" onclick="saveVoskModelUrl()">Save model URL</button>
                         </div>
 
                         <div class="script-group" id="transformersGroup">
@@ -380,7 +388,7 @@
 
             document.getElementById('owwUrl').value = localStorage.getItem('ac41_owwUrl') || '';
 
-            const srProv = localStorage.getItem('ac41_srProvider') || 'transformers';
+            const srProv = localStorage.getItem('ac41_srProvider') || 'vosk';
             document.querySelectorAll('[data-sr]').forEach(b => b.classList.toggle('selected', b.dataset.sr === srProv));
 
             const tModel = localStorage.getItem('ac41_transformersModel') || 'onnx-community/moonshine-base-ONNX';
@@ -388,6 +396,7 @@
 
             document.getElementById('whisperUrl').value = localStorage.getItem('ac41_whisperUrl') || '';
             document.getElementById('webspeechLang').value = localStorage.getItem('ac41_webspeechLang') || 'en-US';
+            document.getElementById('voskModelUrl').value = localStorage.getItem('ac41_voskModelUrl') || 'https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip';
 
             const sense = localStorage.getItem('ac41_owwThreshold') || localStorage.getItem('wakeSense') || '0.50';
             syncSense(sense);
@@ -437,7 +446,7 @@
             document.querySelectorAll('[data-wake]').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
             localStorage.setItem('ac41_wakeProvider', btn.dataset.wake);
-            updateProviderGroups(btn.dataset.wake, localStorage.getItem('ac41_srProvider') || 'transformers');
+            updateProviderGroups(btn.dataset.wake, localStorage.getItem('ac41_srProvider') || 'vosk');
         }
 
         function saveOwwUrl() {
@@ -530,9 +539,18 @@
 
         function updateProviderGroups(wakeProv, srProv) {
             document.getElementById('owwGroup').style.display = (wakeProv === 'openwakeword') ? 'block' : 'none';
+            const vg = document.getElementById('voskGroup');
+            if (vg) vg.style.display = (srProv === 'vosk') ? 'block' : 'none';
             document.getElementById('transformersGroup').style.display = (srProv === 'transformers') ? 'block' : 'none';
             document.getElementById('whisperGroup').style.display = (srProv === 'whispercpp') ? 'block' : 'none';
             document.getElementById('webspeechGroup').style.display = (srProv === 'webspeech') ? 'block' : 'none';
+        }
+
+        function saveVoskModelUrl() {
+            const el = document.getElementById('voskModelUrl');
+            if (!el) return;
+            localStorage.setItem('ac41_voskModelUrl', el.value.trim());
+            flash(event && event.target);
         }
 
         function setVoiceVal(v) { document.getElementById('voiceurl').value = v; }
