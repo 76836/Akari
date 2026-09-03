@@ -98,6 +98,14 @@ Use tools when they help (time, search, apps, reminders, etc.). Do not invent to
     ];
   }
 
+  let __lcppAbort = null;
+  const prevAbortLcpp = window.AkariInferenceAbort;
+  window.AkariInferenceAbort = function () {
+    try { if (__lcppAbort) __lcppAbort.abort(); } catch (_) {}
+    __lcppAbort = null;
+    if (typeof prevAbortLcpp === 'function') try { prevAbortLcpp(); } catch (_) {}
+  };
+
   globalThis.GenerateResponse = async function (hinp) {
     if (!server) {
       say('<i>⚠️ Cannot generate response: No server connected.</i>');
@@ -110,9 +118,12 @@ Use tools when they help (time, search, apps, reminders, etc.). Do not invent to
     const messages = messagesForRequest(hinp);
 
     try {
+      if (__lcppAbort) { try { __lcppAbort.abort(); } catch (_) {} }
+      __lcppAbort = new AbortController();
       const res = await fetch(`${server.url}/v1/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: __lcppAbort.signal,
         body: JSON.stringify({
           model: 'local',
           messages,
@@ -134,6 +145,7 @@ Use tools when they help (time, search, apps, reminders, etc.). Do not invent to
       say(text);
       return text;
     } catch (err) {
+      if (err && err.name === 'AbortError') { console.log('[lcpp] inference aborted'); return; }
       say(`<i>⚠️ Connection error: ${err.message}</i>`);
     }
   };
