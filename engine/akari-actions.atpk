@@ -30,6 +30,7 @@ module.exports.default = {
 
     const state = (window.__akariActionsState = window.__akariActionsState || {
       turns: 0,
+      cancelled: false,
       lastRequestId: null,
       pendingConfirm: null,
       running: false
@@ -315,19 +316,76 @@ module.exports.default = {
       const body = results
         .map((r) => '<tool_response>\n' + r + '\n</tool_response>')
         .join('\n');
-      // Visible note in chat
-      if (typeof bubble === 'function') {
-        try {
-          bubble('<i style="opacity:.75">[tool] ' + results.map((r) => String(r).slice(0, 120)).join(' | ') + '</i>');
-        } catch (e) {}
-      }
-      // Continue model turn
       if (typeof GenerateResponse === 'function') {
         GenerateResponse(body);
       } else if (typeof respond === 'function') {
         respond(body);
       } else if (typeof say === 'function') {
         say(body);
+      }
+    }
+
+    function showToolCard(actions) {
+      const id = 'akari-tool-card-' + Date.now();
+      const names = actions.map((a) => a.name).join(', ');
+      const details = actions.map((a) => {
+        const inp = (a.input || '').slice(0, 500);
+        return '<div style="margin:6px 0"><b>' + escapeHtml(a.name) + '</b>' +
+          (inp ? '<pre style="white-space:pre-wrap;opacity:.85;margin:4px 0 0;font-size:12px">' + escapeHtml(inp) + '</pre>' : '') +
+          '</div>';
+      }).join('');
+      const loading = 'https://76836.github.io/Akari/images/loading.gif';
+      const html =
+        '<div id="' + id + '" class="akari-tool-card" style="opacity:.95">' +
+        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+        '<img src="' + loading + '" alt="" width="18" height="18" style="vertical-align:middle">' +
+        '<span><b>Akari is using</b> ' + escapeHtml(names) + '</span>' +
+        '<button type="button" data-akari-tool-stop="' + id + '" style="margin-left:auto;cursor:pointer;padding:2px 10px;border-radius:8px;border:1px solid #f87171;background:#450a0a;color:#fecaca">Stop</button>' +
+        '</div>' +
+        '<details style="margin-top:6px"><summary style="cursor:pointer">Details</summary>' + details + '</details>' +
+        '</div>';
+      if (typeof bubble === 'function') {
+        try { bubble(html); } catch (e) {}
+      }
+      // Stop button: abort inference + mark actions cancelled
+      setTimeout(() => {
+        const btn = document.querySelector('[data-akari-tool-stop="' + id + '"]');
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+          state.cancelled = true;
+          try {
+            if (typeof window.AkariInferenceAbort === 'function') window.AkariInferenceAbort();
+          } catch (_) {}
+          try {
+            if (typeof window.interruptTTS === 'function') window.interruptTTS();
+          } catch (_) {}
+          finalizeToolCard(id, 'stopped');
+        });
+      }, 0);
+      return id;
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function finalizeToolCard(id, status) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const img = el.querySelector('img');
+      if (img) img.remove();
+      const btn = el.querySelector('[data-akari-tool-stop]');
+      if (btn) btn.remove();
+      if (status === 'stopped') {
+        const note = document.createElement('div');
+        note.style.opacity = '0.75';
+        note.style.marginTop = '4px';
+        note.textContent = 'Stopped.';
+        el.appendChild(note);
       }
     }
 
@@ -347,16 +405,23 @@ module.exports.default = {
         return;
       }
       state.running = true;
+      state.cancelled = false;
       state.turns += 1;
+      const cardId = showToolCard(actions);
       try {
         const results = [];
         for (const a of actions) {
+          if (state.cancelled) break;
           const out = await executeOne(a.name, a.input, c.mode);
           results.push(a.name + ': ' + out);
         }
-        feedToolResponse(results);
+        finalizeToolCard(cardId, state.cancelled ? 'stopped' : 'done');
+        if (!state.cancelled && results.length) {
+          feedToolResponse(results);
+        }
       } finally {
         state.running = false;
+        finalizeToolCard(cardId, state.cancelled ? 'stopped' : 'done');
       }
     }
 
