@@ -815,8 +815,9 @@ if ('serviceWorker' in navigator) {
                     window.emit('assistant_response', { text: answer, raw: raw, thinking: parsed.thinking || null, timestamp: Date.now() });
                     app.notify('Akari', answer, { borderColors: ['#A020F0', '#00FF00'] });
                     window.emote(answer);
+                    // Speak only for voice turns. Typed turns stay silent for the whole
+                    // agentic tool chain (do NOT clear isSilentMode here — voice paths set it false).
                     if (!app.isSilentMode) window.speak(answer);
-                    app.isSilentMode = false;
                 },
 
                 appendBubble: (text, className) => {
