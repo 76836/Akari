@@ -247,6 +247,13 @@
                 source.playbackRate.value = PLAYBACK_RATE;
                 var finish = function () {
                     tts._playing = false;
+                    if (tts._queue.length === 0) {
+                        try {
+                            window.dispatchEvent(new CustomEvent('akari:tts-end', {
+                                detail: { source: 'PiperTTS' }
+                            }));
+                        } catch (_) {}
+                    }
                     setTimeout(playNext, 200);
                 };
                 if (window.AkariLipsync) {
