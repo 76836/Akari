@@ -259,7 +259,7 @@
                         <div class="script-group" id="voskGroup">
                             <span class="group-label">Vosk model</span>
                             <p class="hint">URL of a Vosk model archive (.zip / .tar.gz). Leave default for small English (~40 MB, cached after first load).</p>
-                            <input class="box" id="voskModelUrl" placeholder="https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip" type="text">
+                            <input class="box" id="voskModelUrl" placeholder="https://ccoreilly.github.io/vosk-browser/models/vosk-model-small-en-us-0.15.tar.gz" type="text">
                             <button class="setbutton primary" onclick="saveVoskModelUrl()">Save model URL</button>
                         </div>
 
@@ -396,7 +396,7 @@
 
             document.getElementById('whisperUrl').value = localStorage.getItem('ac41_whisperUrl') || '';
             document.getElementById('webspeechLang').value = localStorage.getItem('ac41_webspeechLang') || 'en-US';
-            document.getElementById('voskModelUrl').value = localStorage.getItem('ac41_voskModelUrl') || 'https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip';
+            document.getElementById('voskModelUrl').value = localStorage.getItem('ac41_voskModelUrl') || 'https://ccoreilly.github.io/vosk-browser/models/vosk-model-small-en-us-0.15.tar.gz';
 
             const sense = localStorage.getItem('ac41_owwThreshold') || localStorage.getItem('wakeSense') || '0.50';
             syncSense(sense);
