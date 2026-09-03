@@ -259,12 +259,21 @@ Chat is private: False (community workers)`;
       }
       const job = await res.json();
       if (!job.id) throw new Error('No job id from Horde');
+      __hordeJobId = job.id;
+      if (__hordeAbort) {
+        window.AkariInferenceAbort();
+        return;
+      }
       hordeNotify('AI Horde', 'Job queued · ' + modelLabel, { duration: 3500 });
 
       let text = null;
       let usedModel = modelLabel;
       let usedWorker = '';
       for (let i = 0; i < 90; i++) {
+        if (__hordeAbort) {
+          console.log('[AI Horde] aborted');
+          return;
+        }
         await new Promise(r => setTimeout(r, 2000));
         const st = await fetch(HORDE + '/generate/text/status/' + job.id, {
           headers: { 'apikey': getKey(), 'Client-Agent': CLIENT }
@@ -301,6 +310,7 @@ Chat is private: False (community workers)`;
         return errText;
       }
 
+      __hordeJobId = null;
       text = sanitizeReply(text);
       const who = usedWorker ? usedWorker + ' · ' : '';
       hordeNotify('AI Horde', 'Done · ' + who + usedModel, { duration: 4500, borderColors: ['#5eead4', '#7dd3fc'] });
