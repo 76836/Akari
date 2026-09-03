@@ -41,6 +41,8 @@
         },
 
         vadThreshold: lsNum('ac41_vadThreshold', 0.5),
+        // Longer end-of-speech silence so pauses mid-utterance stay one segment (~1.6s)
+        vadRedemptionMs: lsNum('ac41_vadRedemptionMs', 1600),
         wakewords: (ls('ac41_wakewords', 'hey akari,akari')).split(',').map(s => s.trim()).filter(Boolean),
         cleanup: false,
         debugWakeSound: lsBool('ac41_debug', false),
@@ -186,16 +188,45 @@
         wakeAudio.volume = 1.0;
     }
     const WAKE_GREETINGS = ["what's up?", "hey", "hello", "hi", "yeah?"];
+    /** Resolves when the wake chime / greeting has finished (event-driven, no fixed lag guess). */
     function playWakeSound() {
-        if (lsBool('ac41_ttsGreeting', false) && typeof window.speak === 'function') {
-            const phrase = WAKE_GREETINGS[Math.floor(Math.random() * WAKE_GREETINGS.length)];
-            try { window.speak(phrase); } catch (e) { console.log('Wake TTS greeting failed:', e); }
-            return;
-        }
-        if (!wakeAudio) return;
-        wakeAudio.currentTime = 0;
-        wakeAudio.play().catch(err => console.log('Wake sound playback failed:', err));
+        return new Promise((resolve) => {
+            let done = false;
+            const finish = () => {
+                if (done) return;
+                done = true;
+                resolve();
+            };
+            if (lsBool('ac41_ttsGreeting', false) && typeof window.speak === 'function') {
+                const phrase = WAKE_GREETINGS[Math.floor(Math.random() * WAKE_GREETINGS.length)];
+                const onEnd = () => finish();
+                window.addEventListener('akari:tts-end', onEnd, { once: true });
+                try { window.speak(phrase); } catch (e) {
+                    console.log('Wake TTS greeting failed:', e);
+                    finish();
+                    return;
+                }
+                // Safety only if TTS never signals end
+                setTimeout(finish, 15000);
+                return;
+            }
+            if (!wakeAudio) { finish(); return; }
+            try {
+                wakeAudio.onended = finish;
+                wakeAudio.onerror = finish;
+                wakeAudio.currentTime = 0;
+                wakeAudio.play().catch((err) => {
+                    console.log('Wake sound playback failed:', err);
+                    finish();
+                });
+            } catch (e) {
+                finish();
+            }
+        });
     }
+
+    // Gate ASR until after wake chime/greeting so only post-wake speech is transcribed
+    window.__ac41AsrBlocked = false;
 
     let voiceInstance = null;
     let processingSafetyTimer = null;
@@ -227,30 +258,38 @@
         }, ms || 15000);
     }
 
-    /** Re-arm listening without wake word (Google Home style continued conversation). */
+    /** Re-arm listening without wake word after Akari fully finishes speaking. */
     function armContinuedListen() {
         if (!continuedEnabled()) return;
         if (!voiceInstance) return;
+        // Wait until tool turns and TTS are idle
+        if (window.AkariActions && window.AkariActions.state && window.AkariActions.state.running) {
+            setTimeout(armContinuedListen, 250);
+            return;
+        }
+        if (window.__ac41TtsBusy) {
+            setTimeout(armContinuedListen, 250);
+            return;
+        }
         const ms = continuedMs();
         if (continuedArmTimer) clearTimeout(continuedArmTimer);
-        // Small delay so we don't capture Akari's own TTS tail
         continuedArmTimer = setTimeout(() => {
             continuedArmTimer = null;
             if (!continuedEnabled() || !voiceInstance) return;
             try {
+                window.__ac41AsrBlocked = false;
                 voiceInstance.activateWakeWord({ listenMs: ms, kind: 'continued' });
-                setVisualState('listening');
+                // Same visual as "Hey Akari" — stay lit for the full grace window
+                setVisualState('wake');
+                if (wakeResetTimer) { clearTimeout(wakeResetTimer); wakeResetTimer = null; }
+                wakeResetTimer = setTimeout(() => {
+                    if (visualState === 'wake' || visualState === 'listening') resetVisuals();
+                }, ms);
                 apStatus('Continued listening…', { busy: true });
-                // Auto-idle if nothing is said within the window
-                setTimeout(() => {
-                    if (visualState === 'listening' || visualState === 'wake') {
-                        resetVisuals();
-                    }
-                }, ms + 400);
             } catch (e) {
                 console.warn('[AudioConsole] continued arm failed', e);
             }
-        }, 600);
+        }, 200);
     }
 
 
@@ -391,20 +430,53 @@
         }
         voiceInstance = window.__ac41Voice || null;
         if (voiceInstance?.xlCache) injectGreenDot();
+        // Gate transcription until after wake chime (adapter-level; core unchanged)
+        if (voiceInstance && typeof voiceInstance._handleSpeech === 'function' && !voiceInstance.__ac41GateWrapped) {
+            const _hs = voiceInstance._handleSpeech.bind(voiceInstance);
+            voiceInstance._handleSpeech = async function (audio) {
+                if (window.__ac41AsrBlocked) {
+                    this._log && this._log('INFO', 'ASR gated until wake chime/greeting ends');
+                    return;
+                }
+                return _hs(audio);
+            };
+            voiceInstance.__ac41GateWrapped = true;
+        }
     });
 
     window.addEventListener('audioConsoleWakeSound', (e) => {
         const cls = e.detail && e.detail.class;
-        // Manual button / continued conversation: stay in listening (do NOT start the
-        // 6s wake→idle timer, which was cancelling the session and stranding UI).
+        // Manual / continued: keep session open; chime only for manual mic
         if (cls === 'manual' || cls === 'continued') {
+            if (cls === 'continued') {
+                setVisualState('wake');
+                window.__ac41AsrBlocked = false;
+                pulseVrmWake('audioConsole-wakesound');
+                return;
+            }
             setVisualState('listening');
-            if (cls === 'manual') playWakeSound();
+            window.__ac41AsrBlocked = true;
+            playWakeSound().then(() => {
+                window.__ac41AsrBlocked = false;
+                if (voiceInstance) {
+                    voiceInstance.wakeSoundDetectedTime = Date.now();
+                    voiceInstance.lastWakeSoundScore = 1;
+                }
+            });
             pulseVrmWake('audioConsole-wakesound');
             return;
         }
         setVisualState('wake', { score: e.detail && e.detail.score });
-        playWakeSound();
+        // Block STT until Summon.mp3 / greeting finishes, then open the listen window
+        window.__ac41AsrBlocked = true;
+        playWakeSound().then(() => {
+            window.__ac41AsrBlocked = false;
+            if (voiceInstance) {
+                // Treat post-chime as the start of the in-session listen window
+                voiceInstance.wakeSoundDetectedTime = Date.now();
+                voiceInstance.lastWakeSoundScore = (e.detail && e.detail.score) || 1;
+            }
+        });
         pulseVrmWake('audioConsole-wakesound');
     });
     window.addEventListener('audioConsoleSpeechStart', () => {
@@ -515,31 +587,57 @@
         }
     };
 
-    // Hook TTS completion so continued conversation starts after Akari finishes speaking
+    // Hook TTS: track busy utterances; arm continued listen only when fully idle
     (function wrapSpeakForContinued() {
+        window.__ac41TtsBusy = 0;
         function install() {
             if (typeof window.speak !== 'function') return false;
             if (window.speak.__ac41ContinuedWrapped) return true;
             const orig = window.speak;
             window.speak = function ac41SpeakWrapped(text) {
-                const ret = orig.apply(this, arguments);
-                // Prefer Audio element / utterance end; also use a generous fallback.
-                let armed = false;
-                const armOnce = () => {
-                    if (armed) return;
-                    armed = true;
-                    armContinuedListen();
+                window.__ac41TtsBusy = (window.__ac41TtsBusy || 0) + 1;
+                let settled = false;
+                const settle = () => {
+                    if (settled) return;
+                    settled = true;
+                    window.removeEventListener('akari:tts-end', onTtsEnd);
+                    window.__ac41TtsBusy = Math.max(0, (window.__ac41TtsBusy || 1) - 1);
+                    if (continuedEnabled() && !window.__ac41TtsBusy) {
+                        armContinuedListen();
+                    }
                 };
+                const onTtsEnd = (ev) => {
+                    // Match any end while we have pending speech
+                    settle();
+                };
+                window.addEventListener('akari:tts-end', onTtsEnd);
+                const ret = orig.apply(this, arguments);
+                // Web Speech fallback if engine never fires akari:tts-end
                 try {
-                    // PocketTTS / KittenTTS often use Web Audio; listen for a custom event if fired
-                    const onEnd = () => armOnce();
-                    window.addEventListener('akari:tts-end', onEnd, { once: true });
-                    // Fallback timing based on text length (~16 chars/sec) + margin
-                    const approxMs = Math.min(60000, Math.max(1500, String(text || '').length * 60 + 800));
-                    setTimeout(armOnce, approxMs);
-                } catch (_) {
-                    setTimeout(armOnce, 3000);
-                }
+                    if (window.speechSynthesis) {
+                        const poll = () => {
+                            if (settled) return;
+                            if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+                                try {
+                                    window.dispatchEvent(new CustomEvent('akari:tts-end', { detail: { source: 'speechSynthesis' } }));
+                                } catch (_) {}
+                                settle();
+                            } else {
+                                requestAnimationFrame(poll);
+                            }
+                        };
+                        requestAnimationFrame(poll);
+                    }
+                } catch (_) {}
+                // Absolute safety (dead TTS engine) — long, not a readiness race
+                setTimeout(() => {
+                    if (!settled) {
+                        try {
+                            window.dispatchEvent(new CustomEvent('akari:tts-end', { detail: { source: 'safety' } }));
+                        } catch (_) {}
+                        settle();
+                    }
+                }, 120000);
                 return ret;
             };
             window.speak.__ac41ContinuedWrapped = true;
@@ -552,6 +650,8 @@
             }, 500);
         }
     })();
+
+
 
     if (window.loadscreen) window.loadscreen('AkariNet Audio Console v4.2.0 starting up...');
     if (document.readyState === 'loading') {
