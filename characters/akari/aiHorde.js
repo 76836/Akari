@@ -10,15 +10,26 @@ if (localStorage.getItem('privacynotice') !== 'hide') {
   const ANON_KEY = '0000000000';
   const CLIENT = 'AkariNet:2.6:github.com/76836/Akari';
 
+  // Abort state must exist before GenerateResponse can inspect it.
+  let __hordeAbort = false;
+  let __hordeJobId = null;
+  const prevAbortHorde = window.AkariInferenceAbort;
+
+  window.AkariInferenceAbort = function () {
+    __hordeAbort = true;
+    __hordeJobId = null;
+    if (typeof prevAbortHorde === 'function') {
+      try { prevAbortHorde(); } catch (_) {}
+    }
+  };
+
   function hordeNotify(title, message, opts) {
     try {
       if (window.app && typeof app.notify === 'function') {
         app.notify(title, message, opts || { duration: 4000, borderColors: ['#7dd3fc', '#a78bfa'] });
         return;
       }
-      if (typeof showNotification === 'function') {
-        showNotification(title, message, opts || {});
-      }
+      if (typeof showNotification === 'function') showNotification(title, message, opts || {});
     } catch (_) {}
   }
 
@@ -37,9 +48,7 @@ Message rendering method: HTML
 Chat is private: False (community workers)`;
 
   function getKey() {
-    return localStorage.getItem('aihorde_API_KEY') ||
-           localStorage.getItem('horde_API_KEY') ||
-           ANON_KEY;
+    return localStorage.getItem('aihorde_API_KEY') || localStorage.getItem('horde_API_KEY') || ANON_KEY;
   }
 
   function parseList(key) {
@@ -49,10 +58,7 @@ Chat is private: False (community workers)`;
       const j = JSON.parse(raw);
       if (Array.isArray(j)) return j.map(String).filter(Boolean);
     } catch (_) {}
-    return String(localStorage.getItem(key) || '')
-      .split(/[,;\n]+/)
-      .map(s => s.trim())
-      .filter(Boolean);
+    return String(localStorage.getItem(key) || '').split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
   }
 
   function keywordMatch(name, keywords) {
@@ -60,73 +66,50 @@ Chat is private: False (community workers)`;
     return keywords.some(k => n.includes(String(k).toLowerCase()));
   }
 
-  /** Pick fastest live text model matching require/blacklist keywords. */
   async function resolveModels() {
     const fixed = (localStorage.getItem('aihorde_model') || '').trim();
     const auto = localStorage.getItem('aihorde_auto_model') !== '0';
     if (fixed && !auto) return [fixed];
-
     const require = parseList('aihorde_require_keywords');
     const deny = parseList('aihorde_blacklist_keywords');
-
     let models = [];
     try {
-      const r = await fetch(HORDE + '/status/models?type=text', {
-        headers: { 'Client-Agent': CLIENT }
-      });
+      const r = await fetch(HORDE + '/status/models?type=text', { headers: { 'Client-Agent': CLIENT } });
       if (r.ok) models = await r.json();
     } catch (_) {}
-
-    if (!Array.isArray(models) || !models.length) {
-      return fixed ? [fixed] : ['koboldcpp/MythoMax-L2-13B'];
-    }
-
+    if (!Array.isArray(models) || !models.length) return fixed ? [fixed] : ['koboldcpp/MythoMax-L2-13B'];
     let pool = models.filter(m => m && m.name && (m.count == null || m.count > 0));
     if (require.length) pool = pool.filter(m => keywordMatch(m.name, require));
     if (deny.length) pool = pool.filter(m => !keywordMatch(m.name, deny));
     if (!pool.length) pool = models.filter(m => m && m.name);
-
     pool.sort((a, b) => {
-      const pa = Number(a.performance) || 0;
-      const pb = Number(b.performance) || 0;
+      const pa = Number(a.performance) || 0, pb = Number(b.performance) || 0;
       if (pb !== pa) return pb - pa;
-      const ea = Number(a.eta) || 0;
-      const eb = Number(b.eta) || 0;
+      const ea = Number(a.eta) || 0, eb = Number(b.eta) || 0;
       if (ea !== eb) return ea - eb;
       return (Number(b.count) || 0) - (Number(a.count) || 0);
     });
-
     const top = pool.slice(0, 5).map(m => m.name);
     if (fixed && !top.includes(fixed)) top.unshift(fixed);
     return top.length ? top : (fixed ? [fixed] : ['koboldcpp/MythoMax-L2-13B']);
   }
 
   function getWorkerPrefs() {
-    const priority = parseList('aihorde_priority_workers');
-    const blocked = parseList('aihorde_blocked_workers');
-    return { priority: priority.slice(0, 5), blocked };
+    return {
+      priority: parseList('aihorde_priority_workers').slice(0, 5),
+      blocked: parseList('aihorde_blocked_workers')
+    };
   }
 
-  /** Rough token estimate (Horde-style ~chars/4). */
-  function estTokens(s) {
-    return Math.ceil(String(s || '').length / 4);
-  }
+  function estTokens(s) { return Math.ceil(String(s || '').length / 4); }
 
-  /**
-   * Build prompt under a token budget so anon/low-kudos keys avoid KudosUpfront.
-   * Horde requires kudos upfront once total tokens exceed ~774.
-   */
   function buildPrompt(userText) {
     const budget = parseInt(localStorage.getItem('aihorde_prompt_budget') || '520', 10);
     const msgs = window.AkariChat ? AkariChat.getMessagesForLLM(true) : [];
     const tail = 'User: ' + userText + '\nAkari:';
     let sys = systemPrompt + '\n\n';
-    // keep system short if needed
-    while (estTokens(sys) + estTokens(tail) > budget && sys.length > 80) {
-      sys = sys.slice(0, Math.floor(sys.length * 0.8));
-    }
+    while (estTokens(sys) + estTokens(tail) > budget && sys.length > 80) sys = sys.slice(0, Math.floor(sys.length * 0.8));
     const room = Math.max(40, budget - estTokens(sys) - estTokens(tail));
-    // newest messages first, then reverse
     const picked = [];
     let used = 0;
     for (let i = msgs.length - 1; i >= 0; i--) {
@@ -146,25 +129,10 @@ Chat is private: False (community workers)`;
   function genParams() {
     const ctx = parseInt(localStorage.getItem('aihorde_max_context') || '1024', 10);
     const len = parseInt(localStorage.getItem('aihorde_max_length') || '80', 10);
-    // Stop sequences keep instruct/chat models from inventing extra User:/Akari: turns
-    // (common failure mode on Llama / MythoMax style workers without a chat template).
-    const stops = [
-      '\nUser:',
-      '\nUser ',
-      '\nHuman:',
-      '\nHuman ',
-      'User:',
-      'Human:',
-      '\n###',
-      '\n\nUser'
-    ];
+    const stops = ['\nUser:', '\nUser ', '\nHuman:', '\nHuman ', 'User:', 'Human:', '\n###', '\n\nUser'];
     try {
       const extra = JSON.parse(localStorage.getItem('aihorde_stop_sequences') || 'null');
-      if (Array.isArray(extra)) {
-        extra.forEach(function (s) {
-          if (s && typeof s === 'string' && stops.indexOf(s) < 0) stops.push(s);
-        });
-      }
+      if (Array.isArray(extra)) extra.forEach(s => { if (s && typeof s === 'string' && !stops.includes(s)) stops.push(s); });
     } catch (_) {}
     return {
       max_context_length: Math.min(Math.max(ctx, 256), 2048),
@@ -175,30 +143,18 @@ Chat is private: False (community workers)`;
     };
   }
 
-  /** Trim model bleed: fake multi-turn continuations after the real reply. */
   function sanitizeReply(raw) {
-    let text = String(raw == null ? '' : raw);
-    text = text.replace(/<\/?s>|<\|.*?\|>/g, '');
-    // If the model echoed a stop token / role label, cut there
-    const cutMarkers = [
-      /\nUser\s*:/,
-      /\nHuman\s*:/,
-      /\n###/,
-      /\n\nUser\b/,
-      /\nAkari\s*:/  // second assistant turn — keep first only
-    ];
-    for (let i = 0; i < cutMarkers.length; i++) {
-      const m = text.match(cutMarkers[i]);
-      if (m && m.index != null && m.index > 0) {
-        text = text.slice(0, m.index);
-      }
+    let text = String(raw == null ? '' : raw).replace(/<\/?s>|<\|.*?\|>/g, '');
+    const cutMarkers = [/\nUser\s*:/, /\nHuman\s*:/, /\n###/, /\n\nUser\b/, /\nAkari\s*:/];
+    for (const marker of cutMarkers) {
+      const m = text.match(marker);
+      if (m && m.index != null && m.index > 0) text = text.slice(0, m.index);
     }
-    // Leading role echo
-    text = text.replace(/^\s*Akari\s*:\s*/i, '');
-    return text.trim();
+    return text.replace(/^\s*Akari\s*:\s*/i, '').trim();
   }
 
   globalThis.GenerateResponse = async function (userText) {
+    __hordeAbort = false;
     if (window.AkariChat) AkariChat.append('user', userText, { provider: 'aihorde' });
     if (typeof typing === 'function') typing('Akari');
     else if (window.app?.ui?.setTyping) app.ui.setTyping('Akari');
@@ -206,85 +162,48 @@ Chat is private: False (community workers)`;
     try {
       hordeNotify('AI Horde', 'Selecting model…', { duration: 2500 });
       const models = await resolveModels();
+      if (__hordeAbort) return;
       const { priority, blocked } = getWorkerPrefs();
       const modelLabel = models[0] || '(any)';
       const extra = models.length > 1 ? ' (+' + (models.length - 1) + ' fallbacks)' : '';
       hordeNotify('AI Horde', 'Model: ' + modelLabel + extra, { duration: 5000, borderColors: ['#7dd3fc', '#5eead4'] });
       if (typeof typing === 'function') typing('Horde · ' + modelLabel.split('/').pop());
-      else if (window.app?.ui?.setTyping) app.ui.setTyping('Horde · ' + modelLabel.split('/').pop());
       const prompt = buildPrompt(userText);
       const params = genParams();
-      // Align context cap with actual prompt so kudos calc stays low
       const promptTok = estTokens(prompt);
-      params.max_context_length = Math.max(
-        256,
-        Math.min(params.max_context_length, promptTok + params.max_length + 32)
-      );
-      hordeNotify(
-        'AI Horde',
-        'Prompt ~' + promptTok + ' tok · gen ' + params.max_length + ' · ctx ' + params.max_context_length,
-        { duration: 3500 }
-      );
+      params.max_context_length = Math.max(256, Math.min(params.max_context_length, promptTok + params.max_length + 32));
       const body = {
         prompt,
         models,
         trusted_workers: localStorage.getItem('aihorde_trusted_only') === '1',
         slow_workers: localStorage.getItem('aihorde_slow_workers') !== '0',
-        // Auto-shrink if still over free threshold (no kudos)
         allow_downgrade: localStorage.getItem('aihorde_allow_downgrade') !== '0',
         params
       };
-
-      if (priority.length) {
-        body.workers = priority;
-        body.worker_blacklist = false;
-      } else if (blocked.length) {
-        body.workers = blocked.slice(0, 5);
-        body.worker_blacklist = true;
-      }
+      if (priority.length) { body.workers = priority; body.worker_blacklist = false; }
+      else if (blocked.length) { body.workers = blocked.slice(0, 5); body.worker_blacklist = true; }
 
       const res = await fetch(HORDE + '/generate/text/async', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': getKey(),
-          'Client-Agent': CLIENT
-        },
+        headers: { 'Content-Type': 'application/json', 'apikey': getKey(), 'Client-Agent': CLIENT },
         body: JSON.stringify(body)
       });
-
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(res.status + ' ' + err.slice(0, 200));
-      }
+      if (!res.ok) throw new Error(res.status + ' ' + (await res.text()).slice(0, 200));
       const job = await res.json();
       if (!job.id) throw new Error('No job id from Horde');
       __hordeJobId = job.id;
-      if (__hordeAbort) {
-        window.AkariInferenceAbort();
-        return;
-      }
+      if (__hordeAbort) return;
       hordeNotify('AI Horde', 'Job queued · ' + modelLabel, { duration: 3500 });
 
-      let text = null;
-      let usedModel = modelLabel;
-      let usedWorker = '';
+      let text = null, usedModel = modelLabel, usedWorker = '';
       for (let i = 0; i < 90; i++) {
-        if (__hordeAbort) {
-          console.log('[AI Horde] aborted');
-          return;
-        }
+        if (__hordeAbort) { console.log('[AI Horde] aborted'); return; }
         await new Promise(r => setTimeout(r, 2000));
-        const st = await fetch(HORDE + '/generate/text/status/' + job.id, {
-          headers: { 'apikey': getKey(), 'Client-Agent': CLIENT }
-        });
+        if (__hordeAbort) return;
+        const st = await fetch(HORDE + '/generate/text/status/' + job.id, { headers: { 'apikey': getKey(), 'Client-Agent': CLIENT } });
         if (!st.ok) continue;
         const status = await st.json();
-        if (status.faulted) {
-          hordeNotify('AI Horde', 'Job faulted', { duration: 6000, borderColors: ['#f87171', '#f87171'] });
-          say('[ERROR] AI Horde job faulted.');
-          return;
-        }
+        if (status.faulted) { say('[ERROR] AI Horde job faulted.'); return; }
         if (status.done && status.generations && status.generations.length) {
           const gen = status.generations[0];
           text = gen.text || gen.content;
@@ -296,32 +215,27 @@ Chat is private: False (community workers)`;
           const q = status.queue_position != null ? 'queue #' + status.queue_position : 'waiting';
           const wait = status.wait_time != null ? ' · ~' + status.wait_time + 's' : '';
           if (typeof typing === 'function') typing('Horde · ' + q);
-          else if (window.app?.ui?.setTyping) app.ui.setTyping('Horde · ' + q);
-          if (i === 0 || i % 10 === 0) {
-            hordeNotify('AI Horde', q + wait + ' · ' + modelLabel, { duration: 3000 });
-          }
+          hordeNotify('AI Horde', q + wait + ' · ' + modelLabel, { duration: 3000 });
         }
       }
 
+      __hordeJobId = null;
+      if (__hordeAbort) return;
       if (!text) {
         const errText = '[ERROR] AI Horde timed out waiting for a worker.';
         hordeNotify('AI Horde', 'Timed out waiting for a worker', { duration: 6000, borderColors: ['#f87171', '#f87171'] });
         say(errText);
         return errText;
       }
-
-      __hordeJobId = null;
       text = sanitizeReply(text);
-      const who = usedWorker ? usedWorker + ' · ' : '';
-      hordeNotify('AI Horde', 'Done · ' + who + usedModel, { duration: 4500, borderColors: ['#5eead4', '#7dd3fc'] });
+      hordeNotify('AI Horde', 'Done · ' + (usedWorker ? usedWorker + ' · ' : '') + usedModel, { duration: 4500, borderColors: ['#5eead4', '#7dd3fc'] });
       if (window.AkariChat) AkariChat.append('assistant', text, { provider: 'aihorde' });
       say(text);
       return text;
     } catch (e) {
+      if (__hordeAbort) return;
       let msg = String(e.message || e);
-      if (/KudosUpfront|required kudos/i.test(msg)) {
-        msg = 'Need more kudos for this size request. Try a shorter chat, or set a registered API key at aihorde.net/register (adapter will also allow_downgrade when possible).';
-      }
+      if (/KudosUpfront|required kudos/i.test(msg)) msg = 'Need more kudos for this size request. Try a shorter chat, or set a registered API key at aihorde.net/register (adapter will also allow_downgrade when possible).';
       const errText = '[ERROR] AI Horde: ' + msg;
       hordeNotify('AI Horde', msg.slice(0, 140), { duration: 7000, borderColors: ['#f87171', '#f87171'] });
       say(errText);
@@ -329,13 +243,9 @@ Chat is private: False (community workers)`;
     }
   };
 
-  if (!window.respond) {
-    window.respond = function (t) { return globalThis.GenerateResponse(t); };
-  } else {
+  if (!window.respond) window.respond = function (t) { return globalThis.GenerateResponse(t); };
+  else {
     const prev = window.respond;
-    window.respond = function (t) {
-      if (CloudAI) return globalThis.GenerateResponse(t);
-      return prev(t);
-    };
+    window.respond = function (t) { return CloudAI ? globalThis.GenerateResponse(t) : prev(t); };
   }
 })();
