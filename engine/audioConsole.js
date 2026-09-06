@@ -115,58 +115,12 @@
     }
 
     /**
-     * Track real byte progress for model downloads (Vosk tar.gz, ONNX, etc.).
-     * Wraps window.fetch while Audio Console is initializing.
+     * Stage-only progress helper notes (no fetch body interception).
+     * Re-buffering large Vosk models in JS caused hangs on Firefox for Android.
      */
     function installFetchProgressProbe() {
-        if (window.__ac41FetchProbed) return function restore() {};
-        window.__ac41FetchProbed = true;
-        const orig = window.fetch.bind(window);
-        const MODEL_HINT = /vosk-model|onnx|model|tar\.gz|wasm|moonshine|whisper/i;
-        window.fetch = async function (input, init) {
-            const url = typeof input === 'string' ? input : (input && input.url) || '';
-            const track = MODEL_HINT.test(url);
-            if (!track) return orig(input, init);
-            const short = url.split('/').pop() || url.slice(-40);
-            acProgress(28, 'Downloading ' + short + '…');
-            const res = await orig(input, init);
-            try {
-                const len = Number(res.headers.get('content-length') || 0);
-                if (!res.body || !len || !res.ok) {
-                    acProgress(55, len ? ('Downloaded ' + short) : ('Loading ' + short + ' (size unknown)…'));
-                    return res;
-                }
-                const reader = res.body.getReader();
-                let received = 0;
-                const chunks = [];
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    chunks.push(value);
-                    received += value.byteLength;
-                    const pct = 28 + Math.min(50, Math.round((received / len) * 50));
-                    const mb = (received / 1048576).toFixed(1);
-                    const totalMb = (len / 1048576).toFixed(1);
-                    acProgress(pct, 'Downloading ' + short + ` (${mb}/${totalMb} MB)`);
-                }
-                const blob = new Blob(chunks);
-                acProgress(80, 'Unpacking / caching ' + short + '…');
-                return new Response(blob, {
-                    status: res.status,
-                    statusText: res.statusText,
-                    headers: res.headers
-                });
-            } catch (e) {
-                // Fall through with original response path on probe failure
-                return res;
-            }
-        };
-        return function restore() {
-            if (window.__ac41FetchProbed) {
-                window.fetch = orig;
-                window.__ac41FetchProbed = false;
-            }
-        };
+        // Intentionally a no-op restore pair — avoid double-buffering large downloads.
+        return function restore() {};
     }
 
     // Tiny wake signal for VRM hibernate (CDN engine early-outs; shell polls this key)
