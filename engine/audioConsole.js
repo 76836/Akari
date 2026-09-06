@@ -497,13 +497,13 @@
 
         // Real byte progress for model / wasm downloads during init
         const restoreFetch = installFetchProgressProbe();
-        let initWatchdog = setTimeout(() => {
+        // Soft status hints only — no hard load timeout (slow devices must be allowed to finish)
+        const initWatchdog = setTimeout(() => {
             acProgress(35, 'Still loading models — phone may be slow or network busy…');
-        }, 12000);
-        let initStuck = setTimeout(() => {
-            acLoadFail('timed out after 90s (check network, then reload)');
-            try { restoreFetch(); } catch (_) {}
-        }, 90000);
+        }, 15000);
+        const initStuck = setTimeout(() => {
+            acProgress(40, 'Still loading — large model or slow device; please wait…');
+        }, 60000);
 
         const script = document.createElement('script');
         script.type = 'module';
