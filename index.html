@@ -84,36 +84,68 @@
         .ice-input::placeholder { color: var(--ice-input-placeholder); }
         .ice-input:focus { --ice-glow: rgba(255, 255, 255, 0.6); }
         * { scrollbar-color: var(--scrollbar) transparent; }
+        /* Stackable notifications — compact column, never monopolize the screen */
+        #notificationArea {
+            position: fixed; top: 12px; right: 12px; z-index: 200;
+            display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+            max-height: min(70vh, calc(100dvh - 24px));
+            overflow-x: hidden; overflow-y: auto;
+            width: min(300px, calc(100vw - 24px));
+            pointer-events: none;
+            scrollbar-width: thin;
+        }
         .notification-container {
-            position: fixed; top: 100px; right: 0; margin: 0; padding: 16px;
-            background: var(--notification-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--panel-border); border-bottom-left-radius: 12px; border-top-left-radius: 12px;
-            width: 320px; transform: translateX(100%); opacity: 0;
-            transition: transform 0.4s cubic-bezier(0.2, 0, 0, 1), opacity 0.3s ease-in-out;
-            z-index: 200; display: flex; align-items: flex-end; gap: 12px;
-            color: var(--notification-text); box-shadow: 0 4px 24px var(--shadow);
+            position: relative; top: auto; right: auto; margin: 0;
+            padding: 10px 12px; padding-right: 28px;
+            background: var(--notification-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            width: 100%; max-width: 300px;
+            transform: translateX(110%); opacity: 0;
+            transition: transform 0.35s cubic-bezier(0.2, 0, 0, 1), opacity 0.25s ease;
+            z-index: 200; display: flex; align-items: flex-start; gap: 10px;
+            color: var(--notification-text); box-shadow: 0 4px 18px var(--shadow);
+            pointer-events: auto; flex-shrink: 0;
         }
         .notification-container.show { transform: translateX(0); opacity: 1; }
         .notification-container.animated-border::before {
-            content: ''; position: absolute; inset: 0; border: 3px solid transparent; border-right: none;
-            border-top-left-radius: 12px; border-bottom-left-radius: 12px;
+            content: ''; position: absolute; inset: 0; border: 2px solid transparent;
+            border-radius: 12px;
             background: linear-gradient(var(--notification-bg), var(--notification-bg)) padding-box,
                 repeating-linear-gradient(var(--angle, 0deg), var(--border-colors)) border-box;
             -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
             mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
             -webkit-mask-composite: destination-out; mask-composite: exclude;
             animation: rotate 4s linear infinite, glow 2s ease-in-out infinite alternate;
+            pointer-events: none;
         }
         @keyframes rotate { 0% { --angle: 0deg; } 100% { --angle: 360deg; } }
         @keyframes glow {
-            0% { filter: drop-shadow(0 0 15px rgba(var(--glow-color), 1)); }
-            100% { filter: drop-shadow(0 0 25px rgba(var(--glow-color), 1)); }
+            0% { filter: drop-shadow(0 0 8px rgba(var(--glow-color), 0.6)); }
+            100% { filter: drop-shadow(0 0 14px rgba(var(--glow-color), 0.85)); }
         }
         @property --angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
-        .notification-image { width: 48px; height: 48px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
-        .notification-content { flex-grow: 1; margin-right: 24px; }
-        .notification-title { font-weight: bold; margin-bottom: 4px; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); }
-        .notification-body { color: var(--notification-subtext); font-size: 0.9em; }
+        .notification-image { width: 36px; height: 36px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+        .notification-content { flex-grow: 1; min-width: 0; margin-right: 4px; }
+        .notification-title { font-weight: 600; font-size: 0.85rem; margin-bottom: 2px; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); }
+        .notification-body { color: var(--notification-subtext); font-size: 0.8rem; line-height: 1.35; word-break: break-word; }
+        .notification-close {
+            position: absolute; top: 8px; right: 8px; width: 18px; height: 18px;
+            border: none; background: transparent; cursor: pointer; color: rgba(255,255,255,0.7);
+            font-size: 12px; line-height: 1; padding: 0;
+        }
+        .notification-close:hover { color: #fff; }
+        /* Audio Console in-place progress toast */
+        .ac-progress-note { border-color: rgba(0, 200, 200, 0.35); }
+        .ac-prog-track {
+            margin-top: 8px; height: 4px; border-radius: 2px;
+            background: rgba(255,255,255,0.12); overflow: hidden;
+        }
+        .ac-prog-fill {
+            height: 100%; width: 0%; border-radius: 2px;
+            background: linear-gradient(90deg, #00a8a8, #00e0c0);
+            transition: width 0.25s ease;
+        }
         #overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 98vh; background-color: black;
             opacity: 1; transition: opacity 0.5s ease-out; z-index: 300; border-bottom: 2vh solid red;
@@ -313,7 +345,7 @@
         <img src="./images/loading.gif" alt="Loading" style="position:fixed; top:65%; left:50%; transform:translate(-50%, -50%) scale(0.2);">
     </div>
     <div id="legacy-anchor"><div id="messages"></div></div>
-    <div id="notificationArea" style="position: fixed; top: 0; right: 0; z-index: 200;"></div>
+    <div id="notificationArea" aria-live="polite"></div>
     <div id="screensaver-container" aria-hidden="true"></div>
     <div id="chat-box" class="icemorphic chat-box collapsed" style="border: none;" aria-live="polite">
         <div class="chat-header">
@@ -567,6 +599,14 @@ if ('serviceWorker' in navigator) {
             notify: (title, message, options = {}) => {
                 const { duration = 5000, borderColors, borderColor, image } = options;
                 const container = document.getElementById('notificationArea');
+                if (!container) return;
+                // Cap stack so the screen never fills (drop oldest non-progress notes)
+                const MAX = 5;
+                const notes = [...container.querySelectorAll('.notification-container:not(.ac-progress-note)')];
+                while (notes.length >= MAX) {
+                    const old = notes.pop();
+                    if (old) { try { old.remove(); } catch (_) {} }
+                }
                 const note = document.createElement('div');
                 note.className = 'notification-container';
                 let colors = borderColors || (borderColor ? [borderColor, borderColor] : null);
@@ -575,12 +615,14 @@ if ('serviceWorker' in navigator) {
                     note.style.setProperty('--border-colors', colors.join(', '));
                     note.style.setProperty('--glow-color', (colors[0].match(/\d+/g) || ['255','255','255']).join(','));
                 }
-                note.innerHTML = `${image ? `<img src="${image}" class="notification-image">` : ''}
-                    <div class="notification-content"><div class="notification-title">${title}</div><div class="notification-body">${message}</div></div>
-                    <button class="notification-close" style="position:absolute;top:12px;right:12px;width:20px;height:20px;border:none;background:none;cursor:pointer;color:white;">✕</button>`;
+                const esc = (s) => String(s == null ? '' : s)
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                note.innerHTML = `${image ? `<img src="${image}" class="notification-image" alt="">` : ''}
+                    <div class="notification-content"><div class="notification-title">${esc(title)}</div><div class="notification-body">${esc(message)}</div></div>
+                    <button class="notification-close" type="button" aria-label="Dismiss">✕</button>`;
                 container.prepend(note);
                 requestAnimationFrame(() => note.classList.add('show'));
-                const close = () => { note.classList.remove('show'); setTimeout(() => note.remove(), 400); };
+                const close = () => { note.classList.remove('show'); setTimeout(() => { try { note.remove(); } catch (_) {} }, 350); };
                 note.querySelector('.notification-close').onclick = close;
                 if (duration) setTimeout(close, duration);
             },
