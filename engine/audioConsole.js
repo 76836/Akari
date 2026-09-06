@@ -65,11 +65,108 @@
     }
     function apDownloadStart(text) {
         if (window.AkariAutopilot) window.AkariAutopilot.beginDownload(text);
-        else window.dispatchEvent(new CustomEvent('akari:autopilot', { detail: { text: text, downloadStart: true } }));
+        else window.dispatchEvent(new CustomEvent('akari:autopilot', { detail: { text: text, downloadStart: true, busy: true, download: true } }));
     }
     function apDownloadEnd(text) {
         if (window.AkariAutopilot) window.AkariAutopilot.endDownload(text);
-        else window.dispatchEvent(new CustomEvent('akari:autopilot', { detail: { text: text, downloadEnd: true } }));
+        else window.dispatchEvent(new CustomEvent('akari:autopilot', { detail: { text: text, downloadEnd: true, busy: false, idle: true, percent: 100 } }));
+    }
+
+    /** Detailed load progress → autopilot bar + loadscreen log. */
+    let _acLoadActive = false;
+    function acProgress(percent, text, extra) {
+        const p = Math.max(0, Math.min(100, Math.round(percent)));
+        const msg = text || 'Loading…';
+        if (!_acLoadActive && p < 100) {
+            _acLoadActive = true;
+            apDownloadStart(msg);
+        }
+        const opts = Object.assign({
+            busy: p < 100,
+            idle: p >= 100,
+            download: p < 100,
+            percent: p
+        }, extra || {});
+        apStatus(msg, opts);
+        if (window.loadscreen) {
+            try { window.loadscreen(p < 100 ? `[${p}%] ${msg}` : msg); } catch (_) {}
+        }
+        if (p >= 100) {
+            _acLoadActive = false;
+            apDownloadEnd(msg);
+        }
+        try {
+            localStorage.setItem('akari:ac-load', JSON.stringify({ p, msg, t: Date.now() }));
+        } catch (_) {}
+    }
+    function acLoadFail(reason) {
+        const msg = 'Audio Console failed: ' + (reason || 'unknown error') + ' — reload the page to retry';
+        _acLoadActive = false;
+        apStatus(msg, { busy: false, idle: true, download: false, percent: 0 });
+        apDownloadEnd(msg);
+        if (window.loadscreen) {
+            try { window.loadscreen(msg); } catch (_) {}
+        }
+        if (window.app?.notify) {
+            try {
+                app.notify('AkariNet', msg, { borderColors: ['#ff3333', '#ff6666'], duration: 12000 });
+            } catch (_) {}
+        }
+    }
+
+    /**
+     * Track real byte progress for model downloads (Vosk tar.gz, ONNX, etc.).
+     * Wraps window.fetch while Audio Console is initializing.
+     */
+    function installFetchProgressProbe() {
+        if (window.__ac41FetchProbed) return function restore() {};
+        window.__ac41FetchProbed = true;
+        const orig = window.fetch.bind(window);
+        const MODEL_HINT = /vosk-model|onnx|model|tar\.gz|wasm|moonshine|whisper/i;
+        window.fetch = async function (input, init) {
+            const url = typeof input === 'string' ? input : (input && input.url) || '';
+            const track = MODEL_HINT.test(url);
+            if (!track) return orig(input, init);
+            const short = url.split('/').pop() || url.slice(-40);
+            acProgress(28, 'Downloading ' + short + '…');
+            const res = await orig(input, init);
+            try {
+                const len = Number(res.headers.get('content-length') || 0);
+                if (!res.body || !len || !res.ok) {
+                    acProgress(55, len ? ('Downloaded ' + short) : ('Loading ' + short + ' (size unknown)…'));
+                    return res;
+                }
+                const reader = res.body.getReader();
+                let received = 0;
+                const chunks = [];
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    chunks.push(value);
+                    received += value.byteLength;
+                    const pct = 28 + Math.min(50, Math.round((received / len) * 50));
+                    const mb = (received / 1048576).toFixed(1);
+                    const totalMb = (len / 1048576).toFixed(1);
+                    acProgress(pct, 'Downloading ' + short + ` (${mb}/${totalMb} MB)`);
+                }
+                const blob = new Blob(chunks);
+                acProgress(80, 'Unpacking / caching ' + short + '…');
+                return new Response(blob, {
+                    status: res.status,
+                    statusText: res.statusText,
+                    headers: res.headers
+                });
+            } catch (e) {
+                // Fall through with original response path on probe failure
+                return res;
+            }
+        };
+        return function restore() {
+            if (window.__ac41FetchProbed) {
+                window.fetch = orig;
+                window.__ac41FetchProbed = false;
+            }
+        };
     }
 
     // Tiny wake signal for VRM hibernate (CDN engine early-outs; shell polls this key)
@@ -393,36 +490,78 @@
         if (window.voiceInit) return;
         window.voiceInit = true;
         initWakeAudio();
-        apDownloadStart('Loading Audio Console models…');
+
+        const sr = config.speechRecognitionProvider || 'vosk';
+        acProgress(5, 'Starting Audio Console…');
+        acProgress(12, 'Loading Audio Console engine (v4.2.1)…');
+
+        // Real byte progress for model / wasm downloads during init
+        const restoreFetch = installFetchProgressProbe();
+        let initWatchdog = setTimeout(() => {
+            acProgress(35, 'Still loading models — phone may be slow or network busy…');
+        }, 12000);
+        let initStuck = setTimeout(() => {
+            acLoadFail('timed out after 90s (check network, then reload)');
+            try { restoreFetch(); } catch (_) {}
+        }, 90000);
+
         const script = document.createElement('script');
         script.type = 'module';
         script.textContent = `
-            import { AkarinetVoice } from 'https://76836.github.io/AkariNet-AudioConsole/audioConsole-4.2.1.js';
-            const config = ${JSON.stringify(config)};
-            const assistant = new AkarinetVoice(config);
-            window.__ac41Voice = assistant;
-            assistant.addEventListener('ready', () => window.dispatchEvent(new CustomEvent('audioConsoleReady')));
-            assistant.addEventListener('speechstart', () => window.dispatchEvent(new CustomEvent('audioConsoleSpeechStart')));
-            assistant.addEventListener('speechend', () => window.dispatchEvent(new CustomEvent('audioConsoleSpeechEnd')));
-            assistant.addEventListener('wakesound', (e) => window.dispatchEvent(new CustomEvent('audioConsoleWakeSound', { detail: e.detail })));
-            assistant.addEventListener('speechdiscarded', (e) => window.dispatchEvent(new CustomEvent('audioConsoleSpeechDiscarded', { detail: e.detail })));
-            assistant.addEventListener('processing', () => window.dispatchEvent(new CustomEvent('audioConsoleProcessing')));
-            assistant.addEventListener('processingend', () => window.dispatchEvent(new CustomEvent('audioConsoleProcessingEnd')));
-            assistant.addEventListener('result', (e) => window.dispatchEvent(new CustomEvent('audioConsoleResult', { detail: e.detail })));
-            assistant.addEventListener('error', (e) => window.dispatchEvent(new CustomEvent('audioConsoleError', { detail: e.detail })));
+            const _prog = (p, t) => window.dispatchEvent(new CustomEvent('audioConsoleProgress', { detail: { percent: p, text: t } }));
             try {
+                _prog(18, 'Importing Audio Console module…');
+                const mod = await import('https://76836.github.io/AkariNet-AudioConsole/audioConsole-4.2.1.js');
+                const { AkarinetVoice } = mod;
+                _prog(25, 'Engine loaded — preparing ${sr}…');
+                const config = ${JSON.stringify(config)};
+                const assistant = new AkarinetVoice(config);
+                window.__ac41Voice = assistant;
+                assistant.addEventListener('ready', () => window.dispatchEvent(new CustomEvent('audioConsoleReady')));
+                assistant.addEventListener('speechstart', () => window.dispatchEvent(new CustomEvent('audioConsoleSpeechStart')));
+                assistant.addEventListener('speechend', () => window.dispatchEvent(new CustomEvent('audioConsoleSpeechEnd')));
+                assistant.addEventListener('wakesound', (e) => window.dispatchEvent(new CustomEvent('audioConsoleWakeSound', { detail: e.detail })));
+                assistant.addEventListener('speechdiscarded', (e) => window.dispatchEvent(new CustomEvent('audioConsoleSpeechDiscarded', { detail: e.detail })));
+                assistant.addEventListener('processing', () => window.dispatchEvent(new CustomEvent('audioConsoleProcessing')));
+                assistant.addEventListener('processingend', () => window.dispatchEvent(new CustomEvent('audioConsoleProcessingEnd')));
+                assistant.addEventListener('result', (e) => window.dispatchEvent(new CustomEvent('audioConsoleResult', { detail: e.detail })));
+                assistant.addEventListener('error', (e) => window.dispatchEvent(new CustomEvent('audioConsoleError', { detail: e.detail })));
+                _prog(30, 'Initializing mic, VAD, and speech models…');
+                // Hint for common SR backends (fetch probe reports real download %)
+                if (config.speechRecognitionProvider === 'vosk') {
+                    _prog(32, 'Vosk model next (~40 MB first run, then cached)…');
+                } else if (config.speechRecognitionProvider === 'transformers') {
+                    _prog(32, 'On-device ML model next (first run downloads weights)…');
+                }
                 await assistant.init();
+                _prog(95, 'Finishing setup…');
             } catch (err) {
                 window.dispatchEvent(new CustomEvent('audioConsoleError', { detail: err.message || String(err) }));
             }
         `;
+        script.onerror = () => {
+            clearTimeout(initWatchdog);
+            clearTimeout(initStuck);
+            try { restoreFetch(); } catch (_) {}
+            acLoadFail('could not load audioConsole-4.2.1.js (network or CDN)');
+        };
+
+        window.__ac41RestoreFetch = restoreFetch;
+        window.__ac41InitWatchdog = initWatchdog;
+        window.__ac41InitStuck = initStuck;
         document.head.appendChild(script);
     }
 
+    window.addEventListener('audioConsoleProgress', (e) => {
+        const d = e.detail || {};
+        if (typeof d.percent === 'number') acProgress(d.percent, d.text || 'Loading…');
+    });
+
     window.addEventListener('audioConsoleReady', () => {
-        apDownloadEnd('Audio Console ready');
-        apStatus('Audio Console ready', { busy: false, idle: true });
-        if (window.loadscreen) window.loadscreen('AkariNet Audio Console v4.2.1 ready.');
+        try { clearTimeout(window.__ac41InitWatchdog); } catch (_) {}
+        try { clearTimeout(window.__ac41InitStuck); } catch (_) {}
+        try { if (window.__ac41RestoreFetch) window.__ac41RestoreFetch(); } catch (_) {}
+        acProgress(100, 'Audio Console ready');
         if (window.app?.notify) {
             app.notify('AkariNet', 'Audio Console v4.2.1 started successfully!', {
                 borderColors: ['#00ccff', '#00FF00']
@@ -521,17 +660,15 @@
     window.addEventListener('audioConsoleError', (e) => {
         console.error('Audio Console Error:', e.detail);
         clearProcessingSafety();
-        apDownloadEnd('Audio Console error');
+        try { clearTimeout(window.__ac41InitWatchdog); } catch (_) {}
+        try { clearTimeout(window.__ac41InitStuck); } catch (_) {}
+        try { if (window.__ac41RestoreFetch) window.__ac41RestoreFetch(); } catch (_) {}
+        acLoadFail(e.detail || 'unknown error');
         const v = window.__ac41Voice || voiceInstance;
         if (v && typeof v.cancelProcessing === 'function') {
             try { v.cancelProcessing(); } catch (_) {}
         }
         resetVisuals();
-        if (window.app?.notify) {
-            app.notify('AkariNet', 'Audio Console error: ' + e.detail, {
-                borderColors: ['#ff3333', '#ff6666'], duration: 8000
-            });
-        }
     });
 
     // Always install / upgrade the bridge so stop() can unstick Processing...
@@ -653,7 +790,7 @@
 
 
 
-    if (window.loadscreen) window.loadscreen('AkariNet Audio Console v4.2.1 starting up...');
+    acProgress(2, 'Audio Console v4.2.1 queued…');
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initAudioConsole);
     } else {
