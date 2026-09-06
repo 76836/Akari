@@ -64,62 +64,99 @@
         window.dispatchEvent(new CustomEvent('akari:autopilot', { detail: Object.assign({ text: text }, opts || {}) }));
     }
     function apDownloadStart(text) {
-        if (window.AkariAutopilot) window.AkariAutopilot.beginDownload(text);
-        else window.dispatchEvent(new CustomEvent('akari:autopilot', { detail: { text: text, downloadStart: true, busy: true, download: true } }));
+        // Intentionally do NOT open Autopilot download UI — progress uses notifications.
+        if (text) acProgress(8, text);
     }
     function apDownloadEnd(text) {
-        if (window.AkariAutopilot) window.AkariAutopilot.endDownload(text);
-        else window.dispatchEvent(new CustomEvent('akari:autopilot', { detail: { text: text, downloadEnd: true, busy: false, idle: true, percent: 100 } }));
+        // no-op for Autopilot; progress toast handles completion
+        if (text) acProgress(100, text);
     }
 
-    /** Detailed load progress → autopilot bar + loadscreen log. */
+    /**
+     * Load progress via stackable notifications (not Autopilot status page).
+     * Updates one sticky progress toast in place so the bar is not forced open.
+     */
+    let _acProgNote = null;
     let _acLoadActive = false;
-    function acProgress(percent, text, extra) {
+    function _ensureProgNote() {
+        const area = document.getElementById('notificationArea');
+        if (!area) return null;
+        if (_acProgNote && _acProgNote.isConnected) return _acProgNote;
+        const note = document.createElement('div');
+        note.className = 'notification-container ac-progress-note show';
+        note.innerHTML = `
+            <div class="notification-content">
+                <div class="notification-title">Audio Console</div>
+                <div class="notification-body ac-prog-body">Starting…</div>
+                <div class="ac-prog-track"><div class="ac-prog-fill" style="width:0%"></div></div>
+            </div>
+            <button class="notification-close" type="button" aria-label="Dismiss">✕</button>`;
+        const close = () => {
+            note.classList.remove('show');
+            setTimeout(() => { try { note.remove(); } catch (_) {} }, 350);
+            if (_acProgNote === note) _acProgNote = null;
+        };
+        note.querySelector('.notification-close').onclick = close;
+        area.prepend(note);
+        _acProgNote = note;
+        return note;
+    }
+    function acProgress(percent, text) {
         const p = Math.max(0, Math.min(100, Math.round(percent)));
         const msg = text || 'Loading…';
-        if (!_acLoadActive && p < 100) {
-            _acLoadActive = true;
-            apDownloadStart(msg);
+        _acLoadActive = p < 100;
+        // Prefer in-place progress toast; fall back to notify
+        const note = _ensureProgNote();
+        if (note) {
+            const body = note.querySelector('.ac-prog-body');
+            const fill = note.querySelector('.ac-prog-fill');
+            if (body) body.textContent = (p < 100 ? `[${p}%] ` : '') + msg;
+            if (fill) fill.style.width = p + '%';
+            if (p >= 100) {
+                setTimeout(() => {
+                    if (_acProgNote === note) {
+                        note.classList.remove('show');
+                        setTimeout(() => { try { note.remove(); } catch (_) {} }, 350);
+                        _acProgNote = null;
+                    }
+                }, 1800);
+            }
+        } else if (window.app?.notify) {
+            try {
+                app.notify('Audio Console', (p < 100 ? `[${p}%] ` : '') + msg, {
+                    duration: p >= 100 ? 2500 : 6000,
+                    borderColors: p >= 100 ? ['#00ccff', '#00FF00'] : ['#00ccff', '#0088aa']
+                });
+            } catch (_) {}
         }
-        const opts = Object.assign({
-            busy: p < 100,
-            idle: p >= 100,
-            download: p < 100,
-            percent: p
-        }, extra || {});
-        apStatus(msg, opts);
         if (window.loadscreen) {
             try { window.loadscreen(p < 100 ? `[${p}%] ${msg}` : msg); } catch (_) {}
-        }
-        if (p >= 100) {
-            _acLoadActive = false;
-            apDownloadEnd(msg);
         }
         try {
             localStorage.setItem('akari:ac-load', JSON.stringify({ p, msg, t: Date.now() }));
         } catch (_) {}
     }
     function acLoadFail(reason) {
-        const msg = 'Audio Console failed: ' + (reason || 'unknown error') + ' — reload the page to retry';
         _acLoadActive = false;
-        apStatus(msg, { busy: false, idle: true, download: false, percent: 0 });
-        apDownloadEnd(msg);
+        if (_acProgNote && _acProgNote.isConnected) {
+            try { _acProgNote.remove(); } catch (_) {}
+            _acProgNote = null;
+        }
+        const msg = 'Failed: ' + (reason || 'unknown') + ' — reload to retry';
+        if (window.app?.notify) {
+            try {
+                app.notify('Audio Console', msg, {
+                    duration: 12000,
+                    borderColors: ['#ff3333', '#ff6666']
+                });
+            } catch (_) {}
+        }
         if (window.loadscreen) {
             try { window.loadscreen(msg); } catch (_) {}
         }
-        if (window.app?.notify) {
-            try {
-                app.notify('AkariNet', msg, { borderColors: ['#ff3333', '#ff6666'], duration: 12000 });
-            } catch (_) {}
-        }
     }
-
-    /**
-     * Stage-only progress helper notes (no fetch body interception).
-     * Re-buffering large Vosk models in JS caused hangs on Firefox for Android.
-     */
     function installFetchProgressProbe() {
-        // Intentionally a no-op restore pair — avoid double-buffering large downloads.
+        // No-op: do not re-buffer large model downloads (Firefox Android hangs).
         return function restore() {};
     }
 
@@ -516,11 +553,7 @@
         try { clearTimeout(window.__ac41InitStuck); } catch (_) {}
         try { if (window.__ac41RestoreFetch) window.__ac41RestoreFetch(); } catch (_) {}
         acProgress(100, 'Audio Console ready');
-        if (window.app?.notify) {
-            app.notify('AkariNet', 'Audio Console v4.2.1 started successfully!', {
-                borderColors: ['#00ccff', '#00FF00']
-            });
-        }
+
         voiceInstance = window.__ac41Voice || null;
         if (voiceInstance?.xlCache) injectGreenDot();
         // Gate transcription until after wake chime (adapter-level; core unchanged)
