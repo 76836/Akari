@@ -280,6 +280,22 @@
                     </div>
                 </details>
 
+
+                <details>
+                    <summary>Experimental</summary>
+                    <div class="content">
+                        <p class="hint">Optional features that may change. Use at your own comfort level.</p>
+                        <div class="row">
+                            <span>Skip loading screen on start</span>
+                            <label class="switch">
+                                <input type="checkbox" id="toggle_skipLoading" onchange="toggleSkipLoading(this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <p class="hint">When on, AkariNet hides the boot overlay immediately. Modules still load in the background.</p>
+                    </div>
+                </details>
+
                 <details class="danger-zone">
                     <summary>Reset & setup</summary>
                     <div class="content">
@@ -316,7 +332,17 @@
     <div id="overlay" onclick="if(event.target == this) closeOverlay()"></div>
 
     <script>
+        function toggleSkipLoading(on) {
+            try {
+                localStorage.setItem('akari:skipLoadingScreen', on ? 'true' : 'false');
+            } catch (e) {}
+        }
+
         window.onload = () => {
+            try {
+                const skipEl = document.getElementById('toggle_skipLoading');
+                if (skipEl) skipEl.checked = localStorage.getItem('akari:skipLoadingScreen') === 'true';
+            } catch (e) {}
             const avatar = localStorage.getItem('selectedAvatarScript');
             const wake = localStorage.getItem('selectedWakeScript');
 
