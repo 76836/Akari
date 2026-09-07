@@ -84,28 +84,54 @@
         .ice-input::placeholder { color: var(--ice-input-placeholder); }
         .ice-input:focus { --ice-glow: rgba(255, 255, 255, 0.6); }
         * { scrollbar-color: var(--scrollbar) transparent; }
-        /* Stackable notifications — compact column, never monopolize the screen */
+        /* Stackable notifications — full width visible, shadow not clipped */
         #notificationArea {
-            position: fixed; top: 12px; right: 12px; z-index: 200;
-            display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
-            max-height: min(70vh, calc(100dvh - 24px));
-            overflow-x: hidden; overflow-y: auto;
-            width: min(300px, calc(100vw - 24px));
+            position: fixed;
+            top: 0;
+            right: 0;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+            max-height: 100dvh;
+            /* Padding keeps box-shadows inside the area so nothing is cropped */
+            padding: 12px 16px 20px 24px;
+            box-sizing: border-box;
+            overflow-x: visible;
+            overflow-y: auto;
+            width: auto;
+            max-width: min(360px, 100vw);
             pointer-events: none;
             scrollbar-width: thin;
         }
         .notification-container {
-            position: relative; top: auto; right: auto; margin: 0;
-            padding: 10px 12px; padding-right: 28px;
-            background: var(--notification-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            position: relative;
+            top: auto;
+            right: auto;
+            margin: 0;
+            padding: 10px 12px;
+            padding-right: 28px;
+            background: var(--notification-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid var(--panel-border);
             border-radius: 12px;
-            width: 100%; max-width: 300px;
-            transform: translateX(110%); opacity: 0;
+            width: min(300px, calc(100vw - 40px));
+            max-width: 100%;
+            box-sizing: border-box;
+            /* Slide in from just outside without relying on a clipped parent */
+            transform: translateX(calc(100% + 32px));
+            opacity: 0;
             transition: transform 0.35s cubic-bezier(0.2, 0, 0, 1), opacity 0.25s ease;
-            z-index: 200; display: flex; align-items: flex-start; gap: 10px;
-            color: var(--notification-text); box-shadow: 0 4px 18px var(--shadow);
-            pointer-events: auto; flex-shrink: 0;
+            z-index: 200;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            color: var(--notification-text);
+            box-shadow: 0 4px 18px var(--shadow), 0 0 1px rgba(0,0,0,0.2);
+            pointer-events: auto;
+            flex-shrink: 0;
         }
         .notification-container.show { transform: translateX(0); opacity: 1; }
         .notification-container.animated-border::before {
@@ -153,6 +179,13 @@
         }
         @keyframes borderAnim { 0% { border-color: red; } 100% { border-color: green; } }
         #overlay.fade-out { opacity: 0; pointer-events: none; }
+        html.akari-skip-loading #overlay {
+            display: none !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            animation: none !important;
+        }
+
         /* Wallpaper layer — simple fixed stack under avatar (z-index 0 < avatar iframe z-index 1) */
         #bkg-container {
             position: fixed;
@@ -337,6 +370,15 @@
     </style>
 </head>
 <body>
+    <script>
+        // Experimental: skip boot overlay when enabled in settings
+        try {
+            if (localStorage.getItem('akari:skipLoadingScreen') === 'true') {
+                document.documentElement.classList.add('akari-skip-loading');
+            }
+        } catch (e) {}
+    </script>
+
     <div id="bkg-container"></div>
     <div id="avatar"></div>
     <div id="overlay">
@@ -674,7 +716,8 @@ if ('serviceWorker' in navigator) {
                     await app.core.loadModule('whisper', app.config.modules.whisper, 'Speech Recognition');
                     await app.core.loadModule('aim', app.config.modules.aim, 'AIM Hand Tracking');
 
-                    setTimeout(() => {
+                    const skipLoad = (() => { try { return localStorage.getItem('akari:skipLoadingScreen') === 'true'; } catch (_) { return false; } })();
+                    const finishBoot = () => {
                         const overlay = document.getElementById('overlay');
                         if (overlay) overlay.classList.add('fade-out');
                         // Fresh session: auto "+ New chat" then greeting
@@ -685,7 +728,9 @@ if ('serviceWorker' in navigator) {
                         }
                         app.core.sendGreeting();
                         window.emit('akari_ready', { timestamp: Date.now() });
-                    }, 1000);
+                    };
+                    if (skipLoad) finishBoot();
+                    else setTimeout(finishBoot, 1000);
                 },
 
                 loadBackground: () => {
