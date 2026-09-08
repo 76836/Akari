@@ -124,3 +124,109 @@ self.addEventListener('activate', (event) => {
     ]).then(() => self.clients.claim())
   );
 });
+
+// ── HTML templates ────────────────────────────────────────────────────────────
+
+const RECOVERY_HTML = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Akari Recovery</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{margin:0;box-sizing:border-box}
+body{background:#000;font:13px/1.4 Arial,sans-serif;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:10px}
+.win{background:#c0c0c0;border:2px solid;border-color:#fff #000 #000 #fff;box-shadow:1px 1px 0 #000;max-width:520px;width:100%}
+.titlebar{background:#000080;color:#fff;padding:3px 6px;display:flex;justify-content:space-between;align-items:center;user-select:none;gap:8px}
+.titlebar-title{font-weight:bold;font-size:12px;white-space:nowrap}
+.titlebar-status{font-size:10px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.body{padding:8px}
+.url-box{background:#fff;border:2px solid;border-color:#808080 #fff #fff #808080;padding:4px 6px;margin:6px 0;word-break:break-all;font-size:11px;color:#000;min-height:20px}
+.label{font-size:11px;font-weight:bold;margin-bottom:4px;margin-top:8px}
+.btn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:4px}
+button{background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;padding:5px 8px;font:12px Arial,sans-serif;min-height:32px;cursor:pointer;text-align:center;line-height:1.2}
+button:active{border-color:#808080 #fff #fff #808080;padding:6px 7px 4px 9px}
+.hr{border:none;border-top:1px solid #808080;border-bottom:1px solid #fff;margin:8px 0}
+.cors-row{display:flex;align-items:center;gap:6px;margin:3px 0;flex-wrap:wrap}
+.cors-lbl{font-size:12px;min-width:72px}
+.cors-val{font-size:11px;padding:1px 6px;border:1px inset #808080;background:#fff;min-width:34px;text-align:center;font-weight:bold}
+.on{color:green}.off{color:#c00}
+.status{font-size:11px;min-height:16px;padding:2px 0;color:#000080}
+.status.err{color:#c00}.status.ok{color:green}
+.note{font-size:10px;color:#606060;margin-top:3px}
+.term-hdr{background:#404040;color:#ccc;padding:3px 8px;font:12px monospace;display:flex;justify-content:space-between;cursor:pointer;user-select:none;margin-top:8px;border-top:2px solid #808080}
+.term-hdr:hover{background:#505050}
+#term{display:none;background:#000}
+#term-out{height:210px;overflow-y:auto;padding:4px 6px 2px;color:#0f0;font:12px/1.45 monospace;white-space:pre-wrap;word-break:break-all}
+#term-out .e{color:#f66}#term-out .k{color:#6f6}#term-out .d{color:#888}
+.term-in-row{display:flex;align-items:center;background:#000;padding:3px 6px;border-top:1px solid #1a3a1a}
+.prompt{color:#0f0;font:12px monospace;flex-shrink:0}
+#term-in{flex:1;background:transparent;border:none;outline:none;color:#0f0;font:12px monospace;caret-color:#0f0;padding:0 4px}
+</style>
+</head>
+<body>
+<div class="win">
+<div class="titlebar">
+  <span class="titlebar-title">&#9881; Akari Recovery Utility</span>
+  <span class="titlebar-status" id="sw-badge">checking&#8230;</span>
+</div>
+<div class="body">
+  <div class="label">Failed resource</div>
+  <div class="url-box" id="url-display">&#8212;</div>
+  <div class="status" id="status"></div>
+  <hr class="hr">
+  <div class="label">Actions</div>
+  <div class="btn-grid">
+    <button onclick="doRetry()">&#8629; Retry</button>
+    <button onclick="doSkipCache()">&#8856; Skip Cache</button>
+    <button onclick="doForceCache()">&#8853; Force Cache</button>
+    <button onclick="doUpgradeSW()">&#8593; Upgrade SW</button>
+    <button onclick="doClearCache()">&#128465; Clear Cache</button>
+    <button onclick="location.reload()">&#10227; Restart</button>
+    <button onclick="location.href='/Akari/settings'">&#9881; Settings</button>
+  </div>
+  <hr class="hr">
+  <div class="label">CORS Settings</div>
+  <div class="cors-row">
+    <span class="cors-lbl">Digita:</span>
+    <span class="cors-val" id="cors-digita">&#8230;</span>
+    <button onclick="setCors('digita',true)"  style="min-height:26px;padding:2px 10px">ON</button>
+    <button onclick="setCors('digita',false)" style="min-height:26px;padding:2px 10px">OFF</button>
+  </div>
+  <div class="cors-row">
+    <span class="cors-lbl">AkariNet:</span>
+    <span class="cors-val" id="cors-net">&#8230;</span>
+    <button onclick="setCors('akariNet',true)"  style="min-height:26px;padding:2px 10px">ON</button>
+    <button onclick="setCors('akariNet',false)" style="min-height:26px;padding:2px 10px">OFF</button>
+  </div>
+  <div class="note">Changes take effect after reload.</div>
+</div>
+<div class="term-hdr" id="term-hdr" onclick="toggleTerm()">
+  <span id="term-label">&#9654; Terminal</span>
+  <span id="term-arrow">&#9660;</span>
+</div>
+<div id="term">
+  <div id="term-out"></div>
+  <div class="term-in-row">
+    <span class="prompt">$&nbsp;</span>
+    <input id="term-in" type="text" autocomplete="off" autocorrect="off"
+           autocapitalize="off" spellcheck="false" placeholder="help">
+  </div>
+</div>
+</div>
+<script>
+(function(){
+'use strict';
+var CN       = 'AkariOffline';
+var PRESERVE = ['.gguf','.vrm','.mp3','.mp4','.onnx','.tar.gz','.tgz','.zip','.wasm','.bin'];
+var params   = new URLSearchParams(location.search);
+var failedUrl= params.get('url') || '';
+var termOpen = false;
+var hist     = [];
+var histIdx  = -1;
+
+var elUrl    = document.getElementById('url-display');
+var elStatus = document.getElementById('status');
+var elBadge  = document.getElementById('sw-badge');
+var elOut    = document.getElementById('term-out');
+var elIn     = document.getElementById('term-in');
