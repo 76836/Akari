@@ -301,7 +301,16 @@
                                 <span class="slider"></span>
                             </label>
                         </div>
-                        <p class="hint">Experimental. Full-bleed purple splash with a random portrait from <code>images/splash/</code> and the README banner strip. Ignored if “Skip loading screen” is on.</p>
+                        <p class="hint">Black screen, full-height portrait, README banner in the right gap. Ignored if skip-loading is on.</p>
+
+                        <div class="row">
+                            <span>Splash uses emote2 portraits</span>
+                            <label class="switch">
+                                <input type="checkbox" id="toggle_splashEmotes" onchange="toggleSplashEmotes(this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <p class="hint">When splash is on, pick a random image from <code>characters/akari/emote2/</code> instead of <code>images/splash/</code>.</p>
                     </div>
                 </details>
 
@@ -353,12 +362,20 @@
             } catch (e) {}
         }
 
+        function toggleSplashEmotes(on) {
+            try {
+                localStorage.setItem('akari:splashUseEmotes', on ? 'true' : 'false');
+            } catch (e) {}
+        }
+
         window.onload = () => {
             try {
                 const skipEl = document.getElementById('toggle_skipLoading');
                 if (skipEl) skipEl.checked = localStorage.getItem('akari:skipLoadingScreen') === 'true';
                 const splashEl = document.getElementById('toggle_splashLoading');
                 if (splashEl) splashEl.checked = localStorage.getItem('akari:splashLoadingScreen') === 'true';
+                const emoteEl = document.getElementById('toggle_splashEmotes');
+                if (emoteEl) emoteEl.checked = localStorage.getItem('akari:splashUseEmotes') === 'true';
             } catch (e) {}
             const avatar = localStorage.getItem('selectedAvatarScript');
             const wake = localStorage.getItem('selectedWakeScript');

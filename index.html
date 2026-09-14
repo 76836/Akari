@@ -185,147 +185,22 @@
         }
 
 
-        /* Splash chrome hidden unless experimental splash mode is active */
-        #overlay .splash-stage,
-        #overlay .splash-banner-wrap,
-        #overlay .splash-boot {
-            display: none;
-        }
-        html.akari-splash-loading #overlay .splash-stage {
-            display: flex;
-        }
-        html.akari-splash-loading #overlay .splash-banner-wrap {
-            display: flex;
-        }
-        html.akari-splash-loading #overlay .splash-boot {
-            display: block;
-        }
-
-        /* Experimental splash loading screen (purple portrait + vertical banner) */
+        /* Experimental splash: full-height portrait + banner in the right gap */
         html.akari-splash-loading #overlay {
-            height: 100vh;
-            border-bottom: none;
-            animation: none;
-            background: radial-gradient(ellipse at 50% 40%, #1a0a2e 0%, #0a0514 55%, #000 100%);
-            display: grid;
-            grid-template-columns: 1fr auto;
-            grid-template-rows: 1fr auto;
-            align-items: stretch;
-            justify-items: stretch;
-            overflow: hidden;
+            background: #000; border: none; animation: none; height: 100vh; overflow: hidden;
         }
-        html.akari-splash-loading #overlay .console,
-        html.akari-splash-loading #overlay > img:not(.splash-portrait):not(.splash-banner) {
+        html.akari-splash-loading #overlay > :not(.splash-portrait):not(.splash-banner) {
             display: none !important;
         }
-        html.akari-splash-loading #overlay .splash-stage {
-            grid-column: 1;
-            grid-row: 1 / -1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 0;
-            min-height: 0;
-            padding: clamp(12px, 4vw, 40px);
-            position: relative;
+        html.akari-splash-loading .splash-portrait {
+            position: absolute; left: 0; top: 0; height: 100vh; width: auto; max-width: 90vw;
+            object-fit: cover; object-position: center top;
         }
-        html.akari-splash-loading #overlay .splash-portrait {
-            max-width: min(72vw, 520px);
-            max-height: min(82vh, 900px);
-            width: auto;
-            height: auto;
+        html.akari-splash-loading .splash-banner {
+            position: absolute; right: 0; top: 50%; width: 72vh; height: min(10vw, 64px);
+            transform: translate(50%, -50%) rotate(90deg); transform-origin: center;
             object-fit: contain;
-            filter: drop-shadow(0 0 28px rgba(168, 85, 247, 0.35));
-            user-select: none;
-            pointer-events: none;
         }
-        html.akari-splash-loading #overlay .splash-banner-wrap {
-            grid-column: 2;
-            grid-row: 1 / -1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: clamp(8px, 2vw, 24px) clamp(6px, 1.5vw, 16px);
-            min-width: 0;
-        }
-        html.akari-splash-loading #overlay .splash-banner {
-            /* vertical strip — same asset as README banner */
-            height: min(70vh, 640px);
-            width: auto;
-            max-width: min(18vw, 120px);
-            object-fit: contain;
-            object-position: center;
-            transform: rotate(90deg);
-            transform-origin: center center;
-            opacity: 0.92;
-            filter: drop-shadow(0 0 12px rgba(192, 132, 252, 0.25));
-            user-select: none;
-            pointer-events: none;
-        }
-        /* When transform-rotate makes layout awkward, use writing-mode fallback label */
-        html.akari-splash-loading #overlay .splash-banner-fallback {
-            display: none;
-            writing-mode: vertical-rl;
-            transform: rotate(180deg);
-            font-family: 'Orbitron', system-ui, sans-serif;
-            font-weight: 600;
-            font-size: clamp(14px, 3.5vw, 22px);
-            letter-spacing: 0.35em;
-            color: #e9d5ff;
-            text-shadow: 0 0 18px rgba(168, 85, 247, 0.5);
-            padding: 0 0.5em;
-        }
-        html.akari-splash-loading #overlay.splash-no-banner .splash-banner { display: none; }
-        html.akari-splash-loading #overlay.splash-no-banner .splash-banner-fallback { display: block; }
-
-        html.akari-splash-loading #overlay .splash-boot {
-            grid-column: 1 / -1;
-            grid-row: 2;
-            font-family: ui-monospace, monospace;
-            font-size: clamp(10px, 2.4vw, 12px);
-            color: rgba(233, 213, 255, 0.55);
-            text-align: center;
-            padding: 8px 12px 16px;
-            max-height: 20vh;
-            overflow: hidden;
-        }
-
-        @media (max-width: 640px) {
-            html.akari-splash-loading #overlay {
-                grid-template-columns: 1fr;
-                grid-template-rows: 1fr auto auto;
-            }
-            html.akari-splash-loading #overlay .splash-stage {
-                grid-column: 1;
-                grid-row: 1;
-            }
-            html.akari-splash-loading #overlay .splash-banner-wrap {
-                grid-column: 1;
-                grid-row: 2;
-                padding: 4px 12px 8px;
-            }
-            html.akari-splash-loading #overlay .splash-banner {
-                transform: none;
-                height: auto;
-                width: min(70vw, 280px);
-                max-width: 80vw;
-                max-height: 48px;
-                object-fit: contain;
-            }
-            html.akari-splash-loading #overlay .splash-banner-fallback {
-                writing-mode: horizontal-tb;
-                transform: none;
-                letter-spacing: 0.25em;
-            }
-            html.akari-splash-loading #overlay .splash-portrait {
-                max-width: min(88vw, 420px);
-                max-height: min(62vh, 640px);
-            }
-            html.akari-splash-loading #overlay .splash-boot {
-                grid-row: 3;
-            }
-        }
-
 
         /* Wallpaper layer — simple fixed stack under avatar (z-index 0 < avatar iframe z-index 1) */
         #bkg-container {
@@ -529,69 +404,53 @@
         <div class="console" id="boot-log" style="font-size: 1rem; color: #fff;"></div>
         <img src="./images/logo512.png" alt="Logo" class="classic-logo" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.6);">
         <img src="./images/loading.gif" alt="Loading" class="classic-loading" style="position:fixed; top:65%; left:50%; transform:translate(-50%, -50%) scale(0.2);">
-        <!-- Experimental splash (shown when akari:splashLoadingScreen) -->
-        <div class="splash-stage" aria-hidden="true">
-            <img class="splash-portrait" id="splashPortrait" alt="Akari" src="./images/logo512.png">
-        </div>
-        <div class="splash-banner-wrap" aria-hidden="true">
-            <img class="splash-banner" id="splashBanner" src="./images/banner.png" alt="AkariNet">
-            <div class="splash-banner-fallback">AKARINET</div>
-        </div>
-        <div class="splash-boot" id="splashBoot" aria-live="polite"></div>
+        <img class="splash-portrait" id="splashPortrait" alt="" src="./images/logo512.png" hidden>
+        <img class="splash-banner" id="splashBanner" alt="" src="./images/banner.png" hidden>
     </div>
     <script>
-    (function initSplashLoading() {
+    (function () {
         try {
             if (localStorage.getItem('akari:splashLoadingScreen') !== 'true') return;
             if (localStorage.getItem('akari:skipLoadingScreen') === 'true') return;
         } catch (e) { return; }
-
         var portrait = document.getElementById('splashPortrait');
         var banner = document.getElementById('splashBanner');
-        var overlay = document.getElementById('overlay');
-        var boot = document.getElementById('splashBoot');
+        if (portrait) portrait.hidden = false;
+        if (banner) banner.hidden = false;
 
-        function pick(arr) {
-            if (!arr || !arr.length) return null;
-            return arr[Math.floor(Math.random() * arr.length)];
-        }
+        var emotes = [
+            'angry.jpg','anxious.png','bored.jpg','confusion.png','curious.jpeg','default.jpeg',
+            'disgust.png','embarassed.webp','excited.webp','fear.png','gratitude.webp','guilt.jpg',
+            'happy.jpeg','hope.webp','jealous.webp','love.webp','pride.jpeg','relief.webp',
+            'sad.webp','shame.jpeg','surprise.webp'
+        ];
+        function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
 
-        function applyPortrait(src) {
-            if (!portrait || !src) return;
+        function setPortrait(src) {
+            if (!portrait) return;
+            portrait.onerror = function () { portrait.src = './images/logo512.png'; };
             portrait.src = src;
-            portrait.onerror = function () {
-                portrait.src = './images/logo512.png';
-            };
         }
 
-        // Random splash from manifest; fall back to logo until images are uploaded
+        var useEmotes = false;
+        try { useEmotes = localStorage.getItem('akari:splashUseEmotes') === 'true'; } catch (e) {}
+
+        if (useEmotes) {
+            setPortrait('./characters/akari/emote2/' + pick(emotes));
+            return;
+        }
+
         fetch('./images/splash/manifest.json', { cache: 'no-store' })
             .then(function (r) { return r.ok ? r.json() : { images: [] }; })
             .then(function (data) {
                 var list = (data && data.images) || [];
-                var name = pick(list);
-                if (name) applyPortrait('./images/splash/' + name.replace(/^\.\/images\/splash\//, ''));
-                else applyPortrait('./images/logo512.png');
+                if (list.length) setPortrait('./images/splash/' + list[Math.floor(Math.random() * list.length)]);
+                else setPortrait('./images/logo512.png');
             })
-            .catch(function () { applyPortrait('./images/logo512.png'); });
-
-        if (banner) {
-            banner.onerror = function () {
-                if (overlay) overlay.classList.add('splash-no-banner');
-            };
-        }
-
-        // Mirror classic boot-log into splash footer (compact)
-        var log = document.getElementById('boot-log');
-        if (log && boot && typeof MutationObserver !== 'undefined') {
-            var obs = new MutationObserver(function () {
-                var text = (log.innerText || '').trim().split('\n').slice(-3).join(' · ');
-                boot.textContent = text;
-            });
-            obs.observe(log, { childList: true, subtree: true, characterData: true });
-        }
+            .catch(function () { setPortrait('./images/logo512.png'); });
     })();
     </script>
+
     <div id="legacy-anchor"><div id="messages"></div></div>
     <div id="notificationArea" aria-live="polite"></div>
     <div id="screensaver-container" aria-hidden="true"></div>
