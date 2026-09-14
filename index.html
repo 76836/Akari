@@ -193,12 +193,13 @@
             display: none !important;
         }
         html.akari-splash-loading .splash-portrait {
-            position: absolute; left: 0; top: 0; height: 100vh; width: auto; max-width: 90vw;
+            position: absolute; left: 0; top: 0; height: 100vh; width: auto; max-width: 85vw;
             object-fit: cover; object-position: center top;
         }
         html.akari-splash-loading .splash-banner {
-            position: absolute; right: 0; top: 50%; width: 72vh; height: min(10vw, 64px);
-            transform: translate(50%, -50%) rotate(90deg); transform-origin: center;
+            position: absolute; left: 92.5vw; top: 50%; width: 100vh; height: 15vw;
+            margin: 0; padding: 0; border: 0;
+            transform: translate(-50%, -50%) rotate(-90deg); transform-origin: center;
             object-fit: contain;
         }
 
@@ -795,7 +796,10 @@ if ('serviceWorker' in navigator) {
                         window.emit('akari_ready', { timestamp: Date.now() });
                     };
                     if (skipLoad) finishBoot();
-                    else setTimeout(finishBoot, 1000);
+                    else {
+                        const splashMs = document.documentElement.classList.contains('akari-splash-loading') ? 2000 : 1000;
+                        setTimeout(finishBoot, splashMs);
+                    }
                 },
 
                 loadBackground: () => {
