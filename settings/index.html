@@ -293,6 +293,15 @@
                             </label>
                         </div>
                         <p class="hint">When on, AkariNet hides the boot overlay immediately. Modules still load in the background.</p>
+
+                        <div class="row">
+                            <span>Splash loading screen</span>
+                            <label class="switch">
+                                <input type="checkbox" id="toggle_splashLoading" onchange="toggleSplashLoading(this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <p class="hint">Experimental. Full-bleed purple splash with a random portrait from <code>images/splash/</code> and the README banner strip. Ignored if “Skip loading screen” is on.</p>
                     </div>
                 </details>
 
@@ -338,10 +347,18 @@
             } catch (e) {}
         }
 
+        function toggleSplashLoading(on) {
+            try {
+                localStorage.setItem('akari:splashLoadingScreen', on ? 'true' : 'false');
+            } catch (e) {}
+        }
+
         window.onload = () => {
             try {
                 const skipEl = document.getElementById('toggle_skipLoading');
                 if (skipEl) skipEl.checked = localStorage.getItem('akari:skipLoadingScreen') === 'true';
+                const splashEl = document.getElementById('toggle_splashLoading');
+                if (splashEl) splashEl.checked = localStorage.getItem('akari:splashLoadingScreen') === 'true';
             } catch (e) {}
             const avatar = localStorage.getItem('selectedAvatarScript');
             const wake = localStorage.getItem('selectedWakeScript');
