@@ -87,6 +87,8 @@
       <input id="gapMs" type="number" min="0" max="1000" step="10" value="200" style="width:5rem;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px">
       <label for="targetChars">Target chars / chunk</label>
       <input id="targetChars" type="number" min="20" max="200" step="5" value="90" style="width:5rem;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px">
+      <label for="speakRate">Speaking rate</label>
+      <input id="speakRate" type="number" min="0.5" max="2" step="0.05" value="1" style="width:5rem;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px">
     </div>
     <div class="row">
       <label><input type="checkbox" id="dbgLatency"> Log gap + silence pads</label>
@@ -99,7 +101,7 @@
       <label for="silMinMs">Min natural gap (ms)</label>
       <input id="silMinMs" type="number" min="20" max="120" step="4" value="48" style="width:4.5rem;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px">
     </div>
-    <p class="meta">Adaptive inter-chunk gap + optional intra-chunk padding. Padding only extends silences that are already ≥ min gap, have speech on both sides, and stay under peak noise — not short dips inside a word.</p>
+    <p class="meta">Speaking rate 1.0 = normal (higher = faster). Phrases under 3 words stay 40% slower. Adaptive inter-chunk gap + optional intra-chunk padding. Padding only extends silences that are already ≥ min gap, have speech on both sides, and stay under peak noise — not short dips inside a word.</p>
   </div>
 
   <div class="panel">
@@ -283,6 +285,8 @@
         var dbg = document.getElementById('dbgLatency').checked;
         if (window.tts.setChunkGap) window.tts.setChunkGap(gap);
         if (window.tts.setTargetChars) window.tts.setTargetChars(chars);
+        var rate = Number(document.getElementById('speakRate').value);
+        if (window.tts.setSpeakingRate) window.tts.setSpeakingRate(rate);
         if (window.tts.setDebugLatency) window.tts.setDebugLatency(dbg);
         if (window.tts.setSilencePad) {
           window.tts.setSilencePad({
@@ -291,7 +295,7 @@
             minMs: Number(document.getElementById('silMinMs').value)
           });
         }
-        log('applied gap=' + gap + ' chars=' + chars + ' pad=' + document.getElementById('silPadOn').checked + ' debug=' + dbg, 'ok');
+        log('applied gap=' + gap + ' chars=' + chars + ' rate=' + rate + ' pad=' + document.getElementById('silPadOn').checked + ' debug=' + dbg, 'ok');
       };
 
       log('Console is mirrored here (log/info/warn/error). Load engine to start.', 'dim');
