@@ -71,17 +71,28 @@
             return Math.sqrt(s / (end - start));
         }
 
-        // Frame-level silence mask (10ms frames)
+        function peakAbs(start, end) {
+            start = Math.max(0, start);
+            end = Math.min(n, end);
+            var p = 0;
+            for (var i = start; i < end; i++) {
+                var a = Math.abs(samples[i]);
+                if (a > p) p = a;
+            }
+            return p;
+        }
+
+        // 10ms frames for scanning; a gap must stay quiet for the full span.
         var frame = Math.max(1, Math.round(sampleRate * 0.01));
         var regions = [];
         var i = edge;
         var endLimit = n - edge;
         while (i < endLimit) {
-            if (Math.abs(samples[i]) > SILENCE_RMS * 2) {
+            // Fast reject: instantaneous amplitude looks like speech
+            if (Math.abs(samples[i]) > SILENCE_RMS * 2.5) {
                 i++;
                 continue;
             }
-            // provisional silent run
             var a = i;
             while (i < endLimit && rms(i, Math.min(i + frame, endLimit)) <= SILENCE_RMS) {
                 i += frame;
@@ -90,20 +101,22 @@
             var len = b - a;
             if (len < minLen || len > maxLen) continue;
 
-            // Speech on both sides?
+            // Speech on BOTH sides (energy + a real peak — not just noise floor)
             var leftR = rms(a - side, a);
             var rightR = rms(b, b + side);
+            var leftP = peakAbs(a - side, a);
+            var rightP = peakAbs(b, b + side);
             if (leftR < SILENCE_SIDE_RMS || rightR < SILENCE_SIDE_RMS) continue;
+            if (leftP < SILENCE_SIDE_RMS * 1.8 || rightP < SILENCE_SIDE_RMS * 1.8) continue;
 
-            // Peak in silence must stay low (no click/sibilance hiding)
-            var peak = 0;
-            for (var p = a; p < b; p++) {
-                var ap = Math.abs(samples[p]);
-                if (ap > peak) peak = ap;
-            }
-            if (peak > SILENCE_RMS * 3) continue;
+            // Interior of gap must be truly quiet (no stop-burst hiding mid-gap)
+            if (peakAbs(a, b) > SILENCE_RMS * 2.5) continue;
+            // Flatness: RMS of gap should be well below side speech
+            var gapR = rms(a, b);
+            if (gapR > SILENCE_RMS) continue;
+            if (gapR > leftR * 0.35 || gapR > rightR * 0.35) continue;
 
-            regions.push({ start: a, end: b });
+            regions.push({ a: a, b: b });
             if (regions.length >= SILENCE_MAX_PADS) break;
         }
 
@@ -122,16 +135,16 @@
 
         var outLen = n + use.length * padSamples;
         var out = new Float32Array(outLen);
-        var oi = 0;
         var si = 0;
+        var oi = 0;
         for (var u = 0; u < use.length; u++) {
             var reg = use[u];
-            // copy up to mid of silence, insert zeros, copy rest of silence+after later
-            var mid = (reg.start + reg.end) >> 1;
+            // copy up to midpoint of silence, insert zeros, copy rest of silence+after
+            var mid = (reg.a + reg.b) >> 1;
             out.set(samples.subarray(si, mid), oi);
             oi += mid - si;
-            // pad zeros (oi already at insert point)
-            oi += padSamples; // left as 0
+            // zeros already (Float32Array is zero-filled)
+            oi += padSamples;
             si = mid;
         }
         out.set(samples.subarray(si), oi);
@@ -139,7 +152,7 @@
         return {
             samples: out,
             pads: use.length,
-            addedMs: (use.length * padSamples / sampleRate) * 1000
+            addedMs: (use.length * padSamples * 1000) / sampleRate
         };
     }
 
