@@ -15,13 +15,16 @@
     var CONFIG_URL_FALLBACK = BASE + 'config.json';
     var PLAYBACK_RATE = 1.123;
 
-    // SpeechT5 used roughly 50-character utterances. Piper sounds more natural
-    // when it gets similarly sized chunks, so keep the target around 44 chars.
-    var TARGET_CHARS = 44;
-    var MAX_CHARS = 58;
+    // Larger chunks → fewer model runs → less inter-utterance lag.
+    // int8 is fast enough that ~90-char spans still sound fine.
+    var TARGET_CHARS = 90;
+    var MAX_CHARS = 120;
     var MIN_WORDS = 2;
     var NORMAL_LENGTH_SCALE = 1.0;
-    var MAX_SHORT_LENGTH_SCALE = 1.35;
+    var MAX_SHORT_LENGTH_SCALE = 1.25;
+    // Gap between queued audio buffers (ms). 200 was the main "chunk lag".
+    var CHUNK_GAP_MS = 0;
+    var MODEL_CACHE = 'akari-piper-int8-v1';
 
     function ensureLipsync() {
         if (window.AkariLipsync) return Promise.resolve();
@@ -258,7 +261,7 @@
                             }));
                         } catch (_) {}
                     }
-                    setTimeout(playNext, 200);
+                    setTimeout(playNext, CHUNK_GAP_MS);
                 };
                 if (window.AkariLipsync) {
                     window.AkariLipsync.playThrough(tts._ctx, source, finish);
@@ -288,37 +291,72 @@
             tts._worker = new Worker(BASE + 'worker-int8.js');
             console.log('[TTS] worker created');
 
-            console.log('[TTS] fetching model', MODEL_URL);
-            var modelRes = await fetch(MODEL_URL);
-            if (!modelRes.ok) throw new Error('Failed to load PiperTTS int8 model: HTTP ' + modelRes.status);
-            var total = Number(modelRes.headers.get('content-length') || 0);
-            if (modelRes.body && total > 0 && modelRes.body.getReader) {
-                var reader = modelRes.body.getReader();
-                var chunks = [];
-                var received = 0;
-                var lastPct = -1;
-                for (;;) {
-                    var step = await reader.read();
-                    if (step.done) break;
-                    chunks.push(step.value);
-                    received += step.value.length;
-                    var pct = Math.floor((received / total) * 100);
-                    if (pct >= lastPct + 10 || received === total) {
-                        lastPct = pct;
-                        console.log('[TTS] model download ' + pct + '% (' + received + '/' + total + ')');
+            async function loadModelBytes() {
+                // Cache API: second load is local, no HF round-trip
+                if (typeof caches !== 'undefined') {
+                    try {
+                        var cache = await caches.open(MODEL_CACHE);
+                        var hit = await cache.match(MODEL_URL);
+                        if (hit && hit.ok) {
+                            var cached = await hit.arrayBuffer();
+                            if (cached.byteLength > 1000) {
+                                console.log('[TTS] model cache hit', cached.byteLength, 'bytes');
+                                return cached;
+                            }
+                        }
+                    } catch (cacheErr) {
+                        console.warn('[TTS] cache read failed', cacheErr && cacheErr.message);
                     }
                 }
-                var merged = new Uint8Array(received);
-                var offset = 0;
-                for (var ci = 0; ci < chunks.length; ci++) {
-                    merged.set(chunks[ci], offset);
-                    offset += chunks[ci].length;
+
+                console.log('[TTS] fetching model', MODEL_URL);
+                var modelRes = await fetch(MODEL_URL);
+                if (!modelRes.ok) throw new Error('Failed to load PiperTTS int8 model: HTTP ' + modelRes.status);
+                var total = Number(modelRes.headers.get('content-length') || 0);
+                var modelBytes;
+                if (modelRes.body && total > 0 && modelRes.body.getReader) {
+                    var reader = modelRes.body.getReader();
+                    var chunks = [];
+                    var received = 0;
+                    var lastPct = -1;
+                    for (;;) {
+                        var step = await reader.read();
+                        if (step.done) break;
+                        chunks.push(step.value);
+                        received += step.value.length;
+                        var pct = Math.floor((received / total) * 100);
+                        if (pct >= lastPct + 10 || received === total) {
+                            lastPct = pct;
+                            console.log('[TTS] model download ' + pct + '% (' + received + '/' + total + ')');
+                        }
+                    }
+                    var merged = new Uint8Array(received);
+                    var offset = 0;
+                    for (var ci = 0; ci < chunks.length; ci++) {
+                        merged.set(chunks[ci], offset);
+                        offset += chunks[ci].length;
+                    }
+                    modelBytes = merged.buffer;
+                } else {
+                    modelBytes = await modelRes.arrayBuffer();
                 }
-                var modelBytes = merged.buffer;
-            } else {
-                var modelBytes = await modelRes.arrayBuffer();
+                console.log('[TTS] model bytes', modelBytes.byteLength);
+
+                if (typeof caches !== 'undefined') {
+                    try {
+                        var cacheW = await caches.open(MODEL_CACHE);
+                        await cacheW.put(MODEL_URL, new Response(modelBytes.slice(0), {
+                            headers: { 'Content-Type': 'application/octet-stream' }
+                        }));
+                        console.log('[TTS] model cached for next load');
+                    } catch (cacheWriteErr) {
+                        console.warn('[TTS] cache write failed', cacheWriteErr && cacheWriteErr.message);
+                    }
+                }
+                return modelBytes;
             }
-            console.log('[TTS] model bytes', modelBytes.byteLength);
+
+            var modelBytes = await loadModelBytes();
 
             await new Promise(function (resolve, reject) {
                 var settled = false;
@@ -361,6 +399,11 @@
             };
 
             tts.isReady = true;
+            tts.chunkGapMs = CHUNK_GAP_MS;
+            tts.setChunkGap = function (ms) {
+                CHUNK_GAP_MS = Math.max(0, Number(ms) || 0);
+                tts.chunkGapMs = CHUNK_GAP_MS;
+            };
             tts.speak = function (text) {
                 var segments = parseForSpeech(text);
                 if (!segments.length) return;
@@ -400,7 +443,7 @@
                 window._speechQueue = [];
             }
 
-            console.log('[TTS] PiperTTS int8 ready (natural parsing + lipsync).');
+            console.log('[TTS] PiperTTS int8 ready (cache + low-gap chunks, TARGET=' + TARGET_CHARS + ').');
         } catch (err) {
             console.error('[TTS] Failed to load PiperTTS int8:', err);
         }
