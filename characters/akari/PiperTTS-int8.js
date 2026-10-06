@@ -20,10 +20,11 @@
     var TARGET_CHARS = 90;
     var MAX_CHARS = 120;
     var MIN_WORDS = 2;
-    var NORMAL_LENGTH_SCALE = 1.0;
-    // Short phrases (< 3 words) get a longer length_scale so they are not clipped/rushed.
+    // Speaking rate: 1.0 = normal speed, higher = faster, lower = slower.
+    // Mapped to Piper length_scale as 1/rate. Short phrases stay 40% slower (×1.4 duration).
+    var SPEAKING_RATE = 1.0;
     var SHORT_PHRASE_WORDS = 3;
-    var MAX_SHORT_LENGTH_SCALE = 1.35;
+    var SHORT_PHRASE_SLOWDOWN = 1.4; // 40% slower than the current base rate
     // Target pause between chunks. Adaptive: delay = max(0, gap - silence already elapsed).
     var CHUNK_GAP_MS = 200;
     var MODEL_CACHE = 'akari-piper-int8-v1';
@@ -270,12 +271,14 @@
         return m ? m.length : 0;
     }
 
-        function shortLengthScale(text) {
+        function lengthScaleFor(text) {
+        var rate = Math.max(0.5, Math.min(2.0, SPEAKING_RATE));
+        var base = 1 / rate;
         var words = wordCount(text);
-        // User request: only stretch length_scale for very short phrases (< 3 words).
-        if (words > 0 && words < SHORT_PHRASE_WORDS) return MAX_SHORT_LENGTH_SCALE;
-        return NORMAL_LENGTH_SCALE;
+        if (words > 0 && words < SHORT_PHRASE_WORDS) return base * SHORT_PHRASE_SLOWDOWN;
+        return base;
     }
+
 
 
     function splitLongChunk(text) {
@@ -338,7 +341,7 @@
             chunk = restoreProtected(chunk, token).replace(/\s+/g, ' ').trim();
             return {
                 text: chunk,
-                lengthScale: shortLengthScale(chunk),
+                lengthScale: lengthScaleFor(chunk),
                 words: wordCount(chunk)
             };
         }).filter(function (item) {
@@ -585,6 +588,14 @@
                 MAX_CHARS = Math.max(TARGET_CHARS + 10, Math.round(TARGET_CHARS * 1.35));
                 tts.targetChars = TARGET_CHARS;
                 console.log('[TTS] TARGET_CHARS=', TARGET_CHARS, 'MAX_CHARS=', MAX_CHARS);
+            };
+            tts.speakingRate = SPEAKING_RATE;
+            tts.setSpeakingRate = function (rate) {
+                SPEAKING_RATE = Math.max(0.5, Math.min(2.0, Number(rate) || 1));
+                tts.speakingRate = SPEAKING_RATE;
+                console.log('[TTS] speakingRate=', SPEAKING_RATE,
+                    'lengthScale≈', (1 / SPEAKING_RATE).toFixed(3),
+                    'short≈', (1 / SPEAKING_RATE * SHORT_PHRASE_SLOWDOWN).toFixed(3));
             };
             tts.setDebugLatency = function (on) {
                 tts._debugLatency = !!on;
