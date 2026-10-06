@@ -285,7 +285,7 @@
             }
             console.log('[TTS] config sample_rate=', tts._config.audio && tts._config.audio.sample_rate);
 
-            tts._worker = new Worker(BASE + 'worker.js');
+            tts._worker = new Worker(BASE + 'worker-int8.js');
             console.log('[TTS] worker created');
 
             console.log('[TTS] fetching model', MODEL_URL);
