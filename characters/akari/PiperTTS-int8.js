@@ -21,9 +21,11 @@
     var MAX_CHARS = 120;
     var MIN_WORDS = 2;
     var NORMAL_LENGTH_SCALE = 1.0;
-    var MAX_SHORT_LENGTH_SCALE = 1.25;
-    // Gap between queued audio buffers (ms). 200 was the main "chunk lag".
-    var CHUNK_GAP_MS = 0;
+    // Short phrases (< 3 words) get a longer length_scale so they are not clipped/rushed.
+    var SHORT_PHRASE_WORDS = 3;
+    var MAX_SHORT_LENGTH_SCALE = 1.35;
+    // Target pause between chunks. Adaptive: delay = max(0, gap - silence already elapsed).
+    var CHUNK_GAP_MS = 200;
     var MODEL_CACHE = 'akari-piper-int8-v1';
 
     function ensureLipsync() {
@@ -142,14 +144,13 @@
         return m ? m.length : 0;
     }
 
-    function shortLengthScale(text) {
-        var chars = text.length;
-        if (chars >= TARGET_CHARS) return NORMAL_LENGTH_SCALE;
-        // Short utterances get more duration from Piper itself, rather than
-        // relying on playback-rate changes. Very short utterances top out at 1.35x.
-        var ratio = (TARGET_CHARS - chars) / TARGET_CHARS;
-        return Math.min(MAX_SHORT_LENGTH_SCALE, 1.0 + ratio * 0.35);
+        function shortLengthScale(text) {
+        var words = wordCount(text);
+        // User request: only stretch length_scale for very short phrases (< 3 words).
+        if (words > 0 && words < SHORT_PHRASE_WORDS) return MAX_SHORT_LENGTH_SCALE;
+        return NORMAL_LENGTH_SCALE;
     }
+
 
     function splitLongChunk(text) {
         var chunks = [];
@@ -245,24 +246,51 @@
                 return Promise.resolve();
             }
 
+            function adaptiveGapMs() {
+                // Credit silence already elapsed since previous buffer ended.
+                // Slow inference after end → elapsed large → delay 0.
+                // Fast inference / buffer ready early → pad up to CHUNK_GAP_MS.
+                if (!tts._lastEndedAt) return 0;
+                var elapsed = performance.now() - tts._lastEndedAt;
+                return Math.max(0, CHUNK_GAP_MS - elapsed);
+            }
+
             function playNext() {
                 if (tts._playing || tts._queue.length === 0) return;
+                if (tts._gapTimer) return;
+
+                var delay = adaptiveGapMs();
+                if (delay > 0) {
+                    if (tts._debugLatency) {
+                        console.log('[TTS] gap delay', Math.round(delay), 'ms (target', CHUNK_GAP_MS, ')');
+                    }
+                    tts._gapTimer = setTimeout(function () {
+                        tts._gapTimer = null;
+                        playNext();
+                    }, delay);
+                    return;
+                }
+
                 tts._playing = true;
                 var buffer = tts._queue.shift();
+                if (tts._queueMeta && tts._queueMeta.length) tts._queueMeta.shift();
                 var source = tts._ctx.createBufferSource();
                 source.buffer = buffer;
                 source.playbackRate.value = PLAYBACK_RATE;
                 var finish = function () {
                     tts._playing = false;
+                    tts._lastEndedAt = performance.now();
                     if (tts._queue.length === 0) {
                         try {
                             window.dispatchEvent(new CustomEvent('akari:tts-end', {
                                 detail: { source: 'PiperTTS-int8' }
                             }));
                         } catch (_) {}
+                        return;
                     }
-                    setTimeout(playNext, CHUNK_GAP_MS);
+                    playNext();
                 };
+
                 if (window.AkariLipsync) {
                     window.AkariLipsync.playThrough(tts._ctx, source, finish);
                 } else {
@@ -393,6 +421,8 @@
                         var buf = tts._ctx.createBuffer(1, samples.length, tts._config.audio.sample_rate);
                         buf.copyToChannel(samples, 0);
                         tts._queue.push(buf);
+                        tts._queueMeta = tts._queueMeta || [];
+                        tts._queueMeta.push({ readyAt: performance.now(), samples: samples.length });
                         playNext();
                     });
                 }
@@ -400,9 +430,22 @@
 
             tts.isReady = true;
             tts.chunkGapMs = CHUNK_GAP_MS;
+            tts.targetChars = TARGET_CHARS;
+            tts.debugLatency = false;
             tts.setChunkGap = function (ms) {
                 CHUNK_GAP_MS = Math.max(0, Number(ms) || 0);
                 tts.chunkGapMs = CHUNK_GAP_MS;
+                console.log('[TTS] CHUNK_GAP_MS=', CHUNK_GAP_MS);
+            };
+            tts.setTargetChars = function (n) {
+                TARGET_CHARS = Math.max(20, Number(n) || 90);
+                MAX_CHARS = Math.max(TARGET_CHARS + 10, Math.round(TARGET_CHARS * 1.35));
+                tts.targetChars = TARGET_CHARS;
+                console.log('[TTS] TARGET_CHARS=', TARGET_CHARS, 'MAX_CHARS=', MAX_CHARS);
+            };
+            tts.setDebugLatency = function (on) {
+                tts._debugLatency = !!on;
+                tts.debugLatency = !!on;
             };
             tts.speak = function (text) {
                 var segments = parseForSpeech(text);
@@ -412,6 +455,8 @@
                     return;
                 }
                 tts._interrupted = false;
+                tts._lastEndedAt = 0;
+                if (tts._gapTimer) { clearTimeout(tts._gapTimer); tts._gapTimer = null; }
                 ensureCtx().then(function () {
                     tts._worker.postMessage({
                         type: 'speak',
@@ -425,7 +470,10 @@
             tts.interrupt = function () {
                 tts._interrupted = true;
                 tts._queue = [];
+                tts._queueMeta = [];
                 tts._playing = false;
+                if (tts._gapTimer) { clearTimeout(tts._gapTimer); tts._gapTimer = null; }
+                tts._lastEndedAt = 0;
                 if (tts._worker) tts._worker.postMessage({ type: 'stop' });
                 if (window.AkariLipsync) window.AkariLipsync.reset();
             };
@@ -443,7 +491,7 @@
                 window._speechQueue = [];
             }
 
-            console.log('[TTS] PiperTTS int8 ready (cache + low-gap chunks, TARGET=' + TARGET_CHARS + ').');
+            console.log('[TTS] PiperTTS int8 ready (adaptive ' + CHUNK_GAP_MS + 'ms gap, TARGET=' + TARGET_CHARS + ').');
         } catch (err) {
             console.error('[TTS] Failed to load PiperTTS int8:', err);
         }
