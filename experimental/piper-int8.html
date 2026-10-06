@@ -89,10 +89,17 @@
       <input id="targetChars" type="number" min="20" max="200" step="5" value="90" style="width:5rem;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px">
     </div>
     <div class="row">
-      <label><input type="checkbox" id="dbgLatency"> Log adaptive gap decisions</label>
+      <label><input type="checkbox" id="dbgLatency"> Log gap + silence pads</label>
       <button type="button" id="btnApplyLatency">Apply</button>
     </div>
-    <p class="meta">Gap is adaptive: delay = max(0, target − time next chunk was already ready). Slow inference → 0 added silence. Phrases under 3 words use length_scale 1.35 only.</p>
+    <div class="row">
+      <label><input type="checkbox" id="silPadOn" checked> Pad inter-word silence</label>
+      <label for="silPadMs">Pad each gap (ms)</label>
+      <input id="silPadMs" type="number" min="0" max="80" step="5" value="25" style="width:4.5rem;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px">
+      <label for="silMinMs">Min natural gap (ms)</label>
+      <input id="silMinMs" type="number" min="20" max="120" step="4" value="48" style="width:4.5rem;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px">
+    </div>
+    <p class="meta">Adaptive inter-chunk gap + optional intra-chunk padding. Padding only extends silences that are already ≥ min gap, have speech on both sides, and stay under peak noise — not short dips inside a word.</p>
   </div>
 
   <div class="panel">
@@ -277,7 +284,14 @@
         if (window.tts.setChunkGap) window.tts.setChunkGap(gap);
         if (window.tts.setTargetChars) window.tts.setTargetChars(chars);
         if (window.tts.setDebugLatency) window.tts.setDebugLatency(dbg);
-        log('applied gap=' + gap + ' targetChars=' + chars + ' debug=' + dbg, 'ok');
+        if (window.tts.setSilencePad) {
+          window.tts.setSilencePad({
+            enabled: document.getElementById('silPadOn').checked,
+            padMs: Number(document.getElementById('silPadMs').value),
+            minMs: Number(document.getElementById('silMinMs').value)
+          });
+        }
+        log('applied gap=' + gap + ' chars=' + chars + ' pad=' + document.getElementById('silPadOn').checked + ' debug=' + dbg, 'ok');
       };
 
       log('Console is mirrored here (log/info/warn/error). Load engine to start.', 'dim');
