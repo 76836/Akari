@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Piper int8 · debug</title>
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --panel: #12161c;
+      --line: #243040;
+      --text: #e8eef6;
+      --dim: #8b9bb0;
+      --ok: #5ddea6;
+      --err: #ff7a7a;
+      --accent: #6aa8ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font: 14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 16px;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 4px; font-weight: 600; }
+    .sub { color: var(--dim); margin-bottom: 16px; font-size: 12px; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; align-items: center; }
+    label { color: var(--dim); font-size: 12px; }
+    select, textarea, input[type="text"] {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font: inherit;
+    }
+    textarea {
+      width: 100%;
+      min-height: 90px;
+      resize: vertical;
+    }
+    button {
+      background: #1a2230;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font: inherit;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: #1e3a5f; border-color: #3a6aab; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    #log {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 42vh;
+      overflow: auto;
+      margin: 0;
+    }
+    .ok { color: var(--ok); }
+    .err { color: var(--err); }
+    .dim { color: var(--dim); }
+    .meta { font-size: 12px; color: var(--dim); }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <h1>Piper TTS · int8 debug</h1>
+  <p class="sub">
+    Loads <code>PiperTTS-int8.js</code> (or full Piper) without the main chat shell.
+    Model: <a href="https://huggingface.co/76836-HW/AkariNet-PiperTTS" target="_blank" rel="noopener">76836-HW/AkariNet-PiperTTS</a>
+  </p>
+
+  <div class="panel">
+    <div class="row">
+      <label for="engine">Engine</label>
+      <select id="engine">
+        <option value="int8" selected>Piper int8 (akari-low-step1200-int8)</option>
+        <option value="full">Piper full (model.onnx)</option>
+      </select>
+      <button class="primary" id="btnLoad" type="button">Load engine</button>
+      <button id="btnUnload" type="button" disabled>Unload</button>
+    </div>
+    <div class="meta" id="status">Status: idle</div>
+  </div>
+
+  <div class="panel">
+    <textarea id="text" placeholder="Text to speak…">Hey, this is the int8 Piper test. If you can hear me, the quantized model is working.</textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="primary" id="btnSpeak" type="button" disabled>Speak</button>
+      <button id="btnInterrupt" type="button" disabled>Interrupt</button>
+      <button id="btnClear" type="button">Clear log</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="meta" style="margin-bottom:6px">Log</div>
+    <pre id="log"></pre>
+  </div>
+
+  <script>
+    (function () {
+      var logEl = document.getElementById('log');
+      var statusEl = document.getElementById('status');
+      var btnLoad = document.getElementById('btnLoad');
+      var btnUnload = document.getElementById('btnUnload');
+      var btnSpeak = document.getElementById('btnSpeak');
+      var btnInterrupt = document.getElementById('btnInterrupt');
+      var engineSel = document.getElementById('engine');
+      var scriptEl = null;
+      var loadStarted = 0;
+
+      function log(msg, cls) {
+        var line = document.createElement('div');
+        if (cls) line.className = cls;
+        var t = new Date().toISOString().slice(11, 23);
+        line.textContent = '[' + t + '] ' + msg;
+        logEl.appendChild(line);
+        logEl.scrollTop = logEl.scrollHeight;
+        console.log('[piper-debug]', msg);
+      }
+
+      function setStatus(s) {
+        statusEl.textContent = 'Status: ' + s;
+      }
+
+      function clearTtsGlobals() {
+        try { if (window.tts && window.tts.interrupt) window.tts.interrupt(); } catch (_) {}
+        window.tts = null;
+        window.speak = null;
+        window.interruptTTS = null;
+      }
+
+      function unload() {
+        if (scriptEl && scriptEl.parentNode) scriptEl.parentNode.removeChild(scriptEl);
+        scriptEl = null;
+        clearTtsGlobals();
+        btnSpeak.disabled = true;
+        btnInterrupt.disabled = true;
+        btnUnload.disabled = true;
+        btnLoad.disabled = false;
+        setStatus('unloaded');
+        log('unloaded', 'dim');
+      }
+
+      function waitReady(timeoutMs) {
+        return new Promise(function (resolve, reject) {
+          var t0 = Date.now();
+          var iv = setInterval(function () {
+            if (window.tts && window.tts.isReady) {
+              clearInterval(iv);
+              resolve(window.tts);
+              return;
+            }
+            if (Date.now() - t0 > timeoutMs) {
+              clearInterval(iv);
+              reject(new Error('timeout waiting for tts.isReady (' + timeoutMs + 'ms)'));
+            }
+          }, 100);
+        });
+      }
+
+      function loadEngine() {
+        unload();
+        var which = engineSel.value;
+        var src = which === 'full'
+          ? '../characters/akari/PiperTTS.js'
+          : '../characters/akari/PiperTTS-int8.js';
+        loadStarted = performance.now();
+        setStatus('loading ' + which + '…');
+        log('loading script ' + src, 'dim');
+        btnLoad.disabled = true;
+
+        scriptEl = document.createElement('script');
+        scriptEl.src = src + '?t=' + Date.now();
+        scriptEl.onload = function () {
+          log('script tag loaded (' + Math.round(performance.now() - loadStarted) + ' ms)', 'dim');
+          waitReady(120000)
+            .then(function (tts) {
+              var ms = Math.round(performance.now() - loadStarted);
+              var cfg = tts._config || {};
+              var sr = cfg.audio && cfg.audio.sample_rate;
+              setStatus('ready (' + which + ') in ' + ms + ' ms');
+              log('ready in ' + ms + ' ms  sample_rate=' + sr + ' phoneme_type=' + (cfg.phoneme_type || '?'), 'ok');
+              btnSpeak.disabled = false;
+              btnInterrupt.disabled = false;
+              btnUnload.disabled = false;
+              btnLoad.disabled = false;
+            })
+            .catch(function (e) {
+              setStatus('failed');
+              log(String(e.message || e), 'err');
+              btnLoad.disabled = false;
+              btnUnload.disabled = false;
+            });
+        };
+        scriptEl.onerror = function () {
+          setStatus('script load error');
+          log('failed to load ' + src, 'err');
+          btnLoad.disabled = false;
+        };
+        document.head.appendChild(scriptEl);
+      }
+
+      btnLoad.onclick = loadEngine;
+      btnUnload.onclick = unload;
+      btnClear.onclick = function () { logEl.textContent = ''; };
+      btnInterrupt.onclick = function () {
+        if (window.interruptTTS) window.interruptTTS();
+        else if (window.tts && window.tts.interrupt) window.tts.interrupt();
+        log('interrupt', 'dim');
+      };
+      btnSpeak.onclick = function () {
+        var text = document.getElementById('text').value;
+        if (!window.tts || !window.tts.isReady) {
+          log('engine not ready', 'err');
+          return;
+        }
+        var t0 = performance.now();
+        log('speak: ' + text.slice(0, 80) + (text.length > 80 ? '…' : ''), 'dim');
+        if (window.tts.parseText) {
+          try {
+            var segs = window.tts.parseText(text);
+            log('segments: ' + segs.length + ' → ' + segs.map(function (s) { return s.text; }).join(' | '), 'dim');
+          } catch (e) {
+            log('parseText error: ' + e, 'err');
+          }
+        }
+        var onEnd = function () {
+          log('tts-end event (+' + Math.round(performance.now() - t0) + ' ms from speak)', 'ok');
+          window.removeEventListener('akari:tts-end', onEnd);
+        };
+        window.addEventListener('akari:tts-end', onEnd);
+        window.tts.speak(text);
+      };
+
+      window.addEventListener('error', function (e) {
+        log('window error: ' + (e.message || e), 'err');
+      });
+      window.addEventListener('unhandledrejection', function (e) {
+        log('rejection: ' + (e.reason && e.reason.message ? e.reason.message : e.reason), 'err');
+      });
+
+      log('open page → choose engine → Load. Worker/ORT still from Pages PiperTTS host.', 'dim');
+    })();
+  </script>
+</body>
+</html>
