@@ -28,6 +28,121 @@
     var CHUNK_GAP_MS = 200;
     var MODEL_CACHE = 'akari-piper-int8-v1';
 
+    // Intra-chunk silence padding: only stretch *confident* inter-word gaps.
+    var SILENCE_PAD_ENABLED = true;
+    var SILENCE_PAD_MS = 25;           // extra silence added per confident gap
+    var SILENCE_MIN_MS = 48;           // natural gap must already be at least this long
+    var SILENCE_MAX_MS = 180;          // ignore long pauses (already enough space)
+    var SILENCE_RMS = 0.012;           // max RMS to count as silence
+    var SILENCE_EDGE_MS = 40;          // do not pad near clip edges
+    var SILENCE_SIDE_MS = 30;          // require speech energy on both sides
+    var SILENCE_SIDE_RMS = 0.04;       // min RMS in side windows
+    var SILENCE_MAX_PADS = 8;          // cap pads per chunk
+    var SILENCE_MAX_TOTAL_MS = 200;    // cap total added time per chunk
+
+
+    /**
+     * Expand only high-confidence inter-word silences.
+     * Rejects short energy dips (stops, fricatives) and edge/trailing hush.
+     */
+    function padConfidentSilences(samples, sampleRate) {
+        if (!SILENCE_PAD_ENABLED || !samples || !samples.length || !sampleRate) {
+            return { samples: samples, pads: 0, addedMs: 0 };
+        }
+        var n = samples.length;
+        var minLen = Math.max(1, Math.round(sampleRate * SILENCE_MIN_MS / 1000));
+        var maxLen = Math.max(minLen, Math.round(sampleRate * SILENCE_MAX_MS / 1000));
+        var edge = Math.round(sampleRate * SILENCE_EDGE_MS / 1000);
+        var side = Math.max(1, Math.round(sampleRate * SILENCE_SIDE_MS / 1000));
+        var padSamples = Math.round(sampleRate * SILENCE_PAD_MS / 1000);
+        if (padSamples < 1) {
+            return { samples: samples, pads: 0, addedMs: 0 };
+        }
+
+        function rms(start, end) {
+            start = Math.max(0, start);
+            end = Math.min(n, end);
+            if (end <= start) return 0;
+            var s = 0;
+            for (var i = start; i < end; i++) {
+                var v = samples[i];
+                s += v * v;
+            }
+            return Math.sqrt(s / (end - start));
+        }
+
+        // Frame-level silence mask (10ms frames)
+        var frame = Math.max(1, Math.round(sampleRate * 0.01));
+        var regions = [];
+        var i = edge;
+        var endLimit = n - edge;
+        while (i < endLimit) {
+            if (Math.abs(samples[i]) > SILENCE_RMS * 2) {
+                i++;
+                continue;
+            }
+            // provisional silent run
+            var a = i;
+            while (i < endLimit && rms(i, Math.min(i + frame, endLimit)) <= SILENCE_RMS) {
+                i += frame;
+            }
+            var b = Math.min(i, endLimit);
+            var len = b - a;
+            if (len < minLen || len > maxLen) continue;
+
+            // Speech on both sides?
+            var leftR = rms(a - side, a);
+            var rightR = rms(b, b + side);
+            if (leftR < SILENCE_SIDE_RMS || rightR < SILENCE_SIDE_RMS) continue;
+
+            // Peak in silence must stay low (no click/sibilance hiding)
+            var peak = 0;
+            for (var p = a; p < b; p++) {
+                var ap = Math.abs(samples[p]);
+                if (ap > peak) peak = ap;
+            }
+            if (peak > SILENCE_RMS * 3) continue;
+
+            regions.push({ start: a, end: b });
+            if (regions.length >= SILENCE_MAX_PADS) break;
+        }
+
+        if (!regions.length) {
+            return { samples: samples, pads: 0, addedMs: 0 };
+        }
+
+        var maxTotal = Math.round(sampleRate * SILENCE_MAX_TOTAL_MS / 1000);
+        var added = 0;
+        var use = [];
+        for (var r = 0; r < regions.length; r++) {
+            if (added + padSamples > maxTotal) break;
+            use.push(regions[r]);
+            added += padSamples;
+        }
+
+        var outLen = n + use.length * padSamples;
+        var out = new Float32Array(outLen);
+        var oi = 0;
+        var si = 0;
+        for (var u = 0; u < use.length; u++) {
+            var reg = use[u];
+            // copy up to mid of silence, insert zeros, copy rest of silence+after later
+            var mid = (reg.start + reg.end) >> 1;
+            out.set(samples.subarray(si, mid), oi);
+            oi += mid - si;
+            // pad zeros (oi already at insert point)
+            oi += padSamples; // left as 0
+            si = mid;
+        }
+        out.set(samples.subarray(si), oi);
+
+        return {
+            samples: out,
+            pads: use.length,
+            addedMs: (use.length * padSamples / sampleRate) * 1000
+        };
+    }
+
     function ensureLipsync() {
         if (window.AkariLipsync) return Promise.resolve();
         return new Promise(function (resolve) {
@@ -418,11 +533,22 @@
                 if (d.type === 'chunk' && !tts._interrupted) {
                     var samples = new Float32Array(d.audio);
                     ensureCtx().then(function () {
-                        var buf = tts._ctx.createBuffer(1, samples.length, tts._config.audio.sample_rate);
+                        var sr = tts._config.audio.sample_rate;
+                        var padded = padConfidentSilences(samples, sr);
+                        samples = padded.samples;
+                        if (tts._debugLatency && padded.pads) {
+                            console.log('[TTS] silence pad', padded.pads, 'gaps +', Math.round(padded.addedMs), 'ms');
+                        }
+                        var buf = tts._ctx.createBuffer(1, samples.length, sr);
                         buf.copyToChannel(samples, 0);
                         tts._queue.push(buf);
                         tts._queueMeta = tts._queueMeta || [];
-                        tts._queueMeta.push({ readyAt: performance.now(), samples: samples.length });
+                        tts._queueMeta.push({
+                            readyAt: performance.now(),
+                            samples: samples.length,
+                            pads: padded.pads,
+                            addedMs: padded.addedMs
+                        });
                         playNext();
                     });
                 }
@@ -446,6 +572,15 @@
             tts.setDebugLatency = function (on) {
                 tts._debugLatency = !!on;
                 tts.debugLatency = !!on;
+            };
+            tts.setSilencePad = function (opts) {
+                opts = opts || {};
+                if (opts.enabled != null) SILENCE_PAD_ENABLED = !!opts.enabled;
+                if (opts.padMs != null) SILENCE_PAD_MS = Math.max(0, Number(opts.padMs) || 0);
+                if (opts.minMs != null) SILENCE_MIN_MS = Math.max(20, Number(opts.minMs) || 48);
+                if (opts.maxMs != null) SILENCE_MAX_MS = Math.max(SILENCE_MIN_MS, Number(opts.maxMs) || 180);
+                if (opts.rms != null) SILENCE_RMS = Math.max(0.001, Number(opts.rms) || 0.012);
+                console.log('[TTS] silence pad', SILENCE_PAD_ENABLED, 'padMs=', SILENCE_PAD_MS, 'min=', SILENCE_MIN_MS, 'max=', SILENCE_MAX_MS);
             };
             tts.speak = function (text) {
                 var segments = parseForSpeech(text);
