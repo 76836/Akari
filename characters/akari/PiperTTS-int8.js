@@ -9,9 +9,10 @@
     window._speechQueue = window._speechQueue || [];
 
     var BASE = 'https://76836.github.io/AkariNet-PiperTTS/';
-    // Quantized int8 voice + matching config from HF (not the full model.onnx).
+    // Quantized int8 voice. Config is mirrored on Pages (HF JSON is CORS-locked to huggingface.co).
     var MODEL_URL = 'https://huggingface.co/76836-HW/AkariNet-PiperTTS/resolve/main/akari-low-step1200-int8.onnx';
-    var CONFIG_URL = 'https://huggingface.co/76836-HW/AkariNet-PiperTTS/resolve/main/akari-low-step1200-int8.onnx.json';
+    var CONFIG_URL = BASE + 'config-int8.json';
+    var CONFIG_URL_FALLBACK = BASE + 'config.json';
     var PLAYBACK_RATE = 1.123;
 
     // SpeechT5 used roughly 50-character utterances. Piper sounds more natural
@@ -269,32 +270,82 @@
             }
 
             // Prefer the int8 companion JSON so sample rate / phoneme map match the model.
-            var cfgRes = await fetch(CONFIG_URL);
-            if (!cfgRes.ok) {
-                cfgRes = await fetch(BASE + 'config.json');
+            async function fetchJson(url) {
+                console.log('[TTS] fetch config', url);
+                var res = await fetch(url);
+                if (!res.ok) throw new Error('HTTP ' + res.status + ' for ' + url);
+                return res.json();
             }
-            if (!cfgRes.ok) throw new Error('Failed to load PiperTTS int8 config: HTTP ' + cfgRes.status);
-            tts._config = await cfgRes.json();
+
+            try {
+                tts._config = await fetchJson(CONFIG_URL);
+            } catch (cfgErr) {
+                console.warn('[TTS] int8 config failed, fallback:', cfgErr && cfgErr.message);
+                tts._config = await fetchJson(CONFIG_URL_FALLBACK);
+            }
+            console.log('[TTS] config sample_rate=', tts._config.audio && tts._config.audio.sample_rate);
 
             tts._worker = new Worker(BASE + 'worker.js');
+            console.log('[TTS] worker created');
 
+            console.log('[TTS] fetching model', MODEL_URL);
             var modelRes = await fetch(MODEL_URL);
             if (!modelRes.ok) throw new Error('Failed to load PiperTTS int8 model: HTTP ' + modelRes.status);
-            var modelBytes = await modelRes.arrayBuffer();
+            var total = Number(modelRes.headers.get('content-length') || 0);
+            if (modelRes.body && total > 0 && modelRes.body.getReader) {
+                var reader = modelRes.body.getReader();
+                var chunks = [];
+                var received = 0;
+                var lastPct = -1;
+                for (;;) {
+                    var step = await reader.read();
+                    if (step.done) break;
+                    chunks.push(step.value);
+                    received += step.value.length;
+                    var pct = Math.floor((received / total) * 100);
+                    if (pct >= lastPct + 10 || received === total) {
+                        lastPct = pct;
+                        console.log('[TTS] model download ' + pct + '% (' + received + '/' + total + ')');
+                    }
+                }
+                var merged = new Uint8Array(received);
+                var offset = 0;
+                for (var ci = 0; ci < chunks.length; ci++) {
+                    merged.set(chunks[ci], offset);
+                    offset += chunks[ci].length;
+                }
+                var modelBytes = merged.buffer;
+            } else {
+                var modelBytes = await modelRes.arrayBuffer();
+            }
+            console.log('[TTS] model bytes', modelBytes.byteLength);
 
             await new Promise(function (resolve, reject) {
+                var settled = false;
                 var h = function (e) {
+                    console.log('[TTS] worker message', e.data && e.data.type, e.data && e.data.message);
                     if (e.data.type === 'ready') {
+                        if (settled) return;
+                        settled = true;
                         tts._worker.removeEventListener('message', h);
                         resolve();
                     } else if (e.data.type === 'error') {
+                        if (settled) return;
+                        settled = true;
                         tts._worker.removeEventListener('message', h);
-                        reject(new Error(e.data.message));
+                        reject(new Error(e.data.message || 'worker error'));
                     }
                 };
                 tts._worker.addEventListener('message', h);
+                tts._worker.addEventListener('error', function (ev) {
+                    if (settled) return;
+                    settled = true;
+                    reject(new Error('worker script error: ' + (ev.message || 'unknown')));
+                });
+                console.log('[TTS] posting init to worker…');
                 tts._worker.postMessage({ type: 'init', modelBytes: modelBytes, config: tts._config }, [modelBytes]);
             });
+            console.log('[TTS] worker session ready');
 
             tts._worker.onmessage = function (e) {
                 var d = e.data;
