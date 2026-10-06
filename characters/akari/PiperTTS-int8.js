@@ -55,8 +55,15 @@
         var edge = Math.round(sampleRate * SILENCE_EDGE_MS / 1000);
         var side = Math.max(1, Math.round(sampleRate * SILENCE_SIDE_MS / 1000));
         var padSamples = Math.round(sampleRate * SILENCE_PAD_MS / 1000);
-        if (padSamples < 1) {
+        if (padSamples < 1 || n < edge * 2 + minLen) {
             return { samples: samples, pads: 0, addedMs: 0 };
+        }
+
+        // One linear pass: mark silent samples (cheap abs threshold)
+        var silent = new Uint8Array(n);
+        var thr = SILENCE_RMS * 2.2;
+        for (var i = 0; i < n; i++) {
+            silent[i] = Math.abs(samples[i]) <= thr ? 1 : 0;
         }
 
         function rms(start, end) {
@@ -64,8 +71,8 @@
             end = Math.min(n, end);
             if (end <= start) return 0;
             var s = 0;
-            for (var i = start; i < end; i++) {
-                var v = samples[i];
+            for (var j = start; j < end; j++) {
+                var v = samples[j];
                 s += v * v;
             }
             return Math.sqrt(s / (end - start));
@@ -75,46 +82,40 @@
             start = Math.max(0, start);
             end = Math.min(n, end);
             var p = 0;
-            for (var i = start; i < end; i++) {
-                var a = Math.abs(samples[i]);
+            for (var j = start; j < end; j++) {
+                var a = Math.abs(samples[j]);
                 if (a > p) p = a;
             }
             return p;
         }
 
-        // 10ms frames for scanning; a gap must stay quiet for the full span.
-        var frame = Math.max(1, Math.round(sampleRate * 0.01));
         var regions = [];
         var i = edge;
         var endLimit = n - edge;
         while (i < endLimit) {
-            // Fast reject: instantaneous amplitude looks like speech
-            if (Math.abs(samples[i]) > SILENCE_RMS * 2.5) {
+            if (!silent[i]) {
                 i++;
                 continue;
             }
             var a = i;
-            while (i < endLimit && rms(i, Math.min(i + frame, endLimit)) <= SILENCE_RMS) {
-                i += frame;
-            }
-            var b = Math.min(i, endLimit);
+            while (i < endLimit && silent[i]) i++;
+            var b = i;
             var len = b - a;
+            // Always advanced past the run (i is at first non-silent or endLimit)
             if (len < minLen || len > maxLen) continue;
 
-            // Speech on BOTH sides (energy + a real peak — not just noise floor)
             var leftR = rms(a - side, a);
             var rightR = rms(b, b + side);
             var leftP = peakAbs(a - side, a);
             var rightP = peakAbs(b, b + side);
             if (leftR < SILENCE_SIDE_RMS || rightR < SILENCE_SIDE_RMS) continue;
-            if (leftP < SILENCE_SIDE_RMS * 1.8 || rightP < SILENCE_SIDE_RMS * 1.8) continue;
+            if (leftP < SILENCE_SIDE_RMS * 1.6 || rightP < SILENCE_SIDE_RMS * 1.6) continue;
 
-            // Interior of gap must be truly quiet (no stop-burst hiding mid-gap)
-            if (peakAbs(a, b) > SILENCE_RMS * 2.5) continue;
-            // Flatness: RMS of gap should be well below side speech
             var gapR = rms(a, b);
+            var gapP = peakAbs(a, b);
+            if (gapP > thr * 1.2) continue;
             if (gapR > SILENCE_RMS) continue;
-            if (gapR > leftR * 0.35 || gapR > rightR * 0.35) continue;
+            if (gapR > leftR * 0.4 || gapR > rightR * 0.4) continue;
 
             regions.push({ a: a, b: b });
             if (regions.length >= SILENCE_MAX_PADS) break;
@@ -133,18 +134,15 @@
             added += padSamples;
         }
 
-        var outLen = n + use.length * padSamples;
-        var out = new Float32Array(outLen);
+        var out = new Float32Array(n + use.length * padSamples);
         var si = 0;
         var oi = 0;
         for (var u = 0; u < use.length; u++) {
-            var reg = use[u];
-            // copy up to midpoint of silence, insert zeros, copy rest of silence+after
-            var mid = (reg.a + reg.b) >> 1;
+            var mid = (use[u].a + use[u].b) >> 1;
+            if (mid < si) mid = si;
             out.set(samples.subarray(si, mid), oi);
             oi += mid - si;
-            // zeros already (Float32Array is zero-filled)
-            oi += padSamples;
+            oi += padSamples; // zero-filled
             si = mid;
         }
         out.set(samples.subarray(si), oi);
@@ -547,8 +545,14 @@
                     var samples = new Float32Array(d.audio);
                     ensureCtx().then(function () {
                         var sr = tts._config.audio.sample_rate;
-                        var padded = padConfidentSilences(samples, sr);
-                        samples = padded.samples;
+                        var padded = { samples: samples, pads: 0, addedMs: 0 };
+                        try {
+                            padded = padConfidentSilences(samples, sr);
+                            samples = padded.samples;
+                        } catch (padErr) {
+                            console.warn('[TTS] silence pad skipped', padErr && padErr.message);
+                            padded = { samples: samples, pads: 0, addedMs: 0 };
+                        }
                         if (tts._debugLatency && padded.pads) {
                             console.log('[TTS] silence pad', padded.pads, 'gaps +', Math.round(padded.addedMs), 'ms');
                         }
