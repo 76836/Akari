@@ -81,6 +81,21 @@
   </div>
 
   <div class="panel">
+    <div class="meta" style="margin-bottom:8px">Latency knobs (apply after Load)</div>
+    <div class="row">
+      <label for="gapMs">Target gap (ms)</label>
+      <input id="gapMs" type="number" min="0" max="1000" step="10" value="200" style="width:5rem;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px">
+      <label for="targetChars">Target chars / chunk</label>
+      <input id="targetChars" type="number" min="20" max="200" step="5" value="90" style="width:5rem;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px">
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="dbgLatency"> Log adaptive gap decisions</label>
+      <button type="button" id="btnApplyLatency">Apply</button>
+    </div>
+    <p class="meta">Gap is adaptive: delay = max(0, target − time next chunk was already ready). Slow inference → 0 added silence. Phrases under 3 words use length_scale 1.35 only.</p>
+  </div>
+
+  <div class="panel">
     <div class="meta" style="margin-bottom:6px">Log (console + errors)</div>
     <pre id="log"></pre>
   </div>
@@ -249,6 +264,20 @@
         };
         window.addEventListener('akari:tts-end', onEnd);
         window.tts.speak(text);
+      };
+
+      document.getElementById('btnApplyLatency').onclick = function () {
+        if (!window.tts || !window.tts.isReady) {
+          log('load engine first', 'err');
+          return;
+        }
+        var gap = Number(document.getElementById('gapMs').value);
+        var chars = Number(document.getElementById('targetChars').value);
+        var dbg = document.getElementById('dbgLatency').checked;
+        if (window.tts.setChunkGap) window.tts.setChunkGap(gap);
+        if (window.tts.setTargetChars) window.tts.setTargetChars(chars);
+        if (window.tts.setDebugLatency) window.tts.setDebugLatency(dbg);
+        log('applied gap=' + gap + ' targetChars=' + chars + ' debug=' + dbg, 'ok');
       };
 
       log('Console is mirrored here (log/info/warn/error). Load engine to start.', 'dim');
