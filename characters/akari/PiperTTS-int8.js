@@ -9,6 +9,85 @@
 
     window._speechQueue = window._speechQueue || [];
 
+    // Claim speak immediately so index.html cannot fall back to speechSynthesis
+    // while the int8 model is still downloading / initializing.
+    var _ttsLoading = true;
+    function enqueueSpeak(text) {
+        if (text == null || text === '') return;
+        window._speechQueue.push(String(text));
+    }
+    window.tts = {
+        isReady: false,
+        speak: enqueueSpeak,
+        interrupt: function () { window._speechQueue = []; }
+    };
+    window.speak = function (text) {
+        if (window.tts && window.tts.isReady && typeof window.tts.speak === 'function' && window.tts.speak !== enqueueSpeak) {
+            window.tts.speak(text);
+        } else {
+            enqueueSpeak(text);
+        }
+    };
+    window.interruptTTS = function () {
+        if (window.tts && typeof window.tts.interrupt === 'function') window.tts.interrupt();
+        else window._speechQueue = [];
+    };
+
+    // Loading status — same notification pattern as Audio Console progress toast.
+    var _ttsProgNote = null;
+    function _ensureTtsProgNote() {
+        var area = document.getElementById('notificationArea');
+        if (!area) return null;
+        if (_ttsProgNote && _ttsProgNote.isConnected) return _ttsProgNote;
+        var note = document.createElement('div');
+        note.className = 'notification-container ac-progress-note show';
+        note.innerHTML =
+            '<div class="notification-content">' +
+            '<div class="notification-title">Akari Voice</div>' +
+            '<div class="notification-body ac-prog-body">Starting…</div>' +
+            '<div class="ac-prog-track"><div class="ac-prog-fill" style="width:0%"></div></div>' +
+            '</div>' +
+            '<button class="notification-close" type="button" aria-label="Dismiss">✕</button>';
+        var close = function () {
+            note.classList.remove('show');
+            setTimeout(function () { try { note.remove(); } catch (_) {} }, 350);
+            if (_ttsProgNote === note) _ttsProgNote = null;
+        };
+        note.querySelector('.notification-close').onclick = close;
+        area.prepend(note);
+        _ttsProgNote = note;
+        return note;
+    }
+    function ttsProgress(percent, text) {
+        var p = Math.max(0, Math.min(100, Math.round(percent)));
+        var msg = text || 'Loading…';
+        var note = _ensureTtsProgNote();
+        if (note) {
+            var body = note.querySelector('.ac-prog-body');
+            var fill = note.querySelector('.ac-prog-fill');
+            if (body) body.textContent = (p < 100 ? '[' + p + '%] ' : '') + msg;
+            if (fill) fill.style.width = p + '%';
+            if (p >= 100) {
+                setTimeout(function () {
+                    if (_ttsProgNote === note) {
+                        note.classList.remove('show');
+                        setTimeout(function () { try { note.remove(); } catch (_) {} }, 350);
+                        _ttsProgNote = null;
+                    }
+                }, 1600);
+            }
+        } else if (window.app && typeof window.app.notify === 'function') {
+            try {
+                window.app.notify('Akari Voice', (p < 100 ? '[' + p + '%] ' : '') + msg, {
+                    borderColors: ['#00c8c8', '#6aa8ff']
+                });
+            } catch (_) {}
+        } else if (typeof window.showNotification === 'function') {
+            try { window.showNotification('Akari Voice', (p < 100 ? '[' + p + '%] ' : '') + msg); } catch (_) {}
+        }
+        console.log('[TTS]', p + '%', msg);
+    }
+
     var BASE = 'https://76836.github.io/AkariNet-PiperTTS/';
     // Quantized int8 voice. Config is mirrored on Pages (HF JSON is CORS-locked to huggingface.co).
     var MODEL_URL = 'https://huggingface.co/76836-HW/AkariNet-PiperTTS/resolve/main/akari-low-step1200-int8.onnx';
@@ -353,6 +432,7 @@
     var load = async function () {
         try {
             await ensureLipsync();
+            ttsProgress(5, 'Starting Piper int8…');
             console.log('[TTS] Loading PiperTTS int8…');
 
             var tts = {
@@ -435,6 +515,7 @@
                 return res.json();
             }
 
+            ttsProgress(12, 'Loading voice config…');
             try {
                 tts._config = await fetchJson(CONFIG_URL);
             } catch (cfgErr) {
@@ -443,6 +524,7 @@
             }
             console.log('[TTS] config sample_rate=', tts._config.audio && tts._config.audio.sample_rate);
 
+            ttsProgress(22, 'Starting voice worker…');
             tts._worker = new Worker(BASE + 'worker-int8.js');
             console.log('[TTS] worker created');
 
@@ -456,6 +538,7 @@
                             var cached = await hit.arrayBuffer();
                             if (cached.byteLength > 1000) {
                                 console.log('[TTS] model cache hit', cached.byteLength, 'bytes');
+                                ttsProgress(70, 'Voice model loaded from cache');
                                 return cached;
                             }
                         }
@@ -464,6 +547,7 @@
                     }
                 }
 
+                ttsProgress(28, 'Downloading voice model…');
                 console.log('[TTS] fetching model', MODEL_URL);
                 var modelRes = await fetch(MODEL_URL);
                 if (!modelRes.ok) throw new Error('Failed to load PiperTTS int8 model: HTTP ' + modelRes.status);
@@ -483,6 +567,8 @@
                         if (pct >= lastPct + 10 || received === total) {
                             lastPct = pct;
                             console.log('[TTS] model download ' + pct + '% (' + received + '/' + total + ')');
+                            // Map download 0–100 → progress 28–75
+                            ttsProgress(28 + Math.round(pct * 0.47), 'Downloading voice model…');
                         }
                     }
                     var merged = new Uint8Array(received);
@@ -535,10 +621,12 @@
                     settled = true;
                     reject(new Error('worker script error: ' + (ev.message || 'unknown')));
                 });
-                console.log('[TTS] posting init to worker…');
+                ttsProgress(85, 'Initializing voice engine…');
+            console.log('[TTS] posting init to worker…');
                 tts._worker.postMessage({ type: 'init', modelBytes: modelBytes, config: tts._config }, [modelBytes]);
             });
             console.log('[TTS] worker session ready');
+            ttsProgress(95, 'Voice engine ready…');
 
             tts._worker.onmessage = function (e) {
                 var d = e.data;
@@ -569,17 +657,15 @@
                 }
             };
 
-            tts.isReady = true;
             // Production: fixed defaults (no runtime knobs).
-            // SPEAKING_RATE=1.0, short phrases 40% slower, adaptive 200ms chunk gap,
-            // silence pad on, model Cache API, worker-int8 (ORT 1.30).
             tts.speak = function (text) {
-                var segments = parseForSpeech(text);
-                if (!segments.length) return;
+                if (text == null || text === '') return;
                 if (!tts.isReady) {
-                    window._speechQueue.push(text);
+                    enqueueSpeak(text);
                     return;
                 }
+                var segments = parseForSpeech(text);
+                if (!segments.length) return;
                 tts._interrupted = false;
                 tts._lastEndedAt = 0;
                 if (tts._gapTimer) { clearTimeout(tts._gapTimer); tts._gapTimer = null; }
@@ -592,6 +678,8 @@
                     });
                 });
             };
+            tts.isReady = true;
+            _ttsLoading = false;
 
             tts.interrupt = function () {
                 tts._interrupted = true;
@@ -612,14 +700,28 @@
             window.speak = function (text) { tts.speak(text); };
             window.interruptTTS = function () { tts.interrupt(); };
 
-            if (window._speechQueue.length) {
-                window._speechQueue.forEach(function (t) { tts.speak(t); });
-                window._speechQueue = [];
+            // Drain anything requested while the model was loading (never Web Speech).
+            var pending = window._speechQueue.splice(0, window._speechQueue.length);
+            if (pending.length) {
+                console.log('[TTS] flushing', pending.length, 'queued utterance(s)');
+                pending.forEach(function (utterance) { tts.speak(utterance); });
             }
 
+            ttsProgress(100, 'Voice ready');
             console.log('[TTS] PiperTTS int8 ready.');
         } catch (err) {
             console.error('[TTS] Failed to load PiperTTS int8:', err);
+            ttsProgress(100, 'Voice failed to load');
+            if (window.app && typeof window.app.notify === 'function') {
+                try {
+                    window.app.notify('Akari Voice', 'Failed to load: ' + (err && err.message ? err.message : err), {
+                        borderColors: ['#ff7a7a', '#ffb347']
+                    });
+                } catch (_) {}
+            }
+            // Keep window.speak as queue-only — still no Web Speech fallback.
+            window.tts = window.tts || { isReady: false, speak: enqueueSpeak, interrupt: function () { window._speechQueue = []; } };
+            window.speak = function (text) { enqueueSpeak(text); };
         }
     };
 
