@@ -1,7 +1,8 @@
 /**
- * PiperTTS int8 loader + natural text preprocessing + lipsync playback tap.
- * Uses the quantized akari-low-step1200-int8 model from Hugging Face
- * (76836-HW/AkariNet-PiperTTS) — smaller/faster than full precision PiperTTS.js.
+ * PiperTTS int8 — production voice for AkariNet.
+ * Quantized model (HF 76836-HW/AkariNet-PiperTTS), ORT 1.30 worker, Cache API,
+ * adaptive inter-chunk gap (200ms target), inter-word silence pad, larger chunks,
+ * speaking rate 1.0 with short phrases (<3 words) 40% slower.
  */
 (function () {
     'use strict';
@@ -390,9 +391,6 @@
 
                 var delay = adaptiveGapMs();
                 if (delay > 0) {
-                    if (tts._debugLatency) {
-                        console.log('[TTS] gap delay', Math.round(delay), 'ms (target', CHUNK_GAP_MS, ')');
-                    }
                     tts._gapTimer = setTimeout(function () {
                         tts._gapTimer = null;
                         playNext();
@@ -556,9 +554,6 @@
                             console.warn('[TTS] silence pad skipped', padErr && padErr.message);
                             padded = { samples: samples, pads: 0, addedMs: 0 };
                         }
-                        if (tts._debugLatency && padded.pads) {
-                            console.log('[TTS] silence pad', padded.pads, 'gaps +', Math.round(padded.addedMs), 'ms');
-                        }
                         var buf = tts._ctx.createBuffer(1, samples.length, sr);
                         buf.copyToChannel(samples, 0);
                         tts._queue.push(buf);
@@ -575,41 +570,9 @@
             };
 
             tts.isReady = true;
-            tts.chunkGapMs = CHUNK_GAP_MS;
-            tts.targetChars = TARGET_CHARS;
-            tts.debugLatency = false;
-            tts.setChunkGap = function (ms) {
-                CHUNK_GAP_MS = Math.max(0, Number(ms) || 0);
-                tts.chunkGapMs = CHUNK_GAP_MS;
-                console.log('[TTS] CHUNK_GAP_MS=', CHUNK_GAP_MS);
-            };
-            tts.setTargetChars = function (n) {
-                TARGET_CHARS = Math.max(20, Number(n) || 90);
-                MAX_CHARS = Math.max(TARGET_CHARS + 10, Math.round(TARGET_CHARS * 1.35));
-                tts.targetChars = TARGET_CHARS;
-                console.log('[TTS] TARGET_CHARS=', TARGET_CHARS, 'MAX_CHARS=', MAX_CHARS);
-            };
-            tts.speakingRate = SPEAKING_RATE;
-            tts.setSpeakingRate = function (rate) {
-                SPEAKING_RATE = Math.max(0.5, Math.min(2.0, Number(rate) || 1));
-                tts.speakingRate = SPEAKING_RATE;
-                console.log('[TTS] speakingRate=', SPEAKING_RATE,
-                    'lengthScale≈', (1 / SPEAKING_RATE).toFixed(3),
-                    'short≈', (1 / SPEAKING_RATE * SHORT_PHRASE_SLOWDOWN).toFixed(3));
-            };
-            tts.setDebugLatency = function (on) {
-                tts._debugLatency = !!on;
-                tts.debugLatency = !!on;
-            };
-            tts.setSilencePad = function (opts) {
-                opts = opts || {};
-                if (opts.enabled != null) SILENCE_PAD_ENABLED = !!opts.enabled;
-                if (opts.padMs != null) SILENCE_PAD_MS = Math.max(0, Number(opts.padMs) || 0);
-                if (opts.minMs != null) SILENCE_MIN_MS = Math.max(20, Number(opts.minMs) || 48);
-                if (opts.maxMs != null) SILENCE_MAX_MS = Math.max(SILENCE_MIN_MS, Number(opts.maxMs) || 180);
-                if (opts.rms != null) SILENCE_RMS = Math.max(0.001, Number(opts.rms) || 0.012);
-                console.log('[TTS] silence pad', SILENCE_PAD_ENABLED, 'padMs=', SILENCE_PAD_MS, 'min=', SILENCE_MIN_MS, 'max=', SILENCE_MAX_MS);
-            };
+            // Production: fixed defaults (no runtime knobs).
+            // SPEAKING_RATE=1.0, short phrases 40% slower, adaptive 200ms chunk gap,
+            // silence pad on, model Cache API, worker-int8 (ORT 1.30).
             tts.speak = function (text) {
                 var segments = parseForSpeech(text);
                 if (!segments.length) return;
@@ -654,7 +617,7 @@
                 window._speechQueue = [];
             }
 
-            console.log('[TTS] PiperTTS int8 ready (adaptive ' + CHUNK_GAP_MS + 'ms gap, TARGET=' + TARGET_CHARS + ').');
+            console.log('[TTS] PiperTTS int8 ready.');
         } catch (err) {
             console.error('[TTS] Failed to load PiperTTS int8:', err);
         }
