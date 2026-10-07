@@ -2,7 +2,7 @@
  * PiperTTS int8 — production voice for AkariNet.
  * Quantized model (HF 76836-HW/AkariNet-PiperTTS), ORT 1.30 worker, Cache API,
  * adaptive inter-chunk gap (200ms target), inter-word silence pad, larger chunks,
- * speaking rate 1.0 with short phrases (<3 words) 40% slower.
+ * speaking rate 0.76 with short phrases (<3 words) 40% slower.
  */
 (function () {
     'use strict';
@@ -102,7 +102,7 @@
     var MIN_WORDS = 2;
     // Speaking rate: 1.0 = normal speed, higher = faster, lower = slower.
     // Mapped to Piper length_scale as 1/rate. Short phrases stay 40% slower (×1.4 duration).
-    var SPEAKING_RATE = 1.0;
+    var SPEAKING_RATE = 0.76;
     var SHORT_PHRASE_WORDS = 3;
     var SHORT_PHRASE_SLOWDOWN = 1.4; // 40% slower than the current base rate
     // Target pause between chunks. Adaptive: delay = max(0, gap - silence already elapsed).
