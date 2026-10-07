@@ -669,8 +669,17 @@ if ('serviceWorker' in navigator) {
         };
 
         window.speak = (text) => {
-            if (typeof window.speakt5 === 'function') window.speakt5(text);
-            else if ('speechSynthesis' in window) window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+            // Prefer the active voice module (Piper/Pocket/etc). While it loads,
+            // tts.speak should enqueue — do not fall through to Web Speech.
+            if (window.tts && typeof window.tts.speak === 'function') {
+                window.tts.speak(text);
+                return;
+            }
+            if (typeof window.speakt5 === 'function') {
+                window.speakt5(text);
+                return;
+            }
+            if ('speechSynthesis' in window) window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
         };
 
         const app = window.app = {
