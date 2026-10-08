@@ -101,6 +101,12 @@
       <label for="silMinMs">Min natural gap (ms)</label>
       <input id="silMinMs" type="number" min="20" max="120" step="4" value="48" style="width:4.5rem;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px">
     </div>
+    <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px">
+      <label for="noiseScale">noise_scale <span id="noiseScaleVal">0.667</span></label>
+      <input id="noiseScale" type="range" min="0" max="1.5" step="0.01" value="0.667" style="flex:1;min-width:8rem;max-width:16rem">
+      <label for="noiseW">noise_w <span id="noiseWVal">0.80</span></label>
+      <input id="noiseW" type="range" min="0" max="1.5" step="0.01" value="0.8" style="flex:1;min-width:8rem;max-width:16rem">
+    </div>
     <p class="meta">Speaking rate 1.0 = normal (higher = faster). Phrases under 3 words stay 40% slower. Adaptive inter-chunk gap + optional intra-chunk padding. Padding only extends silences that are already ≥ min gap, have speech on both sides, and stay under peak noise — not short dips inside a word.</p>
   </div>
 
@@ -275,6 +281,15 @@
         window.tts.speak(text);
       };
 
+      function syncNoiseLabels() {
+        var ns = document.getElementById('noiseScale');
+        var nw = document.getElementById('noiseW');
+        document.getElementById('noiseScaleVal').textContent = Number(ns.value).toFixed(3);
+        document.getElementById('noiseWVal').textContent = Number(nw.value).toFixed(2);
+      }
+      document.getElementById('noiseScale').oninput = syncNoiseLabels;
+      document.getElementById('noiseW').oninput = syncNoiseLabels;
+
       document.getElementById('btnApplyLatency').onclick = function () {
         if (!window.tts || !window.tts.isReady) {
           log('load engine first', 'err');
@@ -287,6 +302,7 @@
         if (window.tts.setTargetChars) window.tts.setTargetChars(chars);
         var rate = Number(document.getElementById('speakRate').value);
         if (window.tts.setSpeakingRate) window.tts.setSpeakingRate(rate);
+        else if (window.tts) { /* production has fixed rate; ignore */ }
         if (window.tts.setDebugLatency) window.tts.setDebugLatency(dbg);
         if (window.tts.setSilencePad) {
           window.tts.setSilencePad({
@@ -295,7 +311,14 @@
             minMs: Number(document.getElementById('silMinMs').value)
           });
         }
-        log('applied gap=' + gap + ' chars=' + chars + ' rate=' + rate + ' pad=' + document.getElementById('silPadOn').checked + ' debug=' + dbg, 'ok');
+        var noiseScale = Number(document.getElementById('noiseScale').value);
+        var noiseW = Number(document.getElementById('noiseW').value);
+        window.tts.INFERENCE = window.tts.INFERENCE || {};
+        window.tts.INFERENCE.noise_scale = noiseScale;
+        window.tts.INFERENCE.noise_w = noiseW;
+        log('applied gap=' + gap + ' chars=' + chars + ' rate=' + rate +
+            ' noise_scale=' + noiseScale.toFixed(3) + ' noise_w=' + noiseW.toFixed(2) +
+            ' pad=' + document.getElementById('silPadOn').checked + ' debug=' + dbg, 'ok');
       };
 
       log('Console is mirrored here (log/info/warn/error). Load engine to start.', 'dim');
