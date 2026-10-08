@@ -443,7 +443,7 @@
                 _playing: false,
                 _interrupted: false,
                 _ctx: null,
-                INFERENCE: { noise_scale: 0.667, noise_w: 0.8 }
+                INFERENCE: { noise_scale: 0.1, noise_w: 0.89 }
             };
 
             function ensureCtx() {
