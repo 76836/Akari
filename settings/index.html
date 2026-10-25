@@ -199,8 +199,12 @@
                     <div class="link-menu-header">Check for updates</div>
                 </div>
 
+                <div class="link-menu" onclick="window.location.href = './audioConsole';">
+                    <div class="link-menu-header">Audio Console (wake, mic, recognition)</div>
+                </div>
+
                 <div class="link-menu" onclick="window.location.href = './voice';">
-                    <div class="link-menu-header">Voice & listening</div>
+                    <div class="link-menu-header">Voice (speech synthesis)</div>
                 </div>
 
                 <div class="link-menu" onclick="window.location.href = './AI';">
@@ -249,6 +253,7 @@
 
                         <div class="script-group group-wake">
                             <span class="group-label">Listening / wake</span>
+                            <p class="hint">Full Audio Console options (wake model, VAD, providers) are on the <a href="./audioConsole" style="color:var(--cyan-bright)">Audio Console</a> page.</p>
                             <div class="row">
                                 <span>Enable listening</span>
                                 <label class="switch">
