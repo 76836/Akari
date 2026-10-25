@@ -740,7 +740,7 @@
                 const v = localStorage.getItem(key);
                 el.checked = v == null ? !!defTrue : v === 'true';
             }
-            setC('ac5Hold', 'ac5_holdForReply', true);
+            setC('ac5Hold', 'ac5_holdForReply', false);
             setC('ac5Continued', 'ac5_continuedConversation', false);
             setC('ac5TtsGreet', 'ac5_ttsGreeting', false);
             setC('ac5Debug', 'ac5_debug', false);
