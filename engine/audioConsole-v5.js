@@ -1,8 +1,11 @@
 /**
  * AKARINET AUDIO CONSOLE — ADAPTER v5
- * Bridges AkariNet-AudioConsole ACv5 into the Akari PWA UI.
- * Uses ac5_* localStorage keys (separate from ac41_* v4 keys).
- * selectedWakeScript = ./engine/audioConsole-v5.js selects this adapter.
+ * Bridges ACv5 the same way the v4 adapter bridges ACv4:
+ *  - load the package as a real ES module (injected type=module script)
+ *  - map package events onto Akari window events + respond()
+ *
+ * localStorage: ac5_* only (v4 keeps ac41_*).
+ * selectedWakeScript = ./engine/audioConsole-v5.js
  */
 (function () {
   'use strict';
@@ -25,42 +28,11 @@
   function apStatus(text, opts) {
     try {
       window.dispatchEvent(
-        new CustomEvent('akari:autopilot', { detail: Object.assign({ text: text }, opts || {}) })
-      );
-    } catch (_) {}
-  }
-
-  function notifyUserInput(source, value) {
-    try {
-      const cur = (localStorage.getItem('v2emote') || '').toLowerCase();
-      if (cur === 'hibernate' || !cur) localStorage.setItem('v2emote', 'neutral');
-      localStorage.setItem('akari:vrm-wake', String(Date.now()) + '|' + (source || 'voice'));
-    } catch (_) {}
-    try {
-      window.dispatchEvent(
-        new CustomEvent('akari:user-input', {
-          detail: { source: source || 'audioConsole-v5', value: value }
+        new CustomEvent('akari:autopilot', {
+          detail: Object.assign({ text: text }, opts || {})
         })
       );
     } catch (_) {}
-  }
-
-  function emitTranscript(text, meta) {
-    const t = (text || '').trim();
-    if (!t) return;
-    try {
-      window.dispatchEvent(
-        new CustomEvent('transcriptionComplete', {
-          detail: Object.assign({ text: t, transcript: t }, meta || {})
-        })
-      );
-    } catch (_) {}
-    try {
-      window.dispatchEvent(
-        new CustomEvent('audioConsoleResult', { detail: { text: t } })
-      );
-    } catch (_) {}
-    notifyUserInput('audioConsole-v5', t);
   }
 
   function prog(p, msg) {
@@ -72,6 +44,20 @@
     } catch (_) {}
   }
 
+  function pulseVrmWake(source) {
+    try {
+      const cur = (localStorage.getItem('v2emote') || '').toLowerCase();
+      if (cur === 'hibernate' || !cur) localStorage.setItem('v2emote', 'neutral');
+      localStorage.setItem('akari:vrm-wake', String(Date.now()) + '|' + (source || 'voice'));
+    } catch (_) {}
+    try {
+      window.dispatchEvent(
+        new CustomEvent('akari:user-input', { detail: { source: source || 'audioConsole-v5' } })
+      );
+    } catch (_) {}
+  }
+
+  // ---- status bar (parity with v4 visuals) ----
   let statusBar = null;
   let visualState = 'idle';
   let wakeResetTimer = null;
@@ -108,18 +94,23 @@
       wakeResetTimer = null;
     }
     visualState = state;
-    bar.classList.remove('active', 'listening', 'wake', 'processing');
+    bar.classList.remove('active', 'listening', 'wake', 'processing', 'result');
     if (state === 'idle') return;
     bar.classList.add('active');
     if (state === 'wake') {
       bar.classList.add('wake');
-      wakeResetTimer = setTimeout(function () { setVisualState('idle'); }, 6000);
+      wakeResetTimer = setTimeout(function () {
+        if (visualState === 'wake') setVisualState('idle');
+      }, 8000);
     } else if (state === 'listening') bar.classList.add('listening');
     else if (state === 'processing') bar.classList.add('processing');
+    else if (state === 'result') bar.classList.add('result');
   }
 
-  async function playWakeChime() {
-    if (lsBool('ac5_ttsGreeting', false)) return;
+  function playWakeChime() {
+    if (lsBool('ac5_ttsGreeting', false)) {
+      return Promise.resolve();
+    }
     return new Promise(function (resolve) {
       try {
         const a = new Audio('https://76836.github.io/Akari/characters/akari/Summon.mp3');
@@ -134,20 +125,23 @@
     });
   }
 
+  /**
+   * Build config to match the ACv5 demo page as closely as possible.
+   * Default policy = wake → listen immediately (like the working demo with Hold off).
+   * Hold-for-reply only when ac5_holdForReply is true — then we must release after chime/TTS.
+   */
   function buildConfig() {
     const engine = ls('ac5_transcribeEngine', 'NeMo');
     const threshold = lsNum('ac5_wakeThreshold', 0.5);
-    const hold = lsBool('ac5_holdForReply', true);
+    const hold = lsBool('ac5_holdForReply', false); // default OFF so first command works like the demo
     const continued = lsBool('ac5_continuedConversation', false);
     const detail = lsNum('ac5_promptDetail', 0);
-    const debug = lsBool('ac5_debug', false);
+    const debug = lsBool('ac5_debug', true); // verbose until proven stable
 
     const heads = {
+      read: { deviceIndex: 0 },
       cache: { windowMs: lsNum('ac5_cacheWindowMs', 120000) },
-      wake: {
-        threshold: threshold,
-        modelUrl: ls('ac5_wakeModelUrl', '') || undefined
-      },
+      wake: { threshold: threshold },
       transcribe: {
         engine: engine,
         prompt: detail > 0 ? { detail: detail } : false
@@ -155,196 +149,263 @@
       record: {}
     };
 
-    if (hold || continued) {
+    const wakeModel = ls('ac5_wakeModelUrl', '');
+    if (wakeModel) heads.wake.modelUrl = wakeModel;
+
+    const voskUrl = ls('ac5_voskModelUrl', '');
+    if (engine === 'Vosk' && voskUrl) heads.transcribe.modelUrl = voskUrl;
+
+    if (hold) {
       heads.split = {
         policy: { url: ACv5_BASE + 'policy/hold-for-reply.yaml' }
       };
     }
-
-    if (engine === 'Vosk' && ls('ac5_voskModelUrl', '')) {
-      heads.transcribe.modelUrl = ls('ac5_voskModelUrl', '');
-    }
+    // else: ACv5 constructor fills split with default.yaml (wake → listen immediately)
 
     return {
       debug: debug,
-      public: ['ready', 'speechDetected', 'wake', 'transcript', 'partial', 'status', 'error'],
+      continuedConversation: {
+        enabled: continued,
+        listenMs: lsNum('ac5_continuedMs', 7000)
+      },
       heads: heads
     };
   }
 
   let ac = null;
-  let started = false;
-  let holdActive = false; // true after wake while waiting for assistant reply_done
+  let ready = false;
 
   function safeSignal(name) {
-    if (!ac || !started) return false;
+    if (!ac || !ready) return false;
     try {
       ac.signal(name);
       return true;
     } catch (e) {
-      // Expected when nothing is waiting (idle, already listening, busy)
-      if (lsBool('ac5_debug', false)) console.warn('[ACv5] signal(' + name + '):', e && e.message ? e.message : e);
+      console.warn('[ACv5] signal(' + name + '):', e && e.message ? e.message : e);
       return false;
     }
   }
 
   function safeArm(name, opts) {
-    if (!ac || !started) return false;
+    if (!ac || !ready) return false;
     try {
       ac.arm(name, opts || {});
       return true;
     } catch (e) {
-      if (lsBool('ac5_debug', false)) console.warn('[ACv5] arm(' + name + '):', e && e.message ? e.message : e);
+      console.warn('[ACv5] arm(' + name + '):', e && e.message ? e.message : e);
       return false;
     }
   }
 
-  function releaseHold(reason) {
-    if (!holdActive && !lsBool('ac5_holdForReply', true)) return;
-    if (!started) return;
-    const ok = safeSignal('reply_done');
-    if (ok) holdActive = false;
-    if (lsBool('ac5_debug', false)) console.log('[ACv5] releaseHold', reason, ok);
+  /**
+   * After wake + chime: if hold-for-reply policy is active, release so the
+   * post_wake_transcribe route can open the mic for the user's command.
+   * (Demo does this with the "Reply finished" button.)
+   */
+  async function afterWakeOpenListen() {
+    await playWakeChime();
+    if (lsBool('ac5_holdForReply', false)) {
+      // Open the listen window that hold_until: reply_done was blocking
+      safeSignal('reply_done');
+    }
   }
 
-  async function boot() {
-    prog(5, 'Loading Audio Console v5…');
-    const mod = await import(ACv5_BASE + 'audioConsole-5.0.0.js');
-    const AudioConsole = mod.AudioConsole || mod.default;
-    if (!AudioConsole) throw new Error('ACv5 module missing AudioConsole export');
+  // Same consumer path as v4's audioConsoleResult handler
+  function handleTranscript(text, meta) {
+    const t = (text || '').trim();
+    if (!t) return;
+    console.log('[ACv5] transcript', t, meta || '');
+    setVisualState('result');
+    try {
+      window.dispatchEvent(
+        new CustomEvent('transcriptionComplete', {
+          detail: Object.assign({ text: t, transcript: t }, meta || {})
+        })
+      );
+    } catch (_) {}
+    try {
+      window.dispatchEvent(new CustomEvent('audioConsoleResult', { detail: { text: t } }));
+    } catch (_) {}
+    if (window.app) window.app.isSilentMode = false;
+    if (window.bubble_incoming) window.bubble_incoming(t);
+    if (window.app && window.app.ui && window.app.ui.setTyping) window.app.ui.setTyping('Akari');
+    if (window.respond) window.respond(t);
+    pulseVrmWake('audioConsole-v5-result');
+    setTimeout(function () {
+      if (visualState === 'result') setVisualState('idle');
+    }, 1200);
+  }
 
-    prog(25, 'Creating console…');
-    const cfg = buildConfig();
-    ac = new AudioConsole(cfg);
+  function wireConsole(instance) {
+    ac = instance;
 
-    ac.on('ready', function () {
+    ac.on('ready', function (d) {
+      ready = true;
+      console.log('[ACv5] ready', d);
       prog(100, 'Audio Console v5 ready');
-      apStatus('Audio Console v5 ready', { busy: false, idle: true });
+      apStatus('Audio Console v5 ready — say Hey Akari', { busy: false, idle: true });
     });
 
     ac.on('speechDetected', function (d) {
-      if (!started) return;
       if (d && d.active) {
         setVisualState('listening');
         try { window.dispatchEvent(new CustomEvent('audioConsoleSpeechStart')); } catch (_) {}
-      } else {
-        // User speech ended — do NOT signal reply_done (that is for assistant TTS end).
-        try { window.dispatchEvent(new CustomEvent('audioConsoleUserSpeechEnd')); } catch (_) {}
       }
     });
 
-    ac.on('wake', async function (d) {
-      if (!started) return;
+    ac.on('wake', function (d) {
+      console.log('[ACv5] wake', d);
       setVisualState('wake');
-      holdActive = lsBool('ac5_holdForReply', true) || lsBool('ac5_continuedConversation', false);
-      notifyUserInput('wake-word');
+      pulseVrmWake('audioConsole-wakesound');
       try {
         window.dispatchEvent(new CustomEvent('audioConsoleWakeSound', { detail: d }));
       } catch (_) {}
-      apStatus('Wake: ' + ((d && d.keyword) || 'hey akari'), { busy: true });
-      await playWakeChime();
+      apStatus(
+        'Wake: ' + ((d && d.keyword) || 'hey akari') +
+          (d && d.score != null ? ' (' + Number(d.score).toFixed(2) + ')' : ''),
+        { busy: true }
+      );
+      // Chime, then (if hold policy) release so command listening starts — mirrors demo UX
+      afterWakeOpenListen().catch(function (e) {
+        console.warn('[ACv5] afterWakeOpenListen', e);
+      });
     });
 
     ac.on('partial', function (d) {
-      if (!started || !d || !d.text) return;
-      try {
-        window.dispatchEvent(new CustomEvent('audioConsolePartial', { detail: { text: d.text } }));
-      } catch (_) {}
+      if (d && d.text) {
+        try {
+          window.dispatchEvent(new CustomEvent('audioConsolePartial', { detail: { text: d.text } }));
+        } catch (_) {}
+      }
     });
 
     ac.on('transcript', function (d) {
-      if (!started) return;
-      setVisualState('processing');
       try { window.dispatchEvent(new CustomEvent('audioConsoleProcessing')); } catch (_) {}
-      emitTranscript(d && d.text, { trigger: d && d.trigger, prompt: d && d.prompt });
-      setTimeout(function () {
-        setVisualState('idle');
-        try { window.dispatchEvent(new CustomEvent('audioConsoleProcessingEnd')); } catch (_) {}
-      }, 400);
+      setVisualState('processing');
+      handleTranscript(d && d.text, { trigger: d && d.trigger, prompt: d && d.prompt });
+      try { window.dispatchEvent(new CustomEvent('audioConsoleProcessingEnd')); } catch (_) {}
     });
 
     ac.on('status', function (d) {
-      if (!started || !d || !d.type) return;
+      if (!d || !d.type || d.type === 'scores') return;
+      console.log('[ACv5] status', d.type, d);
       if (d.type === 'waiting') {
-        holdActive = true;
         setVisualState('wake');
-        apStatus('Waiting until reply finishes…', { busy: true });
+        apStatus('Waiting (hold)…', { busy: true });
       }
       if (d.type === 'listening') {
         setVisualState('listening');
         apStatus('Listening…', { busy: true });
       }
       if (d.type === 'hold-timeout' || d.type === 'cancelled') {
-        holdActive = false;
         setVisualState('idle');
         apStatus('Listen ended', { busy: false, idle: true });
       }
     });
 
     ac.on('error', function (d) {
-      console.error('[ACv5]', d);
+      console.error('[ACv5] error', d);
       try {
         window.dispatchEvent(new CustomEvent('audioConsoleError', { detail: d }));
       } catch (_) {}
     });
-
-    // Hold-for-reply: only release when the *assistant* finishes speaking, never on user VAD.
-    window.addEventListener('akari:tts-end', function () { releaseHold('akari:tts-end'); });
-    window.addEventListener('audioConsoleSpeechEnd', function () { releaseHold('audioConsoleSpeechEnd'); });
-    // Some TTS scripts use speechSynthesis events without our custom names
-    try {
-      if (window.speechSynthesis) {
-        // no global end event — rely on TTS scripts
-      }
-    } catch (_) {}
-
-    prog(40, 'Starting mic, wake, and transcribe heads…');
-    await ac.start();
-    started = true;
-    prog(100, 'Audio Console v5 online');
-    apStatus('Audio Console v5 online', { busy: false, idle: true });
-
-    window.__ac5 = ac;
-    window.__ac5Adapter = {
-      ready: function () { return !!(ac && started); },
-      cancel: function () {
-        if (!ac || !started) return;
-        try { ac.cancel(); } catch (e) { console.warn('[ACv5] cancel', e); }
-        holdActive = false;
-      },
-      armManual: function () {
-        return safeArm('manual');
-      },
-      signalReplyDone: function () {
-        return releaseHold('api');
-      },
-      destroy: function () {
-        try { if (ac) ac.destroy(); } catch (_) {}
-        ac = null;
-        started = false;
-        holdActive = false;
-      }
-    };
   }
 
-  window.addEventListener('akari:manual-listen', function () {
-    if (!started) {
-      console.warn('[ACv5] manual listen ignored — console not ready yet');
-      return;
+  // After a full assistant spoken reply, release hold / allow continued (if enabled)
+  window.addEventListener('akari:tts-end', function () {
+    if (!ready) return;
+    if (lsBool('ac5_holdForReply', false) || lsBool('ac5_continuedConversation', false)) {
+      safeSignal('reply_done');
     }
+  });
+
+  window.addEventListener('akari:manual-listen', function () {
     safeArm('manual');
   });
 
-  boot().catch(function (e) {
-    console.error('[ACv5] boot failed', e);
-    started = false;
-    prog(100, 'ACv5 failed: ' + (e && e.message ? e.message : String(e)));
-    try {
-      window.dispatchEvent(
-        new CustomEvent('audioConsoleError', {
-          detail: e && e.message ? e.message : String(e)
-        })
-      );
-    } catch (_) {}
-  });
+  /**
+   * Load pattern matches v4 adapter: inject type=module so dynamic import
+   * runs in a real module scope (same as the working ACv5 demo page).
+   */
+  function boot() {
+    prog(5, 'Loading Audio Console v5…');
+    const cfg = buildConfig();
+    const cfgJson = JSON.stringify(cfg);
+
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.textContent = `
+      const BASE = ${JSON.stringify(ACv5_BASE)};
+      const cfg = ${cfgJson};
+      const _prog = (p, t) => window.dispatchEvent(new CustomEvent('audioConsoleProgress', { detail: { percent: p, text: t } }));
+      try {
+        _prog(15, 'Importing ACv5 module…');
+        const mod = await import(BASE + 'audioConsole-5.0.0.js');
+        const AudioConsole = mod.AudioConsole || mod.default;
+        if (!AudioConsole) throw new Error('ACv5 missing AudioConsole export');
+        _prog(30, 'Creating console…');
+        const ac = new AudioConsole(cfg);
+        window.__ac5Instance = ac;
+        window.dispatchEvent(new CustomEvent('ac5:created'));
+        _prog(45, 'Starting heads (mic, wake, transcribe)…');
+        await ac.start();
+        _prog(100, 'ACv5 online');
+        window.dispatchEvent(new CustomEvent('ac5:started'));
+      } catch (e) {
+        console.error('[ACv5] module boot failed', e);
+        window.dispatchEvent(new CustomEvent('ac5:failed', { detail: e && e.message ? e.message : String(e) }));
+      }
+    `;
+
+    window.addEventListener(
+      'ac5:created',
+      function () {
+        if (window.__ac5Instance) wireConsole(window.__ac5Instance);
+      },
+      { once: true }
+    );
+
+    window.addEventListener(
+      'ac5:started',
+      function () {
+        ready = true;
+        window.__ac5 = window.__ac5Instance;
+        window.__ac5Adapter = {
+          ready: function () { return !!(ac && ready); },
+          cancel: function () {
+            if (!ac || !ready) return;
+            try { ac.cancel(); } catch (e) { console.warn('[ACv5] cancel', e); }
+          },
+          armManual: function () { return safeArm('manual'); },
+          signalReplyDone: function () { return safeSignal('reply_done'); },
+          destroy: function () {
+            try { if (ac) ac.destroy(); } catch (_) {}
+            ac = null;
+            ready = false;
+          }
+        };
+        console.log('[ACv5] adapter online — say Hey Akari');
+        apStatus('Audio Console v5 online', { busy: false, idle: true });
+      },
+      { once: true }
+    );
+
+    window.addEventListener(
+      'ac5:failed',
+      function (e) {
+        prog(100, 'ACv5 failed: ' + (e.detail || 'unknown'));
+        apStatus('ACv5 failed: ' + (e.detail || ''), { busy: false });
+      },
+      { once: true }
+    );
+
+    window.addEventListener('audioConsoleProgress', function (e) {
+      const d = e.detail || {};
+      if (typeof d.percent === 'number') prog(d.percent, d.text || 'Loading…');
+    });
+
+    document.head.appendChild(script);
+  }
+
+  boot();
 })();
