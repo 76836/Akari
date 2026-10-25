@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html id="html" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cyan: #008b8b;
+            --cyan-bright: #00c8c8;
+            --bg: #141414;
+            --card: #1e2626;
+            --input-bg: rgba(0, 0, 0, 0.35);
+            --danger: #a33;
+            --accent-glow: rgba(0, 180, 180, 0.25);
+            --text-dim: rgba(255,255,255,0.55);
+        }
+
+        html, body {
+            height: 100%; width: 100%; margin: 0; padding: 0;
+            overflow: hidden; background-color: var(--bg);
+        }
+        body {
+            font-family: 'Orbitron', system-ui, sans-serif;
+            color: #fff; display: flex; flex-direction: column;
+        }
+        .viewport-wrapper { flex: 1; display: flex; flex-direction: column; width: 100%; height: 100%; }
+        .scroll-area {
+            flex: 1; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none;
+            display: flex; flex-direction: column;
+        }
+        .scroll-area::-webkit-scrollbar { display: none; }
+        .container { width: 100%; flex: 1; display: flex; flex-direction: column; padding-bottom: 100px; }
+
+        .title {
+            font-size: clamp(1.15rem, 5.5vw, 2rem);
+            color: var(--cyan-bright);
+            margin: 18px 0 6px;
+            text-align: center;
+            text-shadow: 0 0 12px var(--accent-glow);
+            letter-spacing: 0.04em;
+        }
+        .subtitle {
+            text-align: center; font-size: 0.7rem; color: var(--text-dim);
+            margin: 0 16px 14px; line-height: 1.4;
+            font-family: system-ui, sans-serif;
+        }
+        .back {
+            display: block; text-align: center; color: var(--cyan-bright);
+            font-size: 0.8rem; margin-bottom: 8px; text-decoration: none;
+            opacity: 0.85;
+        }
+
+        details {
+            background: var(--card); margin: 0; width: 100%;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        summary {
+            padding: 16px 20px; cursor: pointer;
+            font-size: clamp(0.85rem, 3.8vw, 1.1rem);
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255,255,255,0.02); transition: background 0.15s;
+            list-style: none;
+        }
+        summary:hover { background: rgba(255,255,255,0.07); }
+        summary::-webkit-details-marker { display: none; }
+        summary::after { content: '▼'; font-size: 0.65rem; opacity: 0.45; transition: transform 0.25s; }
+        details[open] summary::after { transform: rotate(180deg); color: var(--cyan-bright); opacity: 1; }
+
+        .content { padding: 18px 20px 22px; background: rgba(0,0,0,0.22); }
+
+        .script-group {
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px; padding: 16px; margin-bottom: 14px;
+            border: 1px solid rgba(255,255,255,0.07);
+            border-left: 3px solid var(--cyan-bright);
+        }
+        .group-label {
+            font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.18em;
+            margin-bottom: 8px; display: block; color: var(--cyan-bright); font-weight: 600;
+        }
+        .hint {
+            font-size: 0.72rem; color: var(--text-dim); margin: 0 0 10px;
+            line-height: 1.45; font-family: system-ui, sans-serif;
+        }
+
+        .setbutton, .box {
+            font-size: 0.95rem; width: 100%; margin: 6px 0;
+            background-color: #2d3636; border: 0; color: white;
+            border-radius: 8px; padding: 12px 14px; box-sizing: border-box;
+            font-family: inherit;
+        }
+        .box { background-color: var(--input-bg); border: 1px solid rgba(255,255,255,0.1); text-align: left; }
+        .setbutton { cursor: pointer; transition: filter 0.15s; }
+        .setbutton:hover { filter: brightness(1.15); }
+        .setbutton.selected { background: var(--cyan); color: #fff; font-weight: 600; }
+        .setbutton.primary { background: var(--cyan); color: #fff; font-weight: 600; margin-top: 8px; }
+
+        .row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin: 10px 0; gap: 12px;
+        }
+        .row span { font-size: 0.85rem; }
+
+        .switch { position: relative; display: inline-block; width: 46px; height: 24px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; inset: 0;
+            background-color: #222; transition: 0.25s; border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px;
+            left: 3px; bottom: 3px; background-color: #fff; transition: 0.25s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--cyan); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        input[type=range] {
+            width: 100%; margin: 10px 0; accent-color: var(--cyan); cursor: pointer;
+        }
+
+        .scroll-controls {
+            position: fixed; bottom: 22px; right: 18px;
+            display: flex; flex-direction: column; gap: 10px; z-index: 100;
+        }
+        .scroll-btn {
+            width: 46px; height: 46px; border-radius: 12px;
+            background: var(--card); border: 1px solid var(--cyan);
+            color: var(--cyan-bright); font-size: 1.1rem;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        .version-tag {
+            text-align: center; font-size: 0.65rem; opacity: 0.35;
+            padding: 28px 16px; letter-spacing: 0.12em;
+        }
+    </style>
+</head>
+<body>
+    <div class="viewport-wrapper">
+        <div class="scroll-area" id="mainScroll">
+            <div class="container">
+                <a class="back" href="./index">← Settings</a>
+                <p class="title">Audio Console</p>
+
+                <details open>
+                    <summary>Enable Audio Console</summary>
+                    <div class="content">
+                        <p class="hint">Turns listening on and chooses which console script runs on the main page.</p>
+                        <div class="script-group">
+                            <span class="group-label">Listening script</span>
+                            <div class="row">
+                                <span>Enable listening</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="toggle_wake" onchange="toggleWakeScript()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <select class="select-input" id="wakePreset" onchange="document.getElementById('wakeurl').value = this.value">
+                                <option value="">— Preset —</option>
+                                <option value="./engine/audioConsole.js">Audio Console (recommended)</option>
+                                <option value="./characters/akari/wake.js">Original “hey Akari”</option>
+                                <option value="./engine/experimental-audioConsole.js">Experimental Audio Console</option>
+                            </select>
+                            <input class="box" id="wakeurl" type="text" placeholder="Custom script path…">
+                            <button class="setbutton primary" onclick="saveWakeScript()">Save listening script</button>
+                        </div>
+                        <p class="hint" style="margin-top:12px;">Speech synthesis (how Akari talks) lives under <a href="./voice" style="color:var(--cyan-bright)">Voice</a>.</p>
+                    </div>
+                </details>
+
+                <!-- ========== SIMPLE: How Akari listens ========== -->
+                <details open>
+                    <summary>How Akari listens</summary>
+                    <div class="content">
+                        <div class="script-group">
+                            <span class="group-label">Wake word</span>
+                            <p class="hint">What makes Akari start listening. “openWakeWord” works offline on your device.</p>
+                            <button class="setbutton" data-wake="openwakeword" onclick="selectWakeProvider(this)">Say “Hey Akari” (recommended)</button>
+                            <button class="setbutton" data-wake="none" onclick="selectWakeProvider(this)">Push-to-talk only (mic button)</button>
+                            <button class="setbutton" data-wake="teachablemachine" onclick="selectWakeProvider(this)">Custom sound model (Teachable Machine)</button>
+                        </div>
+
+                        <div class="script-group" id="owwGroup">
+                            <span class="group-label">Wake model</span>
+                            <p class="hint">Optional: URL of a custom .onnx wake model. Leave blank for the built-in “Hey Akari” model.</p>
+                            <input class="box" id="owwUrl" placeholder="https://…/hey_Akari.onnx" type="text">
+                            <button class="setbutton primary" onclick="saveOwwUrl()">Save model URL</button>
+                        </div>
+
+                        <div class="script-group">
+                            <span class="group-label">Wake sensitivity</span>
+                            <p class="hint">Lower = easier to trigger (more false wakes). Higher = stricter.</p>
+                            <input class="box" id="sensitivityBox" type="text" value="0.50"
+                                   oninput="syncSense(this.value)">
+                            <input type="range" min="0.01" max="1" step="0.01" value="0.50" id="sensitivitySlider"
+                                   oninput="syncSense(this.value)">
+                            <button class="setbutton primary" onclick="saveSensitivity()">Save sensitivity</button>
+                        </div>
+
+                        <div class="script-group">
+                            <span class="group-label">Privacy</span>
+                            <div class="row">
+                                <span>Only listen after wake word</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="requireWakeToggle" onchange="saveRequireWake()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <p class="hint">On = needs “Hey Akari” (or mic button) first. Off = may transcribe more speech.</p>
+                        </div>
+
+                        <div class="script-group">
+                            <span class="group-label">Wake response</span>
+                            <div class="row">
+                                <span>Say a greeting instead of summon sound</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="ttsGreetingToggle" onchange="saveTtsGreeting()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <p class="hint">When on, Akari randomly says “what’s up?”, “hey”, “hello”, “hi”, or “yeah?” with her TTS voice instead of playing Summon.mp3.</p>
+                        </div>
+                        <div class="script-group">
+                            <span class="group-label">Continued conversation</span>
+                            <div class="row between">
+                                <span>Keep listening after replies (like Google Home)</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="continuedConversationToggle" onchange="saveContinuedConversation()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <p class="hint">When on, after Akari finishes speaking she listens for a follow-up without needing “hey Akari” again. Stays open for the window below, then goes idle if you say nothing.</p>
+                            <label class="hint" for="continuedMsBox">Follow-up window (seconds)</label>
+                            <input class="box" id="continuedMsBox" type="number" min="3" max="30" step="1" value="7" onchange="saveContinuedMs()">
+                        </div>
+                    </div>
+                </details>
+
+                <!-- ========== ADVANCED: Audio Console (closed) ========== -->
+                <details>
+                    <summary>Advanced · Audio Console</summary>
+                    <div class="content">
+                        <p class="hint">Fine-tune the listening engine. Most people can leave these alone.</p>
+
+                        <div class="script-group">
+                            <span class="group-label">Console adapter</span>
+                            <p class="hint">Script loaded as Akari’s listening module.</p>
+                            <input class="box" id="ac41Script" placeholder="./engine/audioConsole.js" type="text">
+                            <button class="setbutton primary" onclick="saveAc41Script()">Save adapter path</button>
+                        </div>
+
+                        <div class="script-group">
+                            <span class="group-label">Speech recognition</span>
+                            <p class="hint">What turns your speech into text after the wake word. Vosk is continuous offline STT and works best with custom plain-text wake words.</p>
+                            <button class="setbutton" data-sr="vosk" onclick="selectSrProvider(this)">Vosk offline (recommended)</button>
+                            <button class="setbutton" data-sr="transformers" onclick="selectSrProvider(this)">On-device (Moonshine / Whisper)</button>
+                            <button class="setbutton" data-sr="whispercpp" onclick="selectSrProvider(this)">Local whisper.cpp server</button>
+                            <button class="setbutton" data-sr="webspeech" onclick="selectSrProvider(this)">Browser speech (may use cloud)</button>
+                            <button class="setbutton" data-sr="none" onclick="selectSrProvider(this)">None (wake only)</button>
+                        </div>
+
+                        <div class="script-group" id="voskGroup">
+                            <span class="group-label">Vosk model</span>
+                            <p class="hint">URL of a Vosk model archive (.zip / .tar.gz). Leave default for small English (~40 MB, cached after first load).</p>
+                            <input class="box" id="voskModelUrl" placeholder="https://ccoreilly.github.io/vosk-browser/models/vosk-model-small-en-us-0.15.tar.gz" type="text">
+                            <button class="setbutton primary" onclick="saveVoskModelUrl()">Save model URL</button>
+                        </div>
+
+                        <div class="script-group" id="transformersGroup">
+                            <span class="group-label">On-device model</span>
+                            <button class="setbutton" data-model="onnx-community/moonshine-tiny-ONNX" onclick="selectTransformersModel(this)">Tiny — fast, ~40MB</button>
+                            <button class="setbutton" data-model="onnx-community/moonshine-base-ONNX" onclick="selectTransformersModel(this)">Base — clearer, ~100MB</button>
+                            <button class="setbutton" data-model="onnx-community/whisper-tiny-ONNX" onclick="selectTransformersModel(this)">Whisper Tiny</button>
+                        </div>
+
+                        <div class="script-group" id="whisperGroup">
+                            <span class="group-label">whisper.cpp server</span>
+                            <input class="box" id="whisperUrl" placeholder="http://127.0.0.1:8080" type="text">
+                            <button class="setbutton primary" onclick="saveWhisperUrl()">Save server URL</button>
+                        </div>
+
+                        <div class="script-group" id="webspeechGroup">
+                            <span class="group-label">Browser speech language</span>
+                            <input class="box" id="webspeechLang" placeholder="en-US" type="text">
+                            <button class="setbutton primary" onclick="saveWebspeechLang()">Save language</button>
+                        </div>
+
+                        <div class="script-group">
+                            <span class="group-label">Voice activity (silence detector)</span>
+                            <p class="hint">Lower picks up quieter speech; higher needs louder speech.</p>
+                            <input class="box" id="vadBox" type="text" value="0.50"
+                                   oninput="document.getElementById('vadSlider').value=this.value">
+                            <input type="range" min="0.1" max="0.9" step="0.05" value="0.50" id="vadSlider"
+                                   oninput="document.getElementById('vadBox').value=this.value">
+                            <button class="setbutton primary" onclick="saveVad()">Save VAD</button>
+                        </div>
+
+                        <div class="script-group">
+                            <span class="group-label">Text wake words</span>
+                            <p class="hint">Words stripped from transcripts, or used if sound wake is off. Comma-separated.</p>
+                            <input class="box" id="wakewords" placeholder="hey akari,akari" type="text">
+                            <button class="setbutton primary" onclick="saveWakewords()">Save words</button>
+                        </div>
+
+                        <div class="script-group">
+                            <span class="group-label">Audio buffer (optional)</span>
+                            <p class="hint">Keeps recent mic audio in memory so you can replay or re-send a clip.</p>
+                            <div class="row">
+                                <span>Enable buffer</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="xlToggle" onchange="toggleXl()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div id="xlOptions" style="display:none;">
+                                <p class="hint">Duration in milliseconds (1000–3600000). 60000 ≈ 1 minute.</p>
+                                <input class="box" id="xlDuration" type="number" min="1000" max="3600000" step="1000" value="60000">
+                                <div class="row">
+                                    <span>Only store speech (saves RAM)</span>
+                                    <label class="switch">
+                                        <input type="checkbox" id="xlVadOnlyToggle" onchange="toggleXlVadOnly()">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <button class="setbutton primary" onclick="saveXl()">Save buffer</button>
+                        </div>
+
+                        <div class="script-group">
+                            <span class="group-label">Diagnostics</span>
+                            <div class="row">
+                                <span>Verbose logging</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="debugToggle" onchange="toggleDebug()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- ========== LEGACY (closed) ========== -->
+                <details>
+                    <summary>Legacy · Old recognition scripts</summary>
+                    <div class="content">
+                        <p class="hint">Only needed if you are not using Audio Console. Prefer the sections above.</p>
+                        <div class="script-group">
+                            <span class="group-label">Standalone speech-to-text</span>
+                            <button class="setbutton" onclick="setWhisperVal('./engine/web-speech-recognition.js')">Browser speech API</button>
+                            <button class="setbutton" onclick="setWhisperVal('./engine/whisper-tiny-cpu.js')">Whisper Tiny (local)</button>
+                            <input class="box" id="whisperurl" type="text" placeholder="Script path">
+                            <button class="setbutton primary" onclick="setwhisper()">Save</button>
+                        </div>
+                        <div class="script-group">
+                            <span class="group-label">Legacy sensitivity</span>
+                            <p class="hint">Synced with the main sensitivity slider above.</p>
+                            <input class="box" id="sensitivityBoxLegacy" type="text"
+                                   oninput="syncSense(this.value)">
+                            <input type="range" min="0.01" max="1" step="0.01" value="0.50" id="sensitivitySliderLegacy"
+                                   oninput="syncSense(this.value)">
+                            <button class="setbutton primary" onclick="saveSensitivity()">Save</button>
+                        </div>
+                    </div>
+                </details>
+
+                <div class="version-tag">AUDIO CONSOLE · SETTINGS</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="scroll-controls">
+        <div class="scroll-btn" onclick="document.getElementById('mainScroll').scrollBy({top:-200,behavior:'smooth'})">▲</div>
+        <div class="scroll-btn" onclick="document.getElementById('mainScroll').scrollBy({top:200,behavior:'smooth'})">▼</div>
+    </div>
+
+    <script>
+        function syncSense(v) {
+            document.getElementById('sensitivityBox').value = v;
+            document.getElementById('sensitivitySlider').value = v;
+            const leg = document.getElementById('sensitivityBoxLegacy');
+            const legs = document.getElementById('sensitivitySliderLegacy');
+            if (leg) leg.value = v;
+            if (legs) legs.value = v;
+        }
+
+        window.onload = () => {
+            const wake = localStorage.getItem('selectedWakeScript');
+            const wakeUrl = document.getElementById('wakeurl');
+            const wakeToggle = document.getElementById('toggle_wake');
+            if (wakeUrl) wakeUrl.value = (wake === 'off' || !wake) ? '' : wake;
+            if (wakeToggle) wakeToggle.checked = !!(wake && wake !== 'off');
+            document.getElementById('ac41Script').value = localStorage.getItem('selectedWakeScript') || './engine/audioConsole.js';
+
+            const wakeProv = localStorage.getItem('ac41_wakeProvider') || 'openwakeword';
+            document.querySelectorAll('[data-wake]').forEach(b => b.classList.toggle('selected', b.dataset.wake === wakeProv));
+
+            document.getElementById('owwUrl').value = localStorage.getItem('ac41_owwUrl') || '';
+
+            const srProv = localStorage.getItem('ac41_srProvider') || 'vosk';
+            document.querySelectorAll('[data-sr]').forEach(b => b.classList.toggle('selected', b.dataset.sr === srProv));
+
+            const tModel = localStorage.getItem('ac41_transformersModel') || 'onnx-community/moonshine-base-ONNX';
+            document.querySelectorAll('[data-model]').forEach(b => b.classList.toggle('selected', b.dataset.model === tModel));
+
+            document.getElementById('whisperUrl').value = localStorage.getItem('ac41_whisperUrl') || '';
+            document.getElementById('webspeechLang').value = localStorage.getItem('ac41_webspeechLang') || 'en-US';
+            document.getElementById('voskModelUrl').value = localStorage.getItem('ac41_voskModelUrl') || 'https://ccoreilly.github.io/vosk-browser/models/vosk-model-small-en-us-0.15.tar.gz';
+
+            const sense = localStorage.getItem('ac41_owwThreshold') || localStorage.getItem('wakeSense') || '0.50';
+            syncSense(sense);
+
+            const vad = localStorage.getItem('ac41_vadThreshold') || '0.50';
+            document.getElementById('vadBox').value = vad;
+            document.getElementById('vadSlider').value = vad;
+
+            document.getElementById('wakewords').value = localStorage.getItem('ac41_wakewords') || 'hey akari,akari';
+
+            document.getElementById('requireWakeToggle').checked = localStorage.getItem('ac41_requireWake') !== 'false';
+
+            document.getElementById('ttsGreetingToggle').checked = localStorage.getItem('ac41_ttsGreeting') === 'true';
+            const contEl = document.getElementById('continuedConversationToggle');
+            if (contEl) contEl.checked = localStorage.getItem('ac41_continuedConversation') === 'true';
+            const contMs = document.getElementById('continuedMsBox');
+            if (contMs) contMs.value = String(Math.round((parseFloat(localStorage.getItem('ac41_continuedMs') || '7000') || 7000) / 1000));
+
+
+            const xlOn = localStorage.getItem('ac41_xlEnabled') === 'true';
+            document.getElementById('xlToggle').checked = xlOn;
+            document.getElementById('xlOptions').style.display = xlOn ? 'block' : 'none';
+            document.getElementById('xlDuration').value = localStorage.getItem('ac41_xlDuration') || '60000';
+            document.getElementById('xlVadOnlyToggle').checked = localStorage.getItem('ac41_xlVadOnly') === 'true';
+
+            document.getElementById('debugToggle').checked = localStorage.getItem('ac41_debug') === 'true';
+
+            document.getElementById('voiceurl').value = localStorage.getItem('selectedVoiceScript') || '';
+            document.getElementById('whisperurl').value = localStorage.getItem('selectedWhisperScript') || '';
+
+            updateProviderGroups(wakeProv, srProv);
+        };
+
+        function flash(btn) {
+            if (!btn) return;
+            const t = btn.innerText;
+            btn.innerText = '✓ Saved';
+            setTimeout(() => { btn.innerText = t; }, 1600);
+        }
+
+        function saveAc41Script() {
+            localStorage.setItem('selectedWakeScript', document.getElementById('ac41Script').value);
+            flash(event.target);
+        }
+
+        function selectWakeProvider(btn) {
+            document.querySelectorAll('[data-wake]').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            localStorage.setItem('ac41_wakeProvider', btn.dataset.wake);
+            updateProviderGroups(btn.dataset.wake, localStorage.getItem('ac41_srProvider') || 'vosk');
+        }
+
+        function saveOwwUrl() {
+            localStorage.setItem('ac41_owwUrl', document.getElementById('owwUrl').value);
+            flash(event.target);
+        }
+
+        function selectSrProvider(btn) {
+            document.querySelectorAll('[data-sr]').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            localStorage.setItem('ac41_srProvider', btn.dataset.sr);
+            updateProviderGroups(localStorage.getItem('ac41_wakeProvider') || 'openwakeword', btn.dataset.sr);
+        }
+
+        function selectTransformersModel(btn) {
+            document.querySelectorAll('[data-model]').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            localStorage.setItem('ac41_transformersModel', btn.dataset.model);
+        }
+
+        function saveWhisperUrl() {
+            localStorage.setItem('ac41_whisperUrl', document.getElementById('whisperUrl').value);
+            flash(event.target);
+        }
+
+        function saveWebspeechLang() {
+            localStorage.setItem('ac41_webspeechLang', document.getElementById('webspeechLang').value);
+            flash(event.target);
+        }
+
+        function saveSensitivity() {
+            const v = document.getElementById('sensitivityBox').value;
+            localStorage.setItem('ac41_owwThreshold', v);
+            localStorage.setItem('wakeSense', v);
+            flash(event.target);
+        }
+
+        function saveVad() {
+            localStorage.setItem('ac41_vadThreshold', document.getElementById('vadBox').value);
+            flash(event.target);
+        }
+
+        function saveWakewords() {
+            localStorage.setItem('ac41_wakewords', document.getElementById('wakewords').value);
+            flash(event.target);
+        }
+
+        function saveRequireWake() {
+            localStorage.setItem('ac41_requireWake', document.getElementById('requireWakeToggle').checked ? 'true' : 'false');
+        }
+
+        function saveTtsGreeting() {
+            localStorage.setItem('ac41_ttsGreeting', document.getElementById('ttsGreetingToggle').checked ? 'true' : 'false');
+        }
+
+        function saveContinuedConversation() {
+            const el = document.getElementById('continuedConversationToggle');
+            if (!el) return;
+            localStorage.setItem('ac41_continuedConversation', el.checked ? 'true' : 'false');
+        }
+
+        function saveContinuedMs() {
+            const el = document.getElementById('continuedMsBox');
+            if (!el) return;
+            const sec = parseFloat(el.value);
+            const ms = Math.max(3000, Math.min(30000, (isNaN(sec) ? 7 : sec) * 1000));
+            localStorage.setItem('ac41_continuedMs', String(ms));
+            el.value = String(Math.round(ms / 1000));
+        }
+
+        function toggleXl() {
+            const on = document.getElementById('xlToggle').checked;
+            localStorage.setItem('ac41_xlEnabled', on ? 'true' : 'false');
+            document.getElementById('xlOptions').style.display = on ? 'block' : 'none';
+        }
+
+        function toggleXlVadOnly() {
+            localStorage.setItem('ac41_xlVadOnly', document.getElementById('xlVadOnlyToggle').checked ? 'true' : 'false');
+        }
+
+        function saveXl() {
+            const dur = parseInt(document.getElementById('xlDuration').value, 10) || 60000;
+            localStorage.setItem('ac41_xlDuration', String(Math.max(1000, Math.min(3600000, dur))));
+            flash(event.target);
+        }
+
+        function toggleDebug() {
+            localStorage.setItem('ac41_debug', document.getElementById('debugToggle').checked ? 'true' : 'false');
+        }
+
+        function updateProviderGroups(wakeProv, srProv) {
+            document.getElementById('owwGroup').style.display = (wakeProv === 'openwakeword') ? 'block' : 'none';
+            const vg = document.getElementById('voskGroup');
+            if (vg) vg.style.display = (srProv === 'vosk') ? 'block' : 'none';
+            document.getElementById('transformersGroup').style.display = (srProv === 'transformers') ? 'block' : 'none';
+            document.getElementById('whisperGroup').style.display = (srProv === 'whispercpp') ? 'block' : 'none';
+            document.getElementById('webspeechGroup').style.display = (srProv === 'webspeech') ? 'block' : 'none';
+        }
+
+        function saveVoskModelUrl() {
+            const el = document.getElementById('voskModelUrl');
+            if (!el) return;
+            localStorage.setItem('ac41_voskModelUrl', el.value.trim());
+            flash(event && event.target);
+        }
+
+        function setVoiceVal(v) { document.getElementById('voiceurl').value = v; }
+        function setWhisperVal(v) { document.getElementById('whisperurl').value = v; }
+
+        function setvoice() {
+            const el = document.getElementById('voiceurl');
+            if (!el) return;
+            localStorage.setItem('selectedVoiceScript', el.value);
+            flash(event.target);
+        }
+
+        function setwhisper() {
+            localStorage.setItem('selectedWhisperScript', document.getElementById('whisperurl').value);
+            flash(event.target);
+        }
+
+        function toggleWakeScript() {
+            const on = document.getElementById('toggle_wake').checked;
+            if (!on) {
+                localStorage.setItem('selectedWakeScript', 'off');
+            } else {
+                const path = document.getElementById('wakeurl').value.trim() || './engine/audioConsole.js';
+                document.getElementById('wakeurl').value = path;
+                localStorage.setItem('selectedWakeScript', path);
+            }
+        }
+        function saveWakeScript() {
+            const path = document.getElementById('wakeurl').value.trim();
+            if (!path) {
+                localStorage.setItem('selectedWakeScript', 'off');
+                document.getElementById('toggle_wake').checked = false;
+            } else {
+                localStorage.setItem('selectedWakeScript', path);
+                document.getElementById('toggle_wake').checked = true;
+            }
+            const b = (typeof event !== 'undefined' && event && event.target) ? event.target : null;
+            if (b && b.classList) flash(b);
+        }
+
+    </script>
+</body>
+</html>
