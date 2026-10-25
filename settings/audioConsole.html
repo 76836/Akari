@@ -145,9 +145,78 @@
             <div class="container">
                 <a class="back" href="./index">← Settings</a>
                 <p class="title">Audio Console</p>
+                <p class="subtitle">Pick v4 or v5. Settings keys stay separate (ac41_* vs ac5_*).</p>
 
                 <details open>
-                    <summary>Enable Audio Console</summary>
+                    <summary>Console version</summary>
+                    <div class="content">
+                        <p class="hint">Switching only changes the adapter script on the main page. Your other version&rsquo;s options are kept.</p>
+                        <div class="script-group">
+                            <span class="group-label">Active console</span>
+                            <button class="setbutton" id="btnAcV4" type="button" onclick="selectConsoleVersion('v4')">Audio Console v4</button>
+                            <button class="setbutton" id="btnAcV5" type="button" onclick="selectConsoleVersion('v5')">Audio Console v5 (ACv5)</button>
+                            <p class="hint" id="acVersionHint"></p>
+                        </div>
+                        <div class="script-group">
+                            <span class="group-label">Listening script path</span>
+                            <div class="row">
+                                <span>Enable listening</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="toggle_wake" onchange="toggleWakeScript()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <select class="select-input" id="wakePreset" onchange="document.getElementById('wakeurl').value = this.value">
+                                <option value="">— Preset —</option>
+                                <option value="./engine/audioConsole.js">v4 adapter (recommended)</option>
+                                <option value="./engine/audioConsole-v5.js">v5 adapter (ACv5)</option>
+                                <option value="./characters/akari/wake.js">Original “hey Akari”</option>
+                                <option value="./engine/experimental-audioConsole.js">Experimental v4</option>
+                            </select>
+                            <input class="box" id="wakeurl" type="text" placeholder="Custom script path…">
+                            <button class="setbutton primary" type="button" onclick="saveWakeScript()">Save listening script</button>
+                        </div>
+                        <p class="hint" style="margin-top:12px;">Speech synthesis lives under <a href="./voice" style="color:var(--cyan-bright)">Voice</a>. ACv5 package: <a href="https://76836.github.io/AkariNet-AudioConsole/ACv5/" style="color:var(--cyan-bright)" target="_blank" rel="noopener">docs</a>.</p>
+                    </div>
+                </details>
+
+                <div id="ac5Panel" style="display:none">
+                <details open>
+                    <summary>v5 · Engines &amp; policy</summary>
+                    <div class="content">
+                        <div class="script-group">
+                            <span class="group-label">Transcribe engine</span>
+                            <p class="hint">NeMo int8 is bundled offline. Vosk uses the bundled small English model.</p>
+                            <button class="setbutton" type="button" data-ac5-engine="NeMo" onclick="selectAc5Engine(this)">NeMo (recommended)</button>
+                            <button class="setbutton" type="button" data-ac5-engine="Vosk" onclick="selectAc5Engine(this)">Vosk</button>
+                            <button class="setbutton" type="button" data-ac5-engine="Whisper" onclick="selectAc5Engine(this)">Whisper</button>
+                        </div>
+                        <div class="script-group">
+                            <span class="group-label">Wake threshold</span>
+                            <input class="box" id="ac5WakeThreshold" type="text" value="0.50" oninput="document.getElementById('ac5WakeSlider').value=this.value">
+                            <input type="range" id="ac5WakeSlider" min="0.1" max="0.95" step="0.01" value="0.50" oninput="document.getElementById('ac5WakeThreshold').value=this.value">
+                            <button class="setbutton primary" type="button" onclick="saveAc5Num('ac5_wakeThreshold','ac5WakeThreshold')">Save threshold</button>
+                        </div>
+                        <div class="script-group">
+                            <span class="group-label">Policy</span>
+                            <div class="row"><span>Hold until reply finishes</span><label class="switch"><input type="checkbox" id="ac5Hold" onchange="localStorage.setItem('ac5_holdForReply', this.checked?'true':'false')"><span class="slider"></span></label></div>
+                            <div class="row"><span>Continued conversation</span><label class="switch"><input type="checkbox" id="ac5Continued" onchange="localStorage.setItem('ac5_continuedConversation', this.checked?'true':'false')"><span class="slider"></span></label></div>
+                            <div class="row"><span>Spoken wake phrase (skip Summon.mp3)</span><label class="switch"><input type="checkbox" id="ac5TtsGreet" onchange="localStorage.setItem('ac5_ttsGreeting', this.checked?'true':'false')"><span class="slider"></span></label></div>
+                            <div class="row"><span>Debug</span><label class="switch"><input type="checkbox" id="ac5Debug" onchange="localStorage.setItem('ac5_debug', this.checked?'true':'false')"><span class="slider"></span></label></div>
+                        </div>
+                        <div class="script-group">
+                            <span class="group-label">Optional model URLs</span>
+                            <input class="box" id="ac5WakeModelUrl" placeholder="Custom wake .onnx URL (optional)">
+                            <input class="box" id="ac5VoskModelUrl" placeholder="Custom Vosk model URL (optional)">
+                            <button class="setbutton primary" type="button" onclick="saveAc5Overrides()">Save overrides</button>
+                        </div>
+                    </div>
+                </details>
+                </div>
+
+                <div id="ac4Panel">
+                <details open>
+                    <summary>Enable Audio Console (v4 path)</summary>
                     <div class="content">
                         <p class="hint">Turns listening on and chooses which console script runs on the main page.</p>
                         <div class="script-group">
@@ -367,7 +436,9 @@
                     </div>
                 </details>
 
-                <div class="version-tag">AUDIO CONSOLE · SETTINGS</div>
+                </div><!-- /ac4Panel -->
+
+                <div class="version-tag">AUDIO CONSOLE · V4 + V5</div>
             </div>
         </div>
     </div>
@@ -388,6 +459,7 @@
         }
 
         window.onload = () => {
+            try { loadAc5Form(); syncAcVersionUI(); } catch (e) { console.warn(e); }
             const wake = localStorage.getItem('selectedWakeScript');
             const wakeUrl = document.getElementById('wakeurl');
             const wakeToggle = document.getElementById('toggle_wake');
@@ -601,6 +673,81 @@
             }
             const b = (typeof event !== 'undefined' && event && event.target) ? event.target : null;
             if (b && b.classList) flash(b);
+        }
+
+
+        function selectConsoleVersion(v) {
+            if (v === 'v5') {
+                localStorage.setItem('selectedWakeScript', './engine/audioConsole-v5.js');
+                localStorage.setItem('akari_ac_version', '5');
+            } else {
+                const path = (document.getElementById('ac41Script') && document.getElementById('ac41Script').value) || './engine/audioConsole.js';
+                localStorage.setItem('selectedWakeScript', path);
+                localStorage.setItem('akari_ac_version', '4');
+            }
+            syncAcVersionUI();
+            try { flash(event && event.target); } catch (_) {}
+        }
+        function syncAcVersionUI() {
+            const script = localStorage.getItem('selectedWakeScript') || '';
+            const ver = localStorage.getItem('akari_ac_version') || (script.indexOf('audioConsole-v5') >= 0 ? '5' : '4');
+            const v5 = ver === '5';
+            const p4 = document.getElementById('ac4Panel');
+            const p5 = document.getElementById('ac5Panel');
+            if (p4) p4.style.display = v5 ? 'none' : 'block';
+            if (p5) p5.style.display = v5 ? 'block' : 'none';
+            document.getElementById('btnAcV4') && document.getElementById('btnAcV4').classList.toggle('selected', !v5);
+            document.getElementById('btnAcV5') && document.getElementById('btnAcV5').classList.toggle('selected', v5);
+            const hint = document.getElementById('acVersionHint');
+            if (hint) hint.textContent = v5
+                ? 'Active: v5 (./engine/audioConsole-v5.js). Keys: ac5_*.'
+                : 'Active: v4. Keys: ac41_*.';
+            const wakeUrl = document.getElementById('wakeurl');
+            const wakeToggle = document.getElementById('toggle_wake');
+            if (wakeUrl && script && script !== 'off') wakeUrl.value = script;
+            if (wakeToggle) wakeToggle.checked = !!(script && script !== 'off');
+        }
+        function selectAc5Engine(btn) {
+            document.querySelectorAll('[data-ac5-engine]').forEach(function(b){ b.classList.remove('selected'); });
+            btn.classList.add('selected');
+            localStorage.setItem('ac5_transcribeEngine', btn.dataset.ac5Engine);
+            try { flash(btn); } catch (_) {}
+        }
+        function saveAc5Num(key, inputId) {
+            const el = document.getElementById(inputId);
+            if (!el) return;
+            localStorage.setItem(key, el.value);
+            try { flash(event && event.target); } catch (_) {}
+        }
+        function saveAc5Overrides() {
+            localStorage.setItem('ac5_wakeModelUrl', (document.getElementById('ac5WakeModelUrl').value || '').trim());
+            localStorage.setItem('ac5_voskModelUrl', (document.getElementById('ac5VoskModelUrl').value || '').trim());
+            try { flash(event && event.target); } catch (_) {}
+        }
+        function loadAc5Form() {
+            const eng = localStorage.getItem('ac5_transcribeEngine') || 'NeMo';
+            document.querySelectorAll('[data-ac5-engine]').forEach(function(b){
+                b.classList.toggle('selected', b.dataset.ac5Engine === eng);
+            });
+            const th = localStorage.getItem('ac5_wakeThreshold') || '0.50';
+            const tEl = document.getElementById('ac5WakeThreshold');
+            const sEl = document.getElementById('ac5WakeSlider');
+            if (tEl) tEl.value = th;
+            if (sEl) sEl.value = th;
+            function setC(id, key, defTrue) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const v = localStorage.getItem(key);
+                el.checked = v == null ? !!defTrue : v === 'true';
+            }
+            setC('ac5Hold', 'ac5_holdForReply', true);
+            setC('ac5Continued', 'ac5_continuedConversation', false);
+            setC('ac5TtsGreet', 'ac5_ttsGreeting', false);
+            setC('ac5Debug', 'ac5_debug', false);
+            const w = document.getElementById('ac5WakeModelUrl');
+            const vosk = document.getElementById('ac5VoskModelUrl');
+            if (w) w.value = localStorage.getItem('ac5_wakeModelUrl') || '';
+            if (vosk) vosk.value = localStorage.getItem('ac5_voskModelUrl') || '';
         }
 
     </script>
