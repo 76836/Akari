@@ -1041,14 +1041,23 @@ if ('serviceWorker' in navigator) {
                     const btn = document.getElementById('micbutton');
                     app.isSilentMode = false;
                     window.dispatchEvent(new CustomEvent('akari:user-input', { detail: { source: 'voice-toggle' } }));
-                    if (btn.innerText === 'voice' || btn.innerText === '\u27A4' || btn.innerText === '➤') {
+                    if (btn.innerText === 'voice' || btn.innerText === '➤' || btn.innerText === '➤') {
                         btn.className = 'icemorphic-medium ice-button side-action mic-on';
                         btn.innerText = 'Listening...';
                         btn.style.minWidth = '100px';
                         btn.style.fontSize = '';
-                        if (window.whisperTranscriber) whisperTranscriber.start(true);
+                        // ACv5 adapter owns the mic — do not start legacy web-speech/whisper UI path
+                        if (window.__ac5Adapter && typeof window.__ac5Adapter.armManual === 'function') {
+                            const ok = window.__ac5Adapter.armManual();
+                            if (!ok) console.warn('[Akari] ACv5 not ready for manual listen yet');
+                        } else if (window.whisperTranscriber) {
+                            try { whisperTranscriber.start(true); } catch (e) { console.warn('[Akari] whisperTranscriber.start', e); }
+                        }
                         window.emit('voice_listening_started', { timestamp: Date.now() });
                     } else {
+                        if (window.__ac5Adapter && typeof window.__ac5Adapter.cancel === 'function') {
+                            try { window.__ac5Adapter.cancel(); } catch (_) {}
+                        }
                         app.ui.resetMic();
                         window.emit('voice_listening_stopped', { timestamp: Date.now() });
                     }
