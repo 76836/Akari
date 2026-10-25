@@ -65,14 +65,13 @@
 
   function prog(p, msg) {
     try {
-      if (window.loadscreen) window.loadscreen(p < 100 ? `[${p}%] ${msg}` : msg);
+      if (window.loadscreen) window.loadscreen(p < 100 ? '[' + p + '%] ' + msg : msg);
     } catch (_) {}
     try {
       localStorage.setItem('akari:ac-load', JSON.stringify({ p: p, msg: msg, t: Date.now() }));
     } catch (_) {}
   }
 
-  // Status bar (reuse visual language of v4)
   let statusBar = null;
   let visualState = 'idle';
   let wakeResetTimer = null;
@@ -82,19 +81,14 @@
     if (!document.getElementById('ac5-bar-style')) {
       const st = document.createElement('style');
       st.id = 'ac5-bar-style';
-      st.textContent = `
-        #audio-status-bar.ac5 {
-          position: fixed; left: 0; right: 0; bottom: 0; height: 4px; z-index: 9997;
-          pointer-events: none; opacity: 0; transition: opacity 0.2s;
-          background: linear-gradient(90deg, #008b8b, #00e5ff, #008b8b);
-          background-size: 200% 100%;
-        }
-        #audio-status-bar.ac5.active { opacity: 1; animation: ac5-flow 1.8s linear infinite; }
-        #audio-status-bar.ac5.wake { height: 10px; animation-duration: 1.2s; }
-        #audio-status-bar.ac5.listening { height: 6px; }
-        #audio-status-bar.ac5.processing { height: 8px; animation-duration: 2.5s; }
-        @keyframes ac5-flow { 0% { background-position: 0% 0; } 100% { background-position: 200% 0; } }
-      `;
+      st.textContent =
+        '#audio-status-bar.ac5{position:fixed;left:0;right:0;bottom:0;height:4px;z-index:9997;pointer-events:none;opacity:0;transition:opacity .2s;' +
+        'background:linear-gradient(90deg,#008b8b,#00e5ff,#008b8b);background-size:200% 100%}' +
+        '#audio-status-bar.ac5.active{opacity:1;animation:ac5-flow 1.8s linear infinite}' +
+        '#audio-status-bar.ac5.wake{height:10px;animation-duration:1.2s}' +
+        '#audio-status-bar.ac5.listening{height:6px}' +
+        '#audio-status-bar.ac5.processing{height:8px;animation-duration:2.5s}' +
+        '@keyframes ac5-flow{0%{background-position:0% 0}100%{background-position:200% 0}}';
       document.head.appendChild(st);
     }
     statusBar = document.getElementById('audio-status-bar');
@@ -119,21 +113,18 @@
     bar.classList.add('active');
     if (state === 'wake') {
       bar.classList.add('wake');
-      wakeResetTimer = setTimeout(() => setVisualState('idle'), 6000);
+      wakeResetTimer = setTimeout(function () { setVisualState('idle'); }, 6000);
     } else if (state === 'listening') bar.classList.add('listening');
     else if (state === 'processing') bar.classList.add('processing');
   }
 
   async function playWakeChime() {
-    if (lsBool('ac5_ttsGreeting', false)) {
-      // Spoken phrase path — leave to TTS elsewhere if wired; optional short delay
-      return;
-    }
-    return new Promise((resolve) => {
+    if (lsBool('ac5_ttsGreeting', false)) return;
+    return new Promise(function (resolve) {
       try {
         const a = new Audio('https://76836.github.io/Akari/characters/akari/Summon.mp3');
         a.volume = 1;
-        const done = () => resolve();
+        const done = function () { resolve(); };
         a.onended = done;
         a.onerror = done;
         a.play().catch(done);
@@ -155,7 +146,6 @@
       cache: { windowMs: lsNum('ac5_cacheWindowMs', 120000) },
       wake: {
         threshold: threshold,
-        // bundled models under ACv5; empty uses package defaults
         modelUrl: ls('ac5_wakeModelUrl', '') || undefined
       },
       transcribe: {
@@ -171,7 +161,6 @@
       };
     }
 
-    // Per-engine optional overrides
     if (engine === 'Vosk' && ls('ac5_voskModelUrl', '')) {
       heads.transcribe.modelUrl = ls('ac5_voskModelUrl', '');
     }
@@ -185,6 +174,38 @@
 
   let ac = null;
   let started = false;
+  let holdActive = false; // true after wake while waiting for assistant reply_done
+
+  function safeSignal(name) {
+    if (!ac || !started) return false;
+    try {
+      ac.signal(name);
+      return true;
+    } catch (e) {
+      // Expected when nothing is waiting (idle, already listening, busy)
+      if (lsBool('ac5_debug', false)) console.warn('[ACv5] signal(' + name + '):', e && e.message ? e.message : e);
+      return false;
+    }
+  }
+
+  function safeArm(name, opts) {
+    if (!ac || !started) return false;
+    try {
+      ac.arm(name, opts || {});
+      return true;
+    } catch (e) {
+      if (lsBool('ac5_debug', false)) console.warn('[ACv5] arm(' + name + '):', e && e.message ? e.message : e);
+      return false;
+    }
+  }
+
+  function releaseHold(reason) {
+    if (!holdActive && !lsBool('ac5_holdForReply', true)) return;
+    if (!started) return;
+    const ok = safeSignal('reply_done');
+    if (ok) holdActive = false;
+    if (lsBool('ac5_debug', false)) console.log('[ACv5] releaseHold', reason, ok);
+  }
 
   async function boot() {
     prog(5, 'Loading Audio Console v5…');
@@ -196,61 +217,56 @@
     const cfg = buildConfig();
     ac = new AudioConsole(cfg);
 
-    ac.on('ready', () => {
+    ac.on('ready', function () {
       prog(100, 'Audio Console v5 ready');
       apStatus('Audio Console v5 ready', { busy: false, idle: true });
     });
 
-    ac.on('speechDetected', (d) => {
-      if (d && d.active) setVisualState('listening');
-      try {
-        window.dispatchEvent(
-          new CustomEvent(d && d.active ? 'audioConsoleSpeechStart' : 'audioConsoleSpeechEnd')
-        );
-      } catch (_) {}
-    });
-
-    ac.on('wake', async (d) => {
-      setVisualState('wake');
-      notifyUserInput('wake-word');
-      try {
-        window.dispatchEvent(
-          new CustomEvent('audioConsoleWakeSound', { detail: d })
-        );
-      } catch (_) {}
-      apStatus('Wake: ' + ((d && d.keyword) || 'hey akari'), { busy: true });
-      await playWakeChime();
-      // Hold-for-reply policy waits for reply_done; chime end is not ASR gate in v5 the same way —
-      // policy owns listen windows after wake.
-    });
-
-    ac.on('partial', (d) => {
-      if (d && d.text) {
-        try {
-          window.dispatchEvent(
-            new CustomEvent('audioConsolePartial', { detail: { text: d.text } })
-          );
-        } catch (_) {}
+    ac.on('speechDetected', function (d) {
+      if (!started) return;
+      if (d && d.active) {
+        setVisualState('listening');
+        try { window.dispatchEvent(new CustomEvent('audioConsoleSpeechStart')); } catch (_) {}
+      } else {
+        // User speech ended — do NOT signal reply_done (that is for assistant TTS end).
+        try { window.dispatchEvent(new CustomEvent('audioConsoleUserSpeechEnd')); } catch (_) {}
       }
     });
 
-    ac.on('transcript', (d) => {
-      setVisualState('processing');
+    ac.on('wake', async function (d) {
+      if (!started) return;
+      setVisualState('wake');
+      holdActive = lsBool('ac5_holdForReply', true) || lsBool('ac5_continuedConversation', false);
+      notifyUserInput('wake-word');
       try {
-        window.dispatchEvent(new CustomEvent('audioConsoleProcessing'));
+        window.dispatchEvent(new CustomEvent('audioConsoleWakeSound', { detail: d }));
       } catch (_) {}
+      apStatus('Wake: ' + ((d && d.keyword) || 'hey akari'), { busy: true });
+      await playWakeChime();
+    });
+
+    ac.on('partial', function (d) {
+      if (!started || !d || !d.text) return;
+      try {
+        window.dispatchEvent(new CustomEvent('audioConsolePartial', { detail: { text: d.text } }));
+      } catch (_) {}
+    });
+
+    ac.on('transcript', function (d) {
+      if (!started) return;
+      setVisualState('processing');
+      try { window.dispatchEvent(new CustomEvent('audioConsoleProcessing')); } catch (_) {}
       emitTranscript(d && d.text, { trigger: d && d.trigger, prompt: d && d.prompt });
-      setTimeout(() => {
+      setTimeout(function () {
         setVisualState('idle');
-        try {
-          window.dispatchEvent(new CustomEvent('audioConsoleProcessingEnd'));
-        } catch (_) {}
+        try { window.dispatchEvent(new CustomEvent('audioConsoleProcessingEnd')); } catch (_) {}
       }, 400);
     });
 
-    ac.on('status', (d) => {
-      if (!d || !d.type) return;
+    ac.on('status', function (d) {
+      if (!started || !d || !d.type) return;
       if (d.type === 'waiting') {
+        holdActive = true;
         setVisualState('wake');
         apStatus('Waiting until reply finishes…', { busy: true });
       }
@@ -259,63 +275,69 @@
         apStatus('Listening…', { busy: true });
       }
       if (d.type === 'hold-timeout' || d.type === 'cancelled') {
+        holdActive = false;
         setVisualState('idle');
         apStatus('Listen ended', { busy: false, idle: true });
       }
     });
 
-    ac.on('error', (d) => {
+    ac.on('error', function (d) {
       console.error('[ACv5]', d);
       try {
-        window.dispatchEvent(
-          new CustomEvent('audioConsoleError', { detail: d })
-        );
+        window.dispatchEvent(new CustomEvent('audioConsoleError', { detail: d }));
       } catch (_) {}
     });
 
-    // When Akari finishes speaking, release hold-for-reply / continued gate
-    window.addEventListener('audioConsoleSpeechEnd', () => {
-      try {
-        if (ac && lsBool('ac5_holdForReply', true)) ac.signal('reply_done');
-      } catch (_) {}
-    });
-    // Also listen for TTS-end hooks used elsewhere
-    window.addEventListener('akari:tts-end', () => {
-      try {
-        if (ac && lsBool('ac5_holdForReply', true)) ac.signal('reply_done');
-      } catch (_) {}
-    });
+    // Hold-for-reply: only release when the *assistant* finishes speaking, never on user VAD.
+    window.addEventListener('akari:tts-end', function () { releaseHold('akari:tts-end'); });
+    window.addEventListener('audioConsoleSpeechEnd', function () { releaseHold('audioConsoleSpeechEnd'); });
+    // Some TTS scripts use speechSynthesis events without our custom names
+    try {
+      if (window.speechSynthesis) {
+        // no global end event — rely on TTS scripts
+      }
+    } catch (_) {}
 
     prog(40, 'Starting mic, wake, and transcribe heads…');
     await ac.start();
     started = true;
     prog(100, 'Audio Console v5 online');
+    apStatus('Audio Console v5 online', { busy: false, idle: true });
+
     window.__ac5 = ac;
     window.__ac5Adapter = {
-      cancel: () => ac && ac.cancel(),
-      armManual: () => ac && ac.arm('manual'),
-      signalReplyDone: () => ac && ac.signal('reply_done'),
-      destroy: () => {
-        try {
-          ac && ac.destroy();
-        } catch (_) {}
+      ready: function () { return !!(ac && started); },
+      cancel: function () {
+        if (!ac || !started) return;
+        try { ac.cancel(); } catch (e) { console.warn('[ACv5] cancel', e); }
+        holdActive = false;
+      },
+      armManual: function () {
+        return safeArm('manual');
+      },
+      signalReplyDone: function () {
+        return releaseHold('api');
+      },
+      destroy: function () {
+        try { if (ac) ac.destroy(); } catch (_) {}
         ac = null;
         started = false;
+        holdActive = false;
       }
     };
   }
 
-  // Manual mic button compatibility
-  window.addEventListener('akari:manual-listen', () => {
-    try {
-      if (ac) ac.arm('manual');
-    } catch (e) {
-      console.warn('[ACv5] manual arm', e);
+  window.addEventListener('akari:manual-listen', function () {
+    if (!started) {
+      console.warn('[ACv5] manual listen ignored — console not ready yet');
+      return;
     }
+    safeArm('manual');
   });
 
-  boot().catch((e) => {
+  boot().catch(function (e) {
     console.error('[ACv5] boot failed', e);
+    started = false;
     prog(100, 'ACv5 failed: ' + (e && e.message ? e.message : String(e)));
     try {
       window.dispatchEvent(
