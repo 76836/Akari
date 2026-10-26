@@ -107,36 +107,137 @@
     else if (state === 'result') bar.classList.add('result');
   }
 
-  function playWakeChime() {
-    if (lsBool('ac5_ttsGreeting', false)) {
-      return Promise.resolve();
-    }
+  const idleHooks = []; // run once when all of Akari's queued speech has ended
+  const WAKE_GREETINGS = ["what's up?", 'hey', 'hello', 'hi', 'yeah?'];
+
+  // Resolves when the wake chime or spoken greeting has finished playing (event driven,
+  // with a safety timeout so a stalled audio element can never leave the console deaf).
+  function playWakeSound() {
     return new Promise(function (resolve) {
+      let done = false;
+      let guard = null;
+      const finish = function () {
+        if (done) return;
+        done = true;
+        clearTimeout(guard);
+        resolve();
+      };
+      const greet = lsBool('ac5_ttsGreeting', false) && typeof window.speak === 'function';
+      guard = setTimeout(finish, greet ? 15000 : 6000);
+      if (greet) {
+        const phrase = WAKE_GREETINGS[Math.floor(Math.random() * WAKE_GREETINGS.length)];
+        // wait for ALL queued speech to end (a stale tts-end from an earlier sentence must not count)
+        installSpeakTracking();
+        idleHooks.push(finish);
+        try { window.speak(phrase); } catch (e) {
+          console.warn('[ACv5] greeting failed', e);
+          finish();
+        }
+        return;
+      }
       try {
         const a = new Audio('https://76836.github.io/Akari/characters/akari/Summon.mp3');
         a.volume = 1;
-        const done = function () { resolve(); };
-        a.onended = done;
-        a.onerror = done;
-        a.play().catch(done);
+        a.onended = finish;
+        a.onerror = finish;
+        a.play().catch(finish);
       } catch (_) {
-        resolve();
+        finish();
       }
     });
   }
 
   /**
-   * Build config to match the ACv5 demo page as closely as possible.
-   * Default policy = wake → listen immediately (like the working demo with Hold off).
-   * Hold-for-reply only when ac5_holdForReply is true — then we must release after chime/TTS.
+   * Split policy, inline so the adapter does not depend on a policy file being deployed.
+   * - wake route holds (hold_until: reply_done) while the chime / greeting plays, so the
+   *   chime or "what's up?" is never transcribed; this adapter releases it when it ends.
+   * - continued route always holds until Akari has finished speaking her reply.
    */
+  function buildPolicy(holdWake) {
+    const hold = function (ms) {
+      return ['      hold_until: reply_done', '      hold_timeout_ms: ' + ms];
+    };
+    return [
+      'version: "5.0"',
+      'name: "Akari adapter policy"',
+      'globals:',
+      '  silence_timeout_ms: 1600',
+      '  default_listen_ms: 12000',
+      'routes:',
+      '  - name: always_cache',
+      '    to: cache',
+      '    when: always',
+      '  - name: always_wake',
+      '    to: wake',
+      '    when: always',
+      '  - name: post_wake_transcribe',
+      '    to: transcribe',
+      '    when:',
+      '      after_event: wake'
+    ]
+      .concat(holdWake ? hold(20000) : [])
+      .concat([
+        '      and: voice_active',
+        '      until:',
+        '        silence: 1600',
+        '        timeout_ms: 12000',
+        '    lead_in_ms: 320',
+        '    settle_ms: 400',
+        '    flags:',
+        '      hold_until_okay: true',
+        '      require_wake: true',
+        '  - name: continued_listen',
+        '    to: transcribe',
+        '    when:',
+        '      after_event: continued'
+      ])
+      .concat(hold(90000))
+      .concat([
+        '      and: voice_active',
+        '      until:',
+        '        silence: 1600',
+        '        timeout_ms: 7000',
+        '    lead_in_ms: 320',
+        '    flags:',
+        '      hold_until_okay: true',
+        '  - name: manual_listen',
+        '    to: transcribe',
+        '    when:',
+        '      after_event: manual',
+        '      and: voice_active',
+        '      until:',
+        '        silence: 1600',
+        '        timeout_ms: 12000',
+        '    lead_in_ms: 320',
+        '    flags:',
+        '      hold_until_okay: true',
+        'events:',
+        '  wake:',
+        '    source: wake',
+        '  continued:',
+        '    source: bootstrapper',
+        '  manual:',
+        '    source: bootstrapper',
+        '  reply_done:',
+        '    source: bootstrapper',
+        'public:',
+        '  - speech_detected',
+        '  - wake',
+        '  - transcript',
+        '  - partial',
+        ''
+      ])
+      .join('\n');
+  }
+
   function buildConfig() {
     const engine = ls('ac5_transcribeEngine', 'NeMo');
     const threshold = lsNum('ac5_wakeThreshold', 0.5);
-    const hold = lsBool('ac5_holdForReply', false); // default OFF so first command works like the demo
+    // Wait for the chime / greeting before listening (default ON: otherwise it is transcribed).
+    const holdWake = lsBool('ac5_holdForReply', true);
     const continued = lsBool('ac5_continuedConversation', false);
     const detail = lsNum('ac5_promptDetail', 0);
-    const debug = lsBool('ac5_debug', true); // verbose until proven stable
+    const debug = lsBool('ac5_debug', false);
 
     const heads = {
       read: { deviceIndex: 0 },
@@ -146,21 +247,15 @@
         engine: engine,
         prompt: detail > 0 ? { detail: detail } : false
       },
-      record: {}
+      record: {},
+      split: { policy: buildPolicy(holdWake) }
     };
 
     const wakeModel = ls('ac5_wakeModelUrl', '');
-    if (wakeModel) heads.wake.modelUrl = wakeModel;
+    if (wakeModel) heads.wake.keywords = [wakeModel];
 
     const voskUrl = ls('ac5_voskModelUrl', '');
     if (engine === 'Vosk' && voskUrl) heads.transcribe.modelUrl = voskUrl;
-
-    if (hold) {
-      heads.split = {
-        policy: { url: ACv5_BASE + 'policy/hold-for-reply.yaml' }
-      };
-    }
-    // else: ACv5 constructor fills split with default.yaml (wake → listen immediately)
 
     return {
       debug: debug,
@@ -175,39 +270,45 @@
   let ac = null;
   let ready = false;
 
+  // ac.signal / ac.arm return promises: never let a refusal become an unhandled rejection.
   function safeSignal(name) {
     if (!ac || !ready) return false;
-    try {
-      ac.signal(name);
-      return true;
-    } catch (e) {
+    ac.signal(name).catch(function (e) {
       console.warn('[ACv5] signal(' + name + '):', e && e.message ? e.message : e);
-      return false;
-    }
+    });
+    return true;
   }
 
   function safeArm(name, opts) {
     if (!ac || !ready) return false;
-    try {
-      ac.arm(name, opts || {});
-      return true;
-    } catch (e) {
+    ac.arm(name, opts || {}).catch(function (e) {
       console.warn('[ACv5] arm(' + name + '):', e && e.message ? e.message : e);
-      return false;
-    }
+      setVisualState('idle');
+    });
+    return true;
   }
 
-  /**
-   * After wake + chime: if hold-for-reply policy is active, release so the
-   * post_wake_transcribe route can open the mic for the user's command.
-   * (Demo does this with the "Reply finished" button.)
-   */
-  async function afterWakeOpenListen() {
-    await playWakeChime();
-    if (lsBool('ac5_holdForReply', false)) {
-      // Open the listen window that hold_until: reply_done was blocking
-      safeSignal('reply_done');
+  // ---- waiting for the reply (hold_until: reply_done) ----
+  let waiting = null; // { route, token }
+  let waitToken = 0;
+
+  function onWaiting(route) {
+    const token = ++waitToken;
+    waiting = { route: route, token: token };
+    setVisualState('wake');
+    apStatus('Waiting…', { busy: true });
+    if (route === 'post_wake_transcribe') {
+      // chime or spoken greeting, then open the mic for the command
+      playWakeSound().then(function () {
+        if (waiting && waiting.token === token) safeSignal('reply_done');
+      });
     }
+    // continued_listen: released when Akari's speech goes idle (see speak tracking below)
+  }
+
+  function clearWaiting() {
+    waiting = null;
+    waitToken++;
   }
 
   // Same consumer path as v4's audioConsoleResult handler
@@ -265,10 +366,6 @@
           (d && d.score != null ? ' (' + Number(d.score).toFixed(2) + ')' : ''),
         { busy: true }
       );
-      // Chime, then (if hold policy) release so command listening starts — mirrors demo UX
-      afterWakeOpenListen().catch(function (e) {
-        console.warn('[ACv5] afterWakeOpenListen', e);
-      });
     });
 
     ac.on('partial', function (d) {
@@ -289,17 +386,18 @@
     ac.on('status', function (d) {
       if (!d || !d.type || d.type === 'scores') return;
       console.log('[ACv5] status', d.type, d);
-      if (d.type === 'waiting') {
-        setVisualState('wake');
-        apStatus('Waiting (hold)…', { busy: true });
-      }
+      if (d.type === 'waiting') onWaiting(d.route);
       if (d.type === 'listening') {
+        clearWaiting();
         setVisualState('listening');
         apStatus('Listening…', { busy: true });
       }
-      if (d.type === 'hold-timeout' || d.type === 'cancelled') {
-        setVisualState('idle');
-        apStatus('Listen ended', { busy: false, idle: true });
+      if (d.type === 'hold-timeout' || d.type === 'cancelled' || d.type === 'hold-superseded') {
+        clearWaiting();
+        if (d.type !== 'hold-superseded') {
+          setVisualState('idle');
+          apStatus('Listen ended', { busy: false, idle: true });
+        }
       }
     });
 
@@ -311,13 +409,76 @@
     });
   }
 
-  // After a full assistant spoken reply, release hold / allow continued (if enabled)
+  // Track Akari's speech: a reply is several speak() calls, so the continued-conversation hold
+  // is only released when ALL queued speech has ended (debounced). Each akari:tts-end retires
+  // exactly one pending speak(), so a stale end from earlier speech cannot end a newer one.
+  const pendingSpeech = []; // one token per speak() not yet ended
+  let idleTimer = null;
+
+  function onSpeechIdle() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () {
+      if (pendingSpeech.length === 0 && waiting && waiting.route === 'continued_listen') safeSignal('reply_done');
+    }, 700);
+  }
+
+  function speechRetired() {
+    if (pendingSpeech.length) return;
+    idleHooks.splice(0).forEach(function (h) { try { h(); } catch (_) {} });
+    onSpeechIdle();
+  }
+
   window.addEventListener('akari:tts-end', function () {
-    if (!ready) return;
-    if (lsBool('ac5_holdForReply', false) || lsBool('ac5_continuedConversation', false)) {
-      safeSignal('reply_done');
-    }
+    const tok = pendingSpeech.shift();
+    if (tok) clearTimeout(tok.timer);
+    speechRetired();
   });
+
+  // The app's speak() falls back to the browser's speechSynthesis, which never fires
+  // akari:tts-end; synthesise it (only in that case, so Piper & co. are not cut short).
+  function usesWebSpeech() {
+    return !(window.tts && typeof window.tts.speak === 'function') &&
+      typeof window.speakt5 !== 'function' && 'speechSynthesis' in window;
+  }
+
+  function watchWebSpeech() {
+    let n = 0;
+    const iv = setInterval(function () {
+      const ss = window.speechSynthesis;
+      n++;
+      if (n > 3 && !ss.speaking && !ss.pending) {
+        clearInterval(iv);
+        try { window.dispatchEvent(new CustomEvent('akari:tts-end', { detail: { source: 'speechSynthesis' } })); } catch (_) {}
+      } else if (n > 600) clearInterval(iv);
+    }, 200);
+  }
+
+  function installSpeakTracking() {
+    if (typeof window.speak !== 'function') return false;
+    if (window.speak.__ac5Wrapped) return true;
+    const orig = window.speak;
+    window.speak = function ac5SpeakWrapped() {
+      clearTimeout(idleTimer);
+      const tok = {};
+      tok.timer = setTimeout(function () {
+        // dead TTS engine: do not stay busy forever
+        const i = pendingSpeech.indexOf(tok);
+        if (i >= 0) { pendingSpeech.splice(i, 1); speechRetired(); }
+      }, 120000);
+      pendingSpeech.push(tok);
+      const ret = orig.apply(this, arguments);
+      if (usesWebSpeech()) watchWebSpeech();
+      return ret;
+    };
+    window.speak.__ac5Wrapped = true;
+    return true;
+  }
+  if (!installSpeakTracking()) {
+    let tries = 0;
+    const t = setInterval(function () {
+      if (installSpeakTracking() || ++tries > 40) clearInterval(t);
+    }, 500);
+  }
 
   window.addEventListener('akari:manual-listen', function () {
     safeArm('manual');
