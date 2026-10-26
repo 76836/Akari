@@ -199,7 +199,7 @@
                         </div>
                         <div class="script-group">
                             <span class="group-label">Policy</span>
-                            <div class="row"><span>Hold until reply finishes</span><label class="switch"><input type="checkbox" id="ac5Hold" onchange="localStorage.setItem('ac5_holdForReply', this.checked?'true':'false')"><span class="slider"></span></label></div>
+                            <div class="row"><span>Wait for chime / greeting before listening</span><label class="switch"><input type="checkbox" id="ac5Hold" onchange="localStorage.setItem('ac5_holdForReply', this.checked?'true':'false')"><span class="slider"></span></label></div>
                             <div class="row"><span>Continued conversation</span><label class="switch"><input type="checkbox" id="ac5Continued" onchange="localStorage.setItem('ac5_continuedConversation', this.checked?'true':'false')"><span class="slider"></span></label></div>
                             <div class="row"><span>Spoken wake phrase (skip Summon.mp3)</span><label class="switch"><input type="checkbox" id="ac5TtsGreet" onchange="localStorage.setItem('ac5_ttsGreeting', this.checked?'true':'false')"><span class="slider"></span></label></div>
                             <div class="row"><span>Debug</span><label class="switch"><input type="checkbox" id="ac5Debug" onchange="localStorage.setItem('ac5_debug', this.checked?'true':'false')"><span class="slider"></span></label></div>
@@ -740,7 +740,7 @@
                 const v = localStorage.getItem(key);
                 el.checked = v == null ? !!defTrue : v === 'true';
             }
-            setC('ac5Hold', 'ac5_holdForReply', false);
+            setC('ac5Hold', 'ac5_holdForReply', true);
             setC('ac5Continued', 'ac5_continuedConversation', false);
             setC('ac5TtsGreet', 'ac5_ttsGreeting', false);
             setC('ac5Debug', 'ac5_debug', false);
